@@ -1,75 +1,44 @@
 # AgentOffer Protocol
 
-The open contract for discovering commercial offers, preserving attribution,
+The public contract for discovering commercial offers, preserving attribution,
 and reporting conversion events between AI agents, AON, and Offer Providers.
 
-## Current normative contract: Protocol v0.3
+## Current contract
 
-Protocol v0.3 is the current public contract for new integrations. The
-checked-in specification, JSON Schemas, TypeScript types, examples, and
-contract vectors define the baseline. Runtime availability is deployment-owned:
-an implementation must provide conformance evidence before accepting v0.3
-traffic. Protocol v0.2 remains an explicit compatibility path and is unchanged.
+Start a new integration from the role that matches your system.
 
-## Start here
+## Choose your path
 
-For a directly loadable integration guide, use the canonical
-[Agent v0.3 quickstart](AGENT-QUICKSTART-v0.3.md). Partner integrations begin
-with the [OfferProvider API v0.3](specs/offer-provider-api-v0.3.md). These are
-the public entry points; the other public repositories link here rather than
-copying the steps.
+- **Building an Agent:** start with the [Agent quickstart](v0.3/quickstarts/agent.md), then use the [Query API](v0.3/specs/query-api.md), [Offer schema](v0.3/specs/offer-schema.md), and [Postback contract](v0.3/specs/postback.md).
+- **Building an Offer Provider:** start with the [Partner quickstart](v0.3/quickstarts/partner.md), then implement the [OfferProvider API](v0.3/specs/offer-provider-api.md) and [Postback contract](v0.3/specs/postback.md).
+- **Using MCP:** review [MCP tools](v0.3/specs/mcp-tools.md) and [feedback and watches](v0.3/specs/mcp-feedback-watches.md).
+- **Using shared classifications and targeting:** review the [category taxonomy](v0.3/specs/category-taxonomy.md) and [Offer location and age targeting](v0.3/specs/location-targeting.md).
 
-| Surface | Normative specification | Machine-readable contract |
-|---|---|---|
-| Agent-facing Query | [Query API v0.3](specs/query-api-v0.3.md) | `offer-query-schema-v0.3.json` and `offer-query-response-v0.3.json` |
-| AON-to-Partner discovery | [OfferProvider API v0.3](specs/offer-provider-api-v0.3.md) | `offer-provider-request-v0.3.json` and `offer-provider-response-v0.3.json` |
-| Returned Offer | [Offer Schema v0.3](specs/offer-schema-v0.3.md) | `offer-schema-v0.3.json` and `offer-v0.3.types.ts` |
-| Conversion callbacks | [Postback v0.2](specs/postback.md) | Partner and Agent Postback payload schemas |
-| Taxonomy | [Category Taxonomy](specs/category-taxonomy.md) | AON Taxonomy v1 registry |
-| Contract lifecycle | [Contract Governance](specs/contract-governance.md) | `protocol/docs/contract-governance/contracts.json` |
+See the [current contract overview](v0.3/README.md) for scope, lifecycle, and
+source boundaries.
 
-Machine-readable files live in the
-[`agentoffernetwork/schema`](https://github.com/agentoffernetwork/schema)
-repository and canonical payloads live in
-[`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples).
+Machine-readable schemas, validators, and canonical payloads are published in the matching
+[schema](https://github.com/agentoffernetwork/schema) and
+[examples](https://github.com/agentoffernetwork/examples)
+repositories. Individual deployments publish their endpoint, access, and
+conformance details separately.
 
-## v0.3 contract boundaries
+The `v0.3/` directory is the current release surface. Exact repository commits
+come from the protected release manifest rather than mutable branch URLs.
 
-- `POST /v1/offers/query` remains the HTTP shell. The path major and protocol
-  payload version are separate concerns.
-- `AON-Protocol-Version: 0.3` selects v0.3. A successful response echoes the
-  same version when the deployment supports it.
-- Requests with `0.2` keep the existing v0.2 behavior. Unknown or unsupported
-  versions fail closed; implementations must not silently reinterpret payloads.
-- Query and OfferProvider share one request business core. Provider dispatch
-  additionally requires `request_id`; transport authentication and error
-  handling remain channel-specific.
-- v0.3 carries current-turn intent, optional structured context, guided
-  refinements/follow-up topics, optional `listing_source`, and the
-  `thinking_mode`/`force_offer` controls described by the v0.3 specs.
+## Earlier contracts
 
-## Runtime status
-
-The repository publishes the adopted v0.3 source contract. Implementations must
-not infer runtime availability from the presence of these files; API, MCP,
-Provider, and Host owners publish deployment-specific conformance evidence.
-
-## v0.2 compatibility status
-
-Protocol v0.2 remains available for existing integrations and explicit
-compatibility requests. Its historical source files and release evidence are
-unchanged. New integrations should start from the v0.3 quickstart.
-
-## Historical material
-
-v0.1 files are retained only as historical references. They are not the
-default for new integrations, are not a compatibility obligation of the v0.2
-baseline, and are not a prerequisite for the v0.2 contract gate.
+Maintainers of existing integrations can use the immutable
+[`v0.1.0-legacy`](https://github.com/agentoffernetwork/protocol/tree/v0.1.0-legacy)
+and
+[`v0.2.0-legacy`](https://github.com/agentoffernetwork/protocol/tree/v0.2.0-legacy)
+tags.
 
 ## Contributing
 
-Editorial fixes may be submitted directly. Semantic or breaking changes must
-follow the RFC and contract-governance process. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Editorial fixes may be submitted directly. Semantic or breaking changes follow
+the RFC and [contract lifecycle](v0.3/governance/contract-lifecycle.md). See
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 This specification is licensed under
 [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/).
