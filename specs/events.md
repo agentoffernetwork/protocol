@@ -8,7 +8,7 @@
 
 This document defines the event payloads used for attribution and revenue tracking in AgentOffer Protocol v0.1. These events are shared between the recommendation layer, the tracking service, and downstream settlement systems.
 
-The reference Offer Schema in `/Volumes/delion/workspace/addatasync/agentoffer-schema` does not define standalone click or conversion event objects, but it does define the surrounding settlement context that these events must support, including:
+The canonical Offer Schema does not define standalone click or conversion event objects, but it does define the surrounding settlement context that these events must support, including:
 
 - `commission.payout_level`
 - `commission.validation_window_days`

@@ -8,7 +8,7 @@
 
 This guide defines the minimum disclosure expectations for agents that recommend monetized offers through AgentOffer Protocol v0.1. The objective is to make promotional intent clear to end users and to support responsible affiliate-style recommendations from the start.
 
-This guide complements the `compliance` object in the reference Offer Schema from `/Volumes/delion/workspace/addatasync/agentoffer-schema`, especially:
+This guide complements the `compliance` object in the canonical Offer Schema, especially:
 
 - `compliance.disclosure_required`
 - `compliance.disclosure_text`

@@ -2,16 +2,18 @@
 
 **Version**: 0.1
 **Status**: Draft
-**Last Updated**: 2026-03-20
+**Last Updated**: 2026-03-22
 
 ## Introduction
 
-This document defines the canonical `Offer` object for AgentOffer Protocol v0.1. It is derived from the reference schema and type definitions in `/Volumes/delion/workspace/addatasync/agentoffer-schema`, and is intended to be the normative human-readable companion to the JSON Schema and TypeScript model.
+This document defines the canonical `Offer` object for AgentOffer Protocol v0.1. It is aligned with the canonical machine-readable schema and type definitions maintained for AgentOffer, and is intended to be the normative human-readable companion to the JSON Schema and TypeScript model.
 
 The schema is optimized for two goals:
 
 - settlement accuracy, including commission calculation, attribution, and reconciliation
 - matching quality, including semantic relevance, ranking signals, and negative filtering for agent recommendations
+
+It is also intended to stay adaptable to existing industry formats such as Schema.org commerce markup, Google Merchant-style feeds, GS1 product identifiers, and OpenRTB-style extension patterns.
 
 ## Required Top-Level Fields
 
@@ -35,6 +37,8 @@ The schema is optimized for two goals:
 | Field | Type | Required | Description |
 |------|------|----------|-------------|
 | `id` | string | Yes | Unique offer ID with pattern `^ao_[0-9A-Za-z]{26}$`. |
+| `sku` | string | No | Merchant-facing stock keeping unit or seller-specific product identifier. |
+| `variant_group_id` | string | No | Stable identifier used to group product variants. This is the closest AgentOffer equivalent to Google Merchant `item_group_id` and Schema.org `inProductGroupWithID` / `productGroupID`. |
 | `external_ids` | object | No | External platform identifiers for deduplication and reconciliation. |
 
 Supported `external_ids` keys include:
@@ -49,6 +53,12 @@ Supported `external_ids` keys include:
 - `isbn`
 - `asin`
 - `mpn`
+
+Notes:
+
+- When available, `gtin` should contain a GS1-compatible GTIN and must not be guessed.
+- `mpn` should contain the manufacturer-assigned part number when applicable.
+- `sku` is distinct from `external_ids.advertiser_sku`; `sku` is the canonical merchant-facing identifier in the AgentOffer profile.
 
 ### Core Content
 
@@ -251,6 +261,11 @@ This section is essential for recommendation quality and was entirely missing fr
 | `start_date` | string | No | Activation timestamp. |
 | `end_date` | string | No | Expiration timestamp. |
 
+Compatibility notes:
+
+- `start_date` is the closest AgentOffer equivalent to Schema.org `validFrom`.
+- `end_date` is the closest AgentOffer equivalent to Schema.org `validThrough` and merchant validity windows.
+
 `status` values:
 
 - `draft`
@@ -312,6 +327,11 @@ These are platform-computed, mostly read-only signals used for ranking and trust
 - `service`
 - `subscription`
 
+Compatibility notes:
+
+- This section is intentionally lighter than Schema.org `OfferShippingDetails` and Google shipping-policy markup.
+- Implementations that need rich shipping or return-policy export should use `fulfillment` for core ranking signals and place richer adapter-specific details under `ext.schema_org` or `ext.google_merchant`.
+
 ### Physical Product Attributes
 
 | Field | Type | Required | Description |
@@ -348,14 +368,72 @@ These are platform-computed, mostly read-only signals used for ranking and trust
 | `created_at` | string | No | Offer creation timestamp in AgentOffer. |
 | `updated_at` | string | No | Offer last update timestamp. |
 
+Recommended extension namespaces:
+
+- `ext.schema_org` for export-oriented markup details such as `businessFunction`, `shippingDetails`, or richer return-policy objects
+- `ext.google_merchant` for feed-specific attributes that should not become core protocol fields
+- `ext.openrtb_native` for native-ad or decomposed asset adapter payloads
+
+## Industry Compatibility
+
+### Schema.org / Merchant Listing Alignment
+
+The current AgentOffer model aligns most naturally with `Product` + `Offer` style markup:
+
+| AgentOffer | Closest external concept |
+|------------|--------------------------|
+| `title` | `Product.name` |
+| `description` | `Product.description` |
+| `url` | canonical product URL |
+| `sku` | `Offer.sku` |
+| `price.amount` | `Offer.price` |
+| `price.currency` / `currency` | `Offer.priceCurrency` |
+| `availability` | `Offer.availability` |
+| `attributes.brand` | `Product.brand` |
+| `attributes.condition` | `itemCondition` |
+| `start_date` / `end_date` | `validFrom` / `validThrough` |
+| `variant_group_id` | `inProductGroupWithID` / `productGroupID` / Google `item_group_id` |
+
+### Google Merchant Feed Alignment
+
+The following fields are especially important when adapting AgentOffer offers into merchant-style feeds:
+
+- `sku`
+- `variant_group_id`
+- `attributes.brand`
+- `external_ids.gtin`
+- `external_ids.mpn`
+- `attributes.condition`
+- `availability`
+- `geo_restrictions.allowed_countries` / `blocked_countries`
+
+### GS1 Identifier Guidance
+
+- If `external_ids.gtin` is present, it should be treated as a high-trust global identifier.
+- Implementations should validate GTIN structure and, where operationally feasible, verify against GS1 / Verified by GS1 workflows.
+- `gtin` should not be generated from guesses, retailer scraping, or weak heuristics.
+
+### OpenRTB Native / Ad-Tech Alignment
+
+AgentOffer is not an ad bid schema, but it should remain adaptable to decomposed native inventory objects:
+
+- `title` maps naturally to title assets
+- `description` and `short_description` map naturally to body/text assets
+- `media` maps naturally to image assets
+- `compliance.disclosure_*` can inform ad-disclosure or sponsored-label rendering
+- `ext` should remain the main compatibility surface for OpenRTB-specific export details
+
 ## Validation Rules
 
 - `id` must match `^ao_[0-9A-Za-z]{26}$`.
+- `sku`, when present, should be stable within the seller or source system and should not be reused across unrelated products.
+- `variant_group_id`, when present, should be stable across all variants in the same family.
 - `url`, `logo_url`, media URLs, and terms URLs must be valid URIs when present.
 - `price.currency` and `currency` must use uppercase ISO 4217 codes.
 - `commission.value` uses decimal notation for percentage commissions, for example `0.20` means 20%.
 - `tags` must be lowercase and hyphenated, with no duplicates.
 - `geo_restrictions.allowed_countries` and `blocked_countries` must use ISO 3166-1 alpha-2 country codes.
+- `external_ids.gtin`, when present, should use a normalized GTIN value without display formatting.
 - `schema_version`, when present, must equal `0.1`.
 - The reference JSON Schema sets `additionalProperties: false` at the top level; implementations should not invent top-level fields outside this model.
 
@@ -364,6 +442,8 @@ These are platform-computed, mostly read-only signals used for ranking and trust
 ```json
 {
   "id": "ao_01HX2B3C4D5E6F7G8H9J0KABCD",
+  "sku": "notion-team-monthly-usd",
+  "variant_group_id": "notion-team-plan",
   "title": "Notion Team Plan",
   "description": "Notion is an all-in-one workspace that combines notes, documents, knowledge bases, project management, and collaboration tools.",
   "short_description": "All-in-one workspace for notes, docs, and project management — the operating system for your team.",
@@ -443,10 +523,13 @@ These are platform-computed, mostly read-only signals used for ranking and trust
 - `category` is structured so the platform can preserve both AgentOffer taxonomy and advertiser-native classifications.
 - Recommendation-specific metadata is part of the offer model because matching quality depends on richer context than catalog metadata alone.
 - Platform-computed `quality` fields are included so ranking and trust signals can be distributed without redefining a second analytics object.
+- `sku` and `variant_group_id` are included as optional interoperability fields because merchant feeds and structured-data adapters depend on stable seller identifiers and variant family grouping.
+- Rich shipping, return, and external markup details are intentionally kept out of the core schema and routed through `ext` adapter namespaces unless repeated implementation demand justifies promotion into the base model.
 
 ## Changelog
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 0.1 | 2026-03-20 | Initial draft. |
-| 0.1 | 2026-03-20 | Rewritten to align with the reference schema in `/Volumes/delion/workspace/addatasync/agentoffer-schema`, replacing the earlier simplified field model. |
+| 0.1 | 2026-03-20 | Rewritten to align with the canonical machine-readable schema and type definitions, replacing the earlier simplified field model. |
+| 0.1 | 2026-03-22 | Added interoperability guidance for Schema.org, Google Merchant, GS1, and OpenRTB-style adapters; added optional `sku` and `variant_group_id` fields. |

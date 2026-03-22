@@ -8,7 +8,7 @@
 
 This document defines the minimum identity model required to register and recognize an AI agent within AgentOffer Protocol v0.1. The goal is to support attribution, administration, and safe platform operations without introducing unnecessary complexity in the first protocol release.
 
-Unlike the Offer object, agent identity is not modeled as a standalone schema in `/Volumes/delion/workspace/addatasync/agentoffer-schema`. This document therefore acts as a complementary protocol spec. Its main alignment point with the reference schema is the repeated use of `agent_id` in source tracking templates and event attribution flows.
+Unlike the Offer object, agent identity is not modeled as a standalone schema in the current canonical schema package. This document therefore acts as a complementary protocol spec. Its main alignment point with the Offer Schema is the repeated use of `agent_id` in source tracking templates and event attribution flows.
 
 ## Agent Registration Fields
 

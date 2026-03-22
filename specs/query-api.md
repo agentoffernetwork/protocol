@@ -2,7 +2,7 @@
 
 **Version**: 0.1
 **Status**: Draft
-**Last Updated**: 2026-03-20
+**Last Updated**: 2026-03-22
 
 ## Introduction
 
@@ -28,6 +28,12 @@ Authorization: Bearer {api_key}
 |-----------|------|----------|---------|-------------|
 | `q` | string | No | — | Free-text keyword search over offer title, description, and tags. |
 | `category_primary` | string | No | — | Filter by `category.primary` in the Offer Schema. |
+| `brand` | string | No | — | Filter by `attributes.brand` for physical or branded products. |
+| `availability` | enum | No | — | Filter by availability state such as `in_stock`, `out_of_stock`, `preorder`, `limited`, or `always_available`. |
+| `country` | string | No | — | Filter by country availability using ISO 3166-1 alpha-2 code, evaluated against geo restrictions. |
+| `source_type` | string | No | — | Filter by `source.type` such as `impact`, `cj`, `partnerstack`, or `direct`. |
+| `sku` | string | No | — | Filter by canonical merchant-facing SKU. |
+| `variant_group_id` | string | No | — | Filter by variant family or product group identifier. |
 | `min_price` | number | No | — | Minimum offer price amount. |
 | `max_price` | number | No | — | Maximum offer price amount. |
 | `payout_level` | enum | No | — | Filter by `commission.payout_level`: `item`, `order`, `click`, `lead`, or `install`. |
@@ -49,6 +55,8 @@ Authorization: Bearer {api_key}
   "data": [
     {
       "id": "ao_01HX2B3C4D5E6F7G8H9J0KABCD",
+      "sku": "notion-team-monthly-usd",
+      "variant_group_id": "notion-team-plan",
       "title": "Notion Team Plan",
       "description": "Notion is an all-in-one workspace that combines notes, documents, knowledge bases, project management, and collaboration tools.",
       "url": "https://www.notion.so/product",
@@ -69,6 +77,9 @@ Authorization: Bearer {api_key}
       "category": {
         "primary": "saas_tools",
         "secondary": "project_management"
+      },
+      "attributes": {
+        "brand": "Notion"
       },
       "status": "active"
     }
@@ -110,7 +121,7 @@ Authorization: Bearer {api_key}
 ### Example Request
 
 ```http
-GET /v1/offers?q=notion&category_primary=saas_tools&payout_level=order&limit=20 HTTP/1.1
+GET /v1/offers?q=notion&category_primary=saas_tools&brand=Notion&availability=always_available&payout_level=order&limit=20 HTTP/1.1
 Host: api.agentoffernetwork.com
 Authorization: Bearer sk_live_example
 Accept: application/json
@@ -133,9 +144,11 @@ Accept: application/json
 - Cursor pagination is preferred over total-count pagination because it scales better and avoids expensive count queries.
 - Authorization is header-based to keep the API compatible with typical server-side and agent-side HTTP clients.
 - The response returns full Offer objects that conform to the Offer Schema, including nested `commission`, `advertiser`, and `category` objects.
+- The request surface includes compatibility-oriented filters such as `brand`, `availability`, `country`, `sku`, and `variant_group_id` because implementers often need to bridge AgentOffer offers with merchant feeds, structured-data adapters, and catalog tooling.
 
 ## Changelog
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 0.1 | 2026-03-20 | Initial draft. |
+| 0.1 | 2026-03-22 | Added compatibility-oriented filters for brand, availability, geography, source type, SKU, and variant grouping. |
