@@ -108,23 +108,26 @@ Design notes:
 
 ### Category Types
 
-Six registered industry verticals. The `entertainment` type uses `attributes.sub_type` for finer classification.
+Six registered industry verticals. All types use `attributes.sub_type` for finer industry-specific classification. Each `sub_type` defines its own set of required and optional attribute fields.
 
 | `category.type` | Description | `sub_type` values |
 |-----------------|-------------|-------------------|
-| `software_saas` | SaaS, subscription software, developer tools | — |
-| `travel_hospitality` | Hotels, flights, vacation rentals | — |
-| `education` | Online courses, certification, training | — |
-| `financial_service` | Credit cards, loans, insurance, payments | — |
-| `electronics` | Consumer electronics, smart devices | — |
+| `software_saas` | SaaS, subscription software, developer tools | `project_management`, `design`, `development_tools`, `crm`, `analytics`, `communication`, `security`, `ai_tools` |
+| `travel_hospitality` | Hotels, flights, vacation rentals, dining | `hotel`, `flight`, `car_rental`, `vacation_package`, `restaurant`, `attraction` |
+| `education` | Online courses, certification, training | `online_course`, `certification`, `bootcamp`, `language_learning`, `tutoring`, `academic_program` |
+| `financial_service` | Credit cards, loans, insurance, payments | `credit_card`, `insurance`, `loan`, `investment`, `banking`, `payment` |
+| `electronics` | Consumer electronics, smart devices | `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera` |
 | `entertainment` | Games, streaming, AI companions, betting | `game`, `streaming_video`, `ai_companion`, `social_audio`, `sports_betting`, `music_audio`, `live_streaming` |
 
-Each type defines its own set of required and optional attribute fields. The tables below are the normative reference. See also `category-attributes.types.ts` for the machine-readable TypeScript definitions.
+Each type shares a set of common fields across all its sub_types, plus sub_type-specific fields. The tables below are the normative reference. See also `category-attributes.types.ts` for the machine-readable TypeScript definitions.
 
 #### `software_saas` Attributes
 
+Common fields shared across all `software_saas` sub_types:
+
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
+| `sub_type` | string | REQUIRED | Software sub-category: `project_management`, `design`, `development_tools`, `crm`, `analytics`, `communication`, `security`, `ai_tools`. |
 | `plan_type` | string | REQUIRED | Subscription or pricing model: `free_trial`, `freemium`, `paid`, `open_source`. |
 | `platform` | array | REQUIRED | Supported platforms: `web`, `desktop`, `mobile`, `api`. |
 | `trial_days` | integer | OPTIONAL | Free trial duration in days. |
@@ -133,56 +136,355 @@ Each type defines its own set of required and optional attribute fields. The tab
 | `seats_included` | integer | OPTIONAL | Number of seats included in the plan. |
 | `deployment` | string | OPTIONAL | Deployment model: `cloud`, `on_premise`, `hybrid`. |
 
-#### `travel_hospitality` Attributes
+##### `software_saas` → `project_management`
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `property_type` | string | REQUIRED | Property or service type: `hotel`, `resort`, `hostel`, `apartment`, `villa`, `homestay`. |
+| `methodologies` | array | OPTIONAL | Supported methodologies: `kanban`, `scrum`, `waterfall`, `gantt`. |
+| `max_projects` | integer | OPTIONAL | Maximum projects or boards allowed. |
+| `time_tracking` | boolean | OPTIONAL | Whether time tracking is included. |
+
+##### `software_saas` → `design`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `design_type` | string | OPTIONAL | Design tool category: `ui_ux`, `graphic`, `video`, `3d`, `whiteboard`. |
+| `export_formats` | array | OPTIONAL | Export formats supported. |
+| `real_time_collab` | boolean | OPTIONAL | Whether real-time collaboration is supported. |
+
+##### `software_saas` → `development_tools`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `dev_category` | string | OPTIONAL | Tool category: `ide`, `ci_cd`, `hosting`, `monitoring`, `database`, `testing`. |
+| `supported_languages` | array | OPTIONAL | Supported programming languages. |
+| `self_hosted` | boolean | OPTIONAL | Whether self-hosted option exists. |
+
+##### `software_saas` → `crm`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `max_contacts` | integer | OPTIONAL | Maximum contacts or leads allowed. |
+| `email_automation` | boolean | OPTIONAL | Whether email automation is included. |
+| `sales_pipeline` | boolean | OPTIONAL | Whether sales pipeline is included. |
+
+##### `software_saas` → `analytics`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `analytics_type` | string | OPTIONAL | Analytics focus: `web`, `product`, `marketing`, `business_intelligence`. |
+| `data_retention` | string | OPTIONAL | Data retention period. |
+| `real_time` | boolean | OPTIONAL | Whether real-time dashboards are available. |
+
+##### `software_saas` → `communication`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `channels` | array | OPTIONAL | Communication channels: `chat`, `video`, `voice`, `email`, `forum`. |
+| `max_participants` | integer | OPTIONAL | Maximum participants in a call or meeting. |
+| `screen_sharing` | boolean | OPTIONAL | Whether screen sharing is supported. |
+
+##### `software_saas` → `security`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `security_type` | string | OPTIONAL | Security focus: `endpoint`, `network`, `identity`, `encryption`, `compliance`. |
+| `certifications` | array | OPTIONAL | Compliance certifications held. |
+| `soc2_compliant` | boolean | OPTIONAL | Whether SOC 2 compliant. |
+
+##### `software_saas` → `ai_tools`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `ai_category` | string | OPTIONAL | AI capability: `text_generation`, `image_generation`, `code_assistant`, `data_analysis`, `automation`. |
+| `model_provider` | string | OPTIONAL | Underlying model or engine. |
+| `rate_limits` | string | OPTIONAL | API rate limits description. |
+
+#### `travel_hospitality` Attributes
+
+Common fields shared across all `travel_hospitality` sub_types:
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `sub_type` | string | REQUIRED | Travel sub-category: `hotel`, `flight`, `car_rental`, `vacation_package`, `restaurant`, `attraction`. |
 | `destination` | object | REQUIRED | Destination location with `city` and `country` fields. |
+| `cancellation_policy` | string | OPTIONAL | Cancellation policy summary. |
+
+##### `travel_hospitality` → `hotel`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `property_type` | string | OPTIONAL | Property classification: `hotel`, `resort`, `hostel`, `apartment`, `villa`, `homestay`. |
 | `star_rating` | number | OPTIONAL | Star or quality rating (1–5). |
 | `amenities` | array | OPTIONAL | Available amenities. |
 | `room_type` | string | OPTIONAL | Room or unit type. |
+| `check_in_time` | string | OPTIONAL | Check-in time. |
+| `check_out_time` | string | OPTIONAL | Check-out time. |
 | `breakfast_included` | boolean | OPTIONAL | Whether breakfast is included. |
-| `cancellation_policy` | string | OPTIONAL | Cancellation policy summary. |
 | `max_guests` | integer | OPTIONAL | Maximum guest count. |
+
+##### `travel_hospitality` → `flight`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `airline` | string | REQUIRED | Airline name. |
+| `route` | object | REQUIRED | Route with `origin` and `destination` fields. |
+| `cabin_class` | string | REQUIRED | Cabin class: `economy`, `premium_economy`, `business`, `first`. |
+| `stops` | integer | OPTIONAL | Number of stops (0 = direct). |
+| `baggage_included` | boolean | OPTIONAL | Whether baggage is included. |
+| `in_flight_wifi` | boolean | OPTIONAL | Whether in-flight wifi is available. |
+
+##### `travel_hospitality` → `car_rental`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `vehicle_type` | string | REQUIRED | Vehicle category: `economy`, `compact`, `midsize`, `suv`, `luxury`, `van`. |
+| `pickup_location` | string | REQUIRED | Pickup location. |
+| `insurance_included` | boolean | OPTIONAL | Whether insurance is included. |
+| `mileage_policy` | string | OPTIONAL | Mileage policy: `unlimited`, `limited`. |
+| `driver_age_min` | integer | OPTIONAL | Minimum driver age. |
+
+##### `travel_hospitality` → `vacation_package`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `duration_nights` | integer | REQUIRED | Duration in nights. |
+| `includes` | array | REQUIRED | Included components: `flight`, `hotel`, `meals`, `activities`, `transfer`. |
+| `group_size` | integer | OPTIONAL | Maximum group size. |
+| `all_inclusive` | boolean | OPTIONAL | Whether the package is all-inclusive. |
+
+##### `travel_hospitality` → `restaurant`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `cuisine_type` | string | REQUIRED | Cuisine type. |
+| `price_range` | string | REQUIRED | Price range indicator: `$`, `$$`, `$$$`, `$$$$`. |
+| `reservation_required` | boolean | OPTIONAL | Whether reservation is required. |
+| `michelin_stars` | integer | OPTIONAL | Michelin stars (0–3). |
+| `dietary_options` | array | OPTIONAL | Dietary options available. |
+
+##### `travel_hospitality` → `attraction`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `attraction_type` | string | REQUIRED | Attraction classification: `theme_park`, `museum`, `tour`, `show`, `sports_event`. |
+| `duration` | string | OPTIONAL | Duration description. |
+| `age_restriction` | string | OPTIONAL | Age restriction. |
+| `indoor_outdoor` | string | OPTIONAL | Setting: `indoor`, `outdoor`, `both`. |
 
 #### `education` Attributes
 
+Common fields shared across all `education` sub_types:
+
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `format` | string | REQUIRED | Delivery format: `online`, `offline`, `hybrid`. |
+| `sub_type` | string | REQUIRED | Education sub-category: `online_course`, `certification`, `bootcamp`, `language_learning`, `tutoring`, `academic_program`. |
 | `subject` | string | REQUIRED | Subject or topic area. |
 | `level` | string | REQUIRED | Target learner level: `beginner`, `intermediate`, `advanced`, `professional`. |
-| `duration` | string | OPTIONAL | Course duration description. |
-| `instructor` | string | OPTIONAL | Instructor or institution name. |
-| `certification` | boolean | OPTIONAL | Whether a certificate is awarded. |
 | `language` | string | OPTIONAL | Language of instruction. |
+| `certification` | boolean | OPTIONAL | Whether a certificate is awarded. |
+
+##### `education` → `online_course`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `format` | string | REQUIRED | Delivery format: `video`, `interactive`, `live`, `self_paced`. |
+| `duration_hours` | number | OPTIONAL | Course duration in hours. |
+| `instructor` | string | OPTIONAL | Instructor name. |
 | `enrollment_deadline` | string | OPTIONAL | Enrollment deadline. |
+
+##### `education` → `certification`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `issuing_body` | string | REQUIRED | Issuing body or organization. |
+| `validity_years` | integer | OPTIONAL | Certification validity in years. |
+| `exam_format` | string | OPTIONAL | Exam format: `online`, `in_person`, `proctored`. |
+| `prerequisites` | array | OPTIONAL | Prerequisites description. |
+
+##### `education` → `bootcamp`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `format` | string | REQUIRED | Delivery format: `online`, `in_person`, `hybrid`. |
+| `duration_weeks` | integer | REQUIRED | Duration in weeks. |
+| `tech_stack` | array | OPTIONAL | Technology stack covered. |
+| `job_placement_rate` | number | OPTIONAL | Job placement rate percentage. |
+| `career_services` | boolean | OPTIONAL | Whether career services are included. |
+
+##### `education` → `language_learning`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `target_language` | string | REQUIRED | Target language to learn. |
+| `format` | string | REQUIRED | Learning format: `app`, `live_tutor`, `self_paced`, `immersive`. |
+| `native_language_support` | array | OPTIONAL | Native languages supported for instruction. |
+| `speech_recognition` | boolean | OPTIONAL | Whether speech recognition is used. |
+
+##### `education` → `tutoring`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `format` | string | REQUIRED | Delivery format: `online`, `in_person`. |
+| `session_duration_minutes` | integer | OPTIONAL | Session duration in minutes. |
+| `tutor_qualification` | string | OPTIONAL | Tutor qualification description. |
+| `group_size` | integer | OPTIONAL | Maximum group size (1 = private). |
+
+##### `education` → `academic_program`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `institution` | string | REQUIRED | Institution name. |
+| `degree_type` | string | REQUIRED | Degree type: `bachelor`, `master`, `phd`, `diploma`, `associate`. |
+| `field_of_study` | string | REQUIRED | Field of study. |
+| `duration_years` | number | OPTIONAL | Duration in years. |
+| `format` | string | OPTIONAL | Delivery format: `on_campus`, `online`, `hybrid`. |
+| `accreditation` | string | OPTIONAL | Accreditation body. |
 
 #### `financial_service` Attributes
 
+Common fields shared across all `financial_service` sub_types:
+
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `service_type` | string | REQUIRED | Financial product type: `credit_card`, `loan`, `insurance`, `investment`, `payment`, `banking`. |
+| `sub_type` | string | REQUIRED | Financial sub-category: `credit_card`, `insurance`, `loan`, `investment`, `banking`, `payment`. |
 | `provider_license` | string | REQUIRED | Regulatory license or registration identifier. |
-| `apr_range` | string | OPTIONAL | Annual percentage rate range. |
-| `annual_fee` | string | OPTIONAL | Annual fee description. |
-| `rewards_type` | string | OPTIONAL | Rewards or cashback type. |
+
+##### `financial_service` → `credit_card`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `annual_fee` | string | REQUIRED | Annual fee amount or description. |
+| `apr_range` | string | REQUIRED | Annual percentage rate range. |
+| `rewards_type` | string | REQUIRED | Rewards program type: `points`, `cashback`, `miles`, `none`. |
+| `sign_up_bonus` | string | OPTIONAL | Sign-up bonus description. |
 | `min_credit_score` | integer | OPTIONAL | Minimum credit score required. |
-| `terms_months` | integer | OPTIONAL | Contract term in months. |
+| `foreign_transaction_fee` | string | OPTIONAL | Foreign transaction fee percentage. |
+
+##### `financial_service` → `insurance`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `insurance_type` | string | REQUIRED | Insurance product type: `life`, `health`, `auto`, `home`, `travel`, `pet`. |
+| `premium_frequency` | string | REQUIRED | Premium payment frequency: `monthly`, `quarterly`, `annually`. |
+| `coverage_amount` | string | OPTIONAL | Coverage amount description. |
+| `deductible` | string | OPTIONAL | Deductible amount description. |
+| `coverage_details` | array | OPTIONAL | Coverage details summary. |
+
+##### `financial_service` → `loan`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `loan_type` | string | REQUIRED | Loan product type: `personal`, `mortgage`, `auto`, `student`, `business`. |
+| `interest_rate_range` | string | REQUIRED | Interest rate range. |
+| `term_months` | integer | REQUIRED | Loan term in months. |
+| `max_amount` | string | OPTIONAL | Maximum loan amount. |
+| `collateral_required` | boolean | OPTIONAL | Whether collateral is required. |
+
+##### `financial_service` → `investment`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `investment_type` | string | REQUIRED | Investment product type: `brokerage`, `robo_advisor`, `crypto`, `fund`. |
+| `min_investment` | string | OPTIONAL | Minimum investment amount. |
+| `management_fee` | string | OPTIONAL | Management fee percentage. |
+| `asset_classes` | array | OPTIONAL | Asset classes available. |
+
+##### `financial_service` → `banking`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `account_type` | string | REQUIRED | Account type: `checking`, `savings`, `cd`, `money_market`. |
+| `monthly_fee` | string | OPTIONAL | Monthly maintenance fee. |
+| `apy` | string | OPTIONAL | Annual percentage yield. |
+| `min_balance` | string | OPTIONAL | Minimum balance requirement. |
+| `deposit_insured` | boolean | OPTIONAL | Whether FDIC or equivalent insured. |
+
+##### `financial_service` → `payment`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `payment_type` | string | REQUIRED | Payment service type: `wallet`, `processor`, `transfer`, `bnpl`. |
+| `supported_currencies` | array | REQUIRED | Supported currencies. |
+| `transaction_fee` | string | OPTIONAL | Transaction fee description. |
+| `settlement_time` | string | OPTIONAL | Settlement time description. |
 
 #### `electronics` Attributes
 
+Common fields shared across all `electronics` sub_types:
+
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
+| `sub_type` | string | REQUIRED | Electronics sub-category: `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera`. |
 | `brand` | string | REQUIRED | Manufacturer brand. |
 | `model` | string | REQUIRED | Product model name or number. |
 | `condition` | string | REQUIRED | Item condition: `new`, `refurbished`, `used`. |
-| `specifications` | object | OPTIONAL | Technical specifications as key-value pairs. |
 | `warranty_months` | integer | OPTIONAL | Warranty duration in months. |
 | `color` | string | OPTIONAL | Color or finish. |
-| `connectivity` | array | OPTIONAL | Connectivity options. |
-| `battery_life` | string | OPTIONAL | Battery life description. |
+
+##### `electronics` → `smartphone`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `storage_gb` | integer | REQUIRED | Storage capacity in GB. |
+| `screen_size_inches` | number | OPTIONAL | Screen size in inches. |
+| `connectivity` | string | OPTIONAL | Connectivity standard: `5g`, `4g`. |
+| `os` | string | OPTIONAL | Operating system: `ios`, `android`, `other`. |
+
+##### `electronics` → `laptop`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `cpu` | string | REQUIRED | CPU model or description. |
+| `ram_gb` | integer | REQUIRED | RAM in GB. |
+| `storage_gb` | integer | OPTIONAL | Storage capacity in GB. |
+| `screen_size_inches` | number | OPTIONAL | Screen size in inches. |
+| `gpu` | string | OPTIONAL | GPU model or description. |
+
+##### `electronics` → `audio`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `audio_type` | string | REQUIRED | Audio device type: `earbuds`, `headphones`, `speaker`, `soundbar`. |
+| `noise_cancellation` | boolean | OPTIONAL | Whether active noise cancellation is supported. |
+| `wireless` | boolean | OPTIONAL | Whether wireless connectivity is supported. |
+| `battery_hours` | number | OPTIONAL | Battery life in hours. |
+
+##### `electronics` → `wearable`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `wearable_type` | string | REQUIRED | Wearable device type: `smartwatch`, `fitness_tracker`, `smart_ring`, `smart_glasses`. |
+| `os_compatibility` | array | OPTIONAL | Compatible operating systems. |
+| `battery_days` | number | OPTIONAL | Battery life in days. |
+| `water_resistance` | string | OPTIONAL | Water resistance rating. |
+| `health_sensors` | array | OPTIONAL | Health sensors available. |
+
+##### `electronics` → `gaming_hardware`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `hardware_type` | string | REQUIRED | Hardware type: `console`, `handheld`, `controller`, `vr_headset`. |
+| `platform_ecosystem` | string | OPTIONAL | Platform ecosystem. |
+| `storage_gb` | integer | OPTIONAL | Storage capacity in GB. |
+
+##### `electronics` → `smart_home`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `device_type` | string | REQUIRED | Smart home device type: `speaker`, `display`, `camera`, `thermostat`, `lock`, `light`. |
+| `voice_assistant` | string | OPTIONAL | Voice assistant compatibility. |
+| `connectivity_protocol` | array | OPTIONAL | Connectivity protocols: `wifi`, `zigbee`, `matter`, `bluetooth`, `zwave`. |
+| `hub_required` | boolean | OPTIONAL | Whether a hub is required. |
+
+##### `electronics` → `camera`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `camera_type` | string | REQUIRED | Camera type: `dslr`, `mirrorless`, `action`, `instant`, `drone`. |
+| `sensor_size` | string | OPTIONAL | Sensor size description. |
+| `megapixels` | number | OPTIONAL | Megapixel count. |
+| `video_resolution` | string | OPTIONAL | Maximum video resolution. |
 
 #### `entertainment` Attributes
 
