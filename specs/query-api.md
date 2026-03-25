@@ -2,7 +2,7 @@
 
 **Version**: 0.1
 **Status**: Draft
-**Last Updated**: 2026-03-24
+**Last Updated**: 2026-03-25
 
 ## Introduction
 
@@ -10,101 +10,224 @@ This document defines the HTTP query interface that AI agents and SDKs use to di
 
 The API is organized around two protocol concepts:
 
-- `offer`: the unit offer object returned to clients
-- `offer response`: the query envelope that wraps one result set
+- `offer query`: the structured request submitted by agents to express intent and context
+- `offer response`: the query envelope that wraps one result set of `offer` objects
+
+### Conformance Keywords
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHOULD", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
 ## Endpoint Overview
 
-- Method: `GET`
-- Path: `/v1/offers`
-- Purpose: Search and return offers for recommendation and action-taking flows
+- Method: `POST`
+- Path: `/v1/offers/query`
+- Content-Type: `application/json`
+- Purpose: Submit intent and context to discover relevant offers for recommendation and action-taking flows
 
 ## Authentication
 
-Requests must include a bearer token in the `Authorization` header.
+Requests MUST include a bearer token in the `Authorization` header.
 
 ```http
 Authorization: Bearer {api_key}
 ```
 
-## Request Parameters
+## Request Body
 
-The early query surface remains intentionally simple. This document focuses on response shape first; filter expansion can continue in future revisions.
+The query request uses the same REQUIRED/RECOMMENDED/OPTIONAL field requirement levels as the Offer Schema:
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `q` | string | No | — | Free-text keyword search over offer title, description, and related retrieval fields. |
-| `offer_type` | string | No | — | Filter by offer type. |
-| `entity_id` | string | No | — | Filter by `entity.id`. |
-| `source_offer_id` | string | No | — | Filter by upstream source offer reference. |
-| `limit` | integer | No | `20` | Number of offers to return. Maximum value is `100`. |
-| `cursor` | string | No | — | Opaque cursor used for pagination. |
+| Level | Label | Meaning |
+|-------|-------|---------|
+| **REQUIRED** | Required | Field MUST be present with a valid, non-empty value. |
+| **RECOMMENDED** | Recommended | Field SHOULD be present and MUST follow the standard structure when present, but the value MAY be empty or null. |
+| **OPTIONAL** | Optional | Field MAY be omitted entirely. When included, it SHOULD follow the specified format. |
+
+### Top-Level Shape
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `request_id` | string | REQUIRED | Unique request identifier. UUIDv7 is recommended. |
+| `timestamp` | string | REQUIRED | RFC 3339 timestamp of the request. |
+| `test_mode` | boolean | OPTIONAL | When `true`, the request is treated as a test and SHOULD NOT generate real tracking or billing events. Defaults to `false`. |
+| `context` | object | REQUIRED | Contextual information about the requesting platform, session, and user. |
+| `intent` | object | REQUIRED | The user's intent expressed as multimodal content. |
+| `pagination` | object | RECOMMENDED | Pagination control. Field SHOULD be present; values have defaults. |
+
+### Context
+
+`context` provides the environment and user information that the offer matching engine uses for personalization and targeting.
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `context.platform` | object | RECOMMENDED | Information about the requesting platform or agent. |
+| `context.session_id` | string | RECOMMENDED | Session identifier for grouping related queries. |
+| `context.conversation_id` | string/number | OPTIONAL | Conversation or thread identifier within the session. |
+| `context.user_profile` | object | REQUIRED | User profile information for intent matching and targeting. |
+
+#### `context.platform`
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `platform.name` | string | RECOMMENDED | Platform or agent name (e.g., `ChatGPT`, `Claude`, `CustomAgent`). |
+| `platform.version` | string | RECOMMENDED | Platform or model version (e.g., `gpt-4o`, `claude-sonnet-4-6`). |
+| `platform.channel` | string | RECOMMENDED | Integration channel (e.g., `plugin`, `sdk`, `api`, `skill`). |
+
+#### `context.user_profile`
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `user_profile.viewer_id` | string | RECOMMENDED | Pseudonymous viewer identifier for frequency capping and personalization. Not required to be a real user ID. |
+| `user_profile.language` | string | RECOMMENDED | User language preference. ISO 639-1 code. |
+| `user_profile.interests` | array | RECOMMENDED | User interest tags for intent matching. MAY be an empty array. |
+| `user_profile.device_info` | object | RECOMMENDED | Device information for targeting and rendering. |
+
+#### `context.user_profile.device_info`
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `device_info.device_type` | string | RECOMMENDED | Device type such as `desktop`, `mobile`, `tablet`. |
+| `device_info.os` | string | RECOMMENDED | Operating system such as `macOS`, `Windows`, `iOS`, `Android`. |
+| `device_info.os_version` | string | RECOMMENDED | OS version string. |
+
+### Intent
+
+`intent` expresses what the user is looking for. It uses a multimodal content array to support text, images, and other input types.
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `intent.content` | array | REQUIRED | Array of content items representing the user's intent. At least one item is REQUIRED. |
+
+#### `intent.content[]`
+
+Each content item has a `type` field that determines the payload:
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `content[].type` | string | REQUIRED | Content type such as `input_text` or `input_image`. |
+| `content[].text` | string | REQUIRED (when type=input_text) | The text content of the user's intent. |
+| `content[].image_url` | string | REQUIRED (when type=input_image) | URL to the image representing the user's intent. |
+
+Design notes:
+
+- The multimodal content array follows a pattern similar to LLM message formats, making it natural for AI agent platforms to construct.
+- `input_text` is the primary intent signal. `input_image` supports visual search scenarios (e.g., "find me a hotel like this").
+- Future content types (e.g., `input_audio`, `input_file`) can be added without changing the array structure.
+
+### Pagination
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `pagination.limit` | integer | RECOMMENDED | Number of offers to return. Default: `20`. Maximum: `100`. |
+| `pagination.offset` | integer | RECOMMENDED | Number of offers to skip. Default: `0`. |
 
 ## Offer Response
 
 The query result is wrapped in an `offer response` envelope.
 
-| Field | Type | Required | Description |
-|------|------|----------|-------------|
-| `trace_id` | string | Yes | Query trace ID generated by AON. UUIDv7 is recommended. |
-| `offers` | array | Yes | List of `offer` objects. |
-| `has_more` | boolean | No | Indicates whether another page is available. |
-| `next_cursor` | string or null | No | Cursor for the next page when pagination continues. |
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `trace_id` | string | REQUIRED | Query trace ID generated by AON. UUIDv7 is recommended. |
+| `offers` | array | REQUIRED | List of `offer` objects matching the intent. |
+| `has_more` | boolean | OPTIONAL | Indicates whether another page is available. |
+| `total` | integer | OPTIONAL | Total number of matching offers (when available). |
 
 Design notes:
 
 - `trace_id` belongs to the response envelope, not to the offer itself.
-- `offers[]` should contain full `offer` objects, not partial cards.
-- pagination metadata remains outside the base offer object.
+- `offers[]` SHOULD contain full `offer` objects as defined in the Offer Schema.
+- Pagination shifted from cursor-based to offset-based to align with the request structure. Cursor-based pagination may be reintroduced in a future revision if needed for large result sets.
 
-## Successful Response Example
+## Request Example
+
+```json
+{
+  "request_id": "0195f0a1-2b3c-4d5e-6f7a-8b9c0d1e2f3a",
+  "timestamp": "2026-03-25T14:30:00Z",
+  "test_mode": false,
+  "context": {
+    "platform": {
+      "name": "ChatGPT",
+      "version": "gpt-4o",
+      "channel": "plugin"
+    },
+    "session_id": "sess_0195f0a1-2b3c-4d5e-6f7a-8b9c0d1e2f3b",
+    "user_profile": {
+      "viewer_id": "user_789012",
+      "language": "en",
+      "interests": ["travel", "luxury", "hospitality"],
+      "device_info": {
+        "device_type": "desktop",
+        "os": "macOS",
+        "os_version": "14.4"
+      }
+    }
+  },
+  "intent": {
+    "content": [
+      {
+        "type": "input_text",
+        "text": "I want to book a 5-star hotel in Manhattan New York for next month"
+      }
+    ]
+  },
+  "pagination": {
+    "limit": 5,
+    "offset": 0
+  }
+}
+```
+
+## Response Example
 
 ```json
 {
   "trace_id": "0195ef98-90af-7e1f-b57d-1130cf0c57f2",
   "offers": [
     {
-      "id": "0195ef94-f17d-7a4f-b6e0-2c52bb49e13f",
-      "title": "Notion Team Plan",
-      "description": "Collaborative workspace for docs, wikis, and project planning.",
-      "offer_type": "saas",
-      "source_offer_id": "adx_inventory_298174",
-      "expire_at": "2026-12-31T23:59:59Z",
+      "uuid": "0195ef94-f17d-7a4f-b6e0-2c52bb49e142",
+      "version": "1.0",
+      "offer_info": {
+        "title": "The Manhattan Grand — Deluxe King Room",
+        "offer_type": "offline_service",
+        "category": {
+          "type": "travel_hospitality",
+          "attributes": {
+            "property_type": "hotel",
+            "destination": { "city": "New York", "country": "US" },
+            "star_rating": 5
+          },
+          "commercial": {
+            "price": { "amount": "420.00", "currency": "USD" },
+            "availability": "limited"
+          }
+        },
+        "description": "Luxury 5-star hotel in Midtown Manhattan with rooftop pool, full-service spa, and complimentary breakfast."
+      },
+      "material": [],
       "entity": {
-        "id": "ent_notion",
-        "name": "Notion",
-        "type": "service_provider",
-        "description": "Productivity software provider."
+        "id": "ent_manhattan_grand",
+        "name": "The Manhattan Grand Hotel",
+        "type": "service_provider"
       },
       "action": {
-        "type": "start_trial",
-        "name": "Start free trial",
-        "description": "Redirect the user to the Notion signup flow.",
+        "type": "web_redirect",
+        "name": "Book now",
         "payload": {
-          "target": "https://www.notion.so/signup",
-          "requires_auth": false,
-          "platform": "web",
-          "delivery_method": "web_redirect"
+          "target": "https://www.manhattangrand.example/book/deluxe-king"
         }
       }
     }
   ],
-  "has_more": true,
-  "next_cursor": "eyJvZmZzZXQiOjIwfQ=="
+  "has_more": false,
+  "total": 1
 }
 ```
-
-## Pagination
-
-- Cursor pagination is used instead of page-number pagination.
-- Clients should treat `cursor` and `next_cursor` as opaque values.
-- When `has_more` is `false`, `next_cursor` should be omitted or returned as `null`.
 
 ## Error Codes
 
 | HTTP Status | Error Code | When It Happens |
 |-------------|------------|-----------------|
-| `400` | `BAD_REQUEST` | One or more query parameters are malformed or invalid. |
+| `400` | `BAD_REQUEST` | The request body is malformed or missing required fields. |
 | `401` | `UNAUTHORIZED` | The request is missing an API key or the key cannot be authenticated. |
 | `403` | `FORBIDDEN` | The API key is valid but suspended, blocked, or not allowed to access the resource. |
 | `429` | `RATE_LIMITED` | The client exceeded the allowed request rate. |
@@ -116,26 +239,19 @@ Design notes:
 {
   "error": {
     "code": "BAD_REQUEST",
-    "message": "limit must be an integer between 1 and 100"
+    "message": "intent.content must contain at least one item"
   }
 }
 ```
 
-## Example Request
-
-```http
-GET /v1/offers?q=notion&offer_type=saas&entity_id=ent_notion&limit=20 HTTP/1.1
-Host: api.agentoffernetwork.com
-Authorization: Bearer sk_live_example
-Accept: application/json
-```
-
 ## Design Decisions
 
-- `offer response` is separate from `offer` so query-scoped metadata such as `trace_id` and pagination do not leak into the canonical offer object.
-- `trace_id` is included for tracing, correlation, and downstream debugging across SDK, gateway, and recommendation layers.
-- `offers[]` uses the same `offer` shape that clients are expected to consume directly.
-- The response uses user-facing action semantics such as `start_trial` or `buy`, while payload details express the execution target and delivery method such as `web_redirect`.
+- **POST with structured body**: The query moved from `GET` with query parameters to `POST` with a JSON body. The request now carries structured context, multimodal intent, and user profile — this complexity is better expressed as a JSON object than as URL parameters.
+- **Multimodal intent**: `intent.content[]` uses a typed array that mirrors LLM message formats. This makes it natural for AI agent platforms to construct queries from conversation context.
+- **Context separation**: `context` separates platform metadata, session tracking, and user profile into distinct sub-objects. This keeps concerns clear and allows each layer to evolve independently.
+- **RECOMMENDED for context sub-fields**: Platform, session, user profile fields, and device info are RECOMMENDED — the fields SHOULD be present for consistent request parsing, but values MAY be empty when data is unavailable.
+- **`viewer_id` as pseudonymous**: The protocol does not require real user IDs. A pseudonymous viewer identifier is sufficient for frequency capping and personalization, preserving user privacy.
+- **Offset pagination**: The initial design uses offset-based pagination for simplicity. Cursor-based pagination can be reintroduced if performance requirements demand it.
 
 ## Changelog
 
@@ -144,4 +260,7 @@ Accept: application/json
 | 0.1 | 2026-03-20 | Initial draft. |
 | 0.1 | 2026-03-22 | Added broader compatibility-oriented filters. |
 | 0.1 | 2026-03-23 | Added CTA-oriented action semantics to the response example. |
-| 0.1 | 2026-03-24 | Reframed the query result as `offer response { trace_id, offers[] }`, aligned the payload with `offer`, and updated key field names to `id`, `offer_type`, and `source_offer_id`. |
+| 0.1 | 2026-03-24 | Reframed the query result as `offer response { trace_id, offers[] }`, aligned the payload with `offer`, and updated key field names. |
+| 0.1 | 2026-03-24 | Added `offer-query` example guidance and clarified the boundary between query request, canonical `offer`, and `offer response`. |
+| 0.1 | 2026-03-24 | Updated the response example to the `uuid + offer_info + entity + action + targeting + commission` draft shape. |
+| 0.1 | 2026-03-25 | Restructured from GET parameters to POST JSON body. Introduced `context` (platform, session, user_profile), multimodal `intent.content[]`, REQUIRED/RECOMMENDED/OPTIONAL requirement levels (RFC 2119), and offset-based pagination. |

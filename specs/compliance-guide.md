@@ -1,14 +1,16 @@
 # Compliance and Disclosure Guide v0.1
 
 **Version**: 0.1
-**Status**: Draft
-**Last Updated**: 2026-03-20
+**Status**: Draft — Placeholder
+**Last Updated**: 2026-03-25
+
+> **Note**: This specification is a forward-looking placeholder. The `compliance` fields referenced below (e.g., `compliance.disclosure_required`, `compliance.terms_url`) are **not yet part of the v0.1 Offer Schema**. They represent planned extensions for a future protocol revision. The behavioral guidance in this document is informational and does not impose schema-level requirements at this time.
 
 ## Introduction
 
-This guide defines the minimum disclosure expectations for agents that recommend monetized offers through AgentOffer Protocol v0.1. The objective is to make promotional intent clear to end users and to support responsible affiliate-style recommendations from the start.
+This guide defines the minimum disclosure expectations for agents that recommend monetized offers through AgentOffer Protocol. The objective is to make promotional intent clear to end users and to support responsible affiliate-style recommendations from the start.
 
-This guide complements the `compliance` object in the canonical Offer Schema, especially:
+When implemented, this guide will be supported by a `compliance` object in the Offer Schema with fields such as:
 
 - `compliance.disclosure_required`
 - `compliance.disclosure_text`

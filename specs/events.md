@@ -1,14 +1,16 @@
 # Click and Conversion Events v0.1
 
 **Version**: 0.1
-**Status**: Draft
-**Last Updated**: 2026-03-20
+**Status**: Draft — Placeholder
+**Last Updated**: 2026-03-25
+
+> **Note**: This specification is a forward-looking placeholder. The settlement and tracking fields referenced below (e.g., `commission.payout_level`, `source.postback_url_template`) are **not yet part of the v0.1 Offer Schema**. The current schema defines a basic `commission` object (amount, currency, model) and an OPTIONAL `conversion_rule` object. The extended tracking and settlement fields described here represent planned extensions for a future protocol revision.
 
 ## Introduction
 
-This document defines the event payloads used for attribution and revenue tracking in AgentOffer Protocol v0.1. These events are shared between the recommendation layer, the tracking service, and downstream settlement systems.
+This document defines the event payloads used for attribution and revenue tracking in AgentOffer Protocol. These events are shared between the recommendation layer, the tracking service, and downstream settlement systems.
 
-The canonical Offer Schema does not define standalone click or conversion event objects, but it does define the surrounding settlement context that these events must support, including:
+When implemented, the Offer Schema will define the surrounding settlement context that these events must support, including:
 
 - `commission.payout_level`
 - `commission.validation_window_days`

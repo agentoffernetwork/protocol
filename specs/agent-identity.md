@@ -1,14 +1,16 @@
 # Agent Identity v0.1
 
 **Version**: 0.1
-**Status**: Draft
-**Last Updated**: 2026-03-20
+**Status**: Draft — Placeholder
+**Last Updated**: 2026-03-25
+
+> **Note**: This specification is a forward-looking placeholder. Agent identity is not yet modeled as a standalone schema in the v0.1 schema package. The `agent_id` references to source tracking templates and event attribution flows depend on tracking and events capabilities that are planned for a future protocol revision. The registration model described here is informational.
 
 ## Introduction
 
-This document defines the minimum identity model required to register and recognize an AI agent within AgentOffer Protocol v0.1. The goal is to support attribution, administration, and safe platform operations without introducing unnecessary complexity in the first protocol release.
+This document defines the minimum identity model required to register and recognize an AI agent within AgentOffer Protocol. The goal is to support attribution, administration, and safe platform operations without introducing unnecessary complexity in the first protocol release.
 
-Unlike the Offer object, agent identity is not modeled as a standalone schema in the current canonical schema package. This document therefore acts as a complementary protocol spec. Its main alignment point with the Offer Schema is the repeated use of `agent_id` in source tracking templates and event attribution flows.
+Unlike the Offer object, agent identity is not modeled as a standalone schema in the current canonical schema package. This document acts as a complementary protocol spec that will be formalized when the events and tracking layer is implemented.
 
 ## Agent Registration Fields
 
