@@ -51,6 +51,7 @@ The query request uses the same REQUIRED/RECOMMENDED/OPTIONAL field requirement 
 | `test_mode` | boolean | OPTIONAL | When `true`, the request is treated as a test and SHOULD NOT generate real tracking or billing events. Defaults to `false`. |
 | `context` | object | REQUIRED | Contextual information about the requesting platform, session, and user. |
 | `intent` | object | REQUIRED | The user's intent expressed as multimodal content. |
+| `filter` | object | OPTIONAL | Structured filter constraints. Hard constraints applied before intent-based semantic ranking. |
 | `pagination` | object | RECOMMENDED | Pagination control. Field SHOULD be present; values have defaults. |
 
 ### Context
@@ -113,6 +114,32 @@ Design notes:
 - `input_text` is the primary intent signal. `input_image` supports visual search scenarios (e.g., "find me a hotel like this").
 - Future content types (e.g., `input_audio`, `input_file`) can be added without changing the array structure.
 
+### Filter
+
+`filter` provides structured constraints that narrow the result set before semantic ranking. When both `filter` and `intent` are present, `filter` acts as a hard constraint (exact match) and `intent` acts as a soft signal (semantic relevance) within the filtered results.
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `filter.category_types` | array | OPTIONAL | Filter by category type. Values reference `offer_info.category.type` enum (e.g., `["software_saas", "education"]`). |
+| `filter.commission_models` | array | OPTIONAL | Filter by commission model. Values reference `commission.model` enum (e.g., `["cps", "cpa"]`). |
+| `filter.status` | array | OPTIONAL | Filter by offer status (e.g., `["active"]`). |
+| `filter.availability` | array | OPTIONAL | Filter by availability (e.g., `["available", "limited"]`). |
+| `filter.min_commission_amount` | string | OPTIONAL | Minimum commission amount. Decimal string. Requires `filter.currency`. |
+| `filter.max_price_amount` | string | OPTIONAL | Maximum consumer-facing price. Decimal string. Requires `filter.currency`. |
+| `filter.currency` | string | OPTIONAL | ISO 4217 currency code for `min_commission_amount` and `max_price_amount`. Applies to both fields simultaneously; offers with mismatched currencies are excluded. |
+| `filter.brand` | string | OPTIONAL | Filter by brand or entity name (case-insensitive substring match). |
+| `filter.country` | string | OPTIONAL | Filter by target country. ISO 3166-1 alpha-2 code. |
+| `filter.tags` | array | OPTIONAL | Filter by tags (AND logic: offer must match all specified tags). |
+
+Design notes:
+
+- `filter` is entirely OPTIONAL. When omitted, the query relies solely on `intent` for matching.
+- Array-typed filters use OR logic within the array (e.g., `category_types: ["software_saas", "education"]` matches either).
+- `min_commission_amount` and `max_price_amount` require `currency` to be set; if `currency` is absent, numeric filters are ignored.
+- `brand` uses case-insensitive substring matching against `entity.name`.
+
+> **Enum Extensibility**: All enum values referenced in filter fields (`category_types`, `commission_models`, `status`, `availability`) follow the protocol's open-ended enum design. Servers SHOULD accept unknown enum values gracefully (return empty results rather than errors). New enum values may be added in future revisions without being considered a breaking change.
+
 ### Pagination
 
 | Field | Type | Level | Description |
@@ -170,6 +197,12 @@ Design notes:
       }
     ]
   },
+  "filter": {
+    "category_types": ["travel_hospitality"],
+    "availability": ["available", "limited"],
+    "currency": "USD",
+    "max_price_amount": "500.00"
+  },
   "pagination": {
     "limit": 5,
     "offset": 0
@@ -215,6 +248,19 @@ Design notes:
         "payload": {
           "target": "https://www.manhattangrand.example/book/deluxe-king"
         }
+      },
+      "commission": {
+        "model": "cps",
+        "rate": "0.10",
+        "currency": "USD",
+        "payout_delay_days": 14,
+        "validation_window_days": 7
+      },
+      "conversion_rule": {
+        "click_window_hours": 720,
+        "attribution_model": "last_click",
+        "accepted_types": ["sale"],
+        "dedup_strategy": "first"
       }
     }
   ],
@@ -252,6 +298,7 @@ Design notes:
 - **RECOMMENDED for context sub-fields**: Platform, session, user profile fields, and device info are RECOMMENDED — the fields SHOULD be present for consistent request parsing, but values MAY be empty when data is unavailable.
 - **`viewer_id` as pseudonymous**: The protocol does not require real user IDs. A pseudonymous viewer identifier is sufficient for frequency capping and personalization, preserving user privacy.
 - **Offset pagination**: The initial design uses offset-based pagination for simplicity. Cursor-based pagination can be reintroduced if performance requirements demand it.
+- **Structured filter + semantic intent**: `filter` provides deterministic narrowing (SQL WHERE equivalent) while `intent` provides relevance ranking (search scoring equivalent). This dual-signal design lets agents express both hard business constraints and soft user preferences in a single query.
 
 ## Changelog
 
@@ -264,3 +311,4 @@ Design notes:
 | 0.1 | 2026-03-24 | Added `offer-query` example guidance and clarified the boundary between query request, canonical `offer`, and `offer response`. |
 | 0.1 | 2026-03-24 | Updated the response example to the `uuid + offer_info + entity + action + targeting + commission` draft shape. |
 | 0.1 | 2026-03-25 | Restructured from GET parameters to POST JSON body. Introduced `context` (platform, session, user_profile), multimodal `intent.content[]`, REQUIRED/RECOMMENDED/OPTIONAL requirement levels (RFC 2119), and offset-based pagination. |
+| 0.1 | 2026-03-28 | Added `filter` object for structured query constraints (category_types, commission_models, status, availability, price/commission range, brand, country, tags). Added enum extensibility note. Updated request example with filter fields and response example with commission and conversion_rule fields. |

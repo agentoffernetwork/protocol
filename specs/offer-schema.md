@@ -2,7 +2,7 @@
 
 **Version**: 0.1
 **Status**: Draft
-**Last Updated**: 2026-03-25
+**Last Updated**: 2026-03-28
 
 ## Introduction
 
@@ -44,8 +44,9 @@ The protocol classifies fields into three requirement levels to balance standard
 | `action` | object | REQUIRED | Primary executable action exposed by the offer. |
 | `material` | array | RECOMMENDED | Creative assets associated with the offer. |
 | `targeting` | array | OPTIONAL | Targeting constraints that influence where the offer should be shown. |
-| `commission` | object | OPTIONAL | Commission information associated with the offer. |
-| `conversion_rule` | object | OPTIONAL | Rules for valid conversion events and attribution logic. |
+| `commission` | object | RECOMMENDED | Commission information associated with the offer. |
+| `conversion_rule` | object | RECOMMENDED | Rules for valid conversion events and attribution logic. |
+| `source` | object | OPTIONAL | Offer source and tracking configuration. |
 | `frequency_capping` | object | OPTIONAL | Exposure frequency limits. |
 | `tags` | array | OPTIONAL | Custom tags for filtering and semantic matching. |
 
@@ -86,7 +87,7 @@ Design notes:
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `offer_info.category.type` | string | REQUIRED | Industry vertical. Registered values: `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`. See **Category Types** section. |
+| `offer_info.category.type` | string | REQUIRED | Industry vertical. Registered values: `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive`. See **Category Types** section. |
 | `offer_info.category.attributes` | object | RECOMMENDED | Vertical-specific attributes. Structure varies by `category.type`. See `category-attributes.types.ts` for per-type definitions. |
 | `offer_info.category.commercial` | object | RECOMMENDED | Pricing, availability, and inventory information. |
 
@@ -108,7 +109,7 @@ Design notes:
 
 ### Category Types
 
-Six registered industry verticals. All types use `attributes.sub_type` for finer industry-specific classification. Each `sub_type` defines its own set of required and optional attribute fields.
+Eleven registered industry verticals. All types use `attributes.sub_type` for finer industry-specific classification. Each `sub_type` defines its own set of required and optional attribute fields.
 
 | `category.type` | Description | `sub_type` values |
 |-----------------|-------------|-------------------|
@@ -118,6 +119,11 @@ Six registered industry verticals. All types use `attributes.sub_type` for finer
 | `financial_service` | Credit cards, loans, insurance, payments | `credit_card`, `insurance`, `loan`, `investment`, `banking`, `payment` |
 | `electronics` | Consumer electronics, smart devices | `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera` |
 | `entertainment` | Games, streaming, AI companions, betting | `game`, `streaming_video`, `ai_companion`, `social_audio`, `sports_betting`, `music_audio`, `live_streaming` |
+| `health_beauty` | Health, beauty, and personal care | `skincare`, `supplement`, `fitness`, `cosmetics`, `wellness`, `medical_device` |
+| `fashion` | Fashion, clothing, and accessories | `clothing`, `shoes`, `accessories`, `jewelry`, `luxury`, `sportswear` |
+| `food_grocery` | Food, grocery, and meal delivery | `meal_kit`, `grocery_delivery`, `specialty_food`, `beverage`, `organic`, `snack` |
+| `home_garden` | Home, garden, and household | `furniture`, `appliance`, `decor`, `smart_home`, `garden`, `cleaning` |
+| `automotive` | Automotive and transportation | `car_purchase`, `car_lease`, `insurance`, `parts`, `ev_charging`, `ride_service` |
 
 Each type shares a set of common fields across all its sub_types, plus sub_type-specific fields. The tables below are the normative reference. See also `category-attributes.types.ts` for the machine-readable TypeScript definitions.
 
@@ -580,6 +586,71 @@ All `entertainment` offers MUST include a `sub_type` field that determines the s
 | `vod_replay` | boolean | OPTIONAL | Whether VOD replay is available after live ends. |
 | `streamer_tools` | array | OPTIONAL | Tools provided for streamers. |
 
+#### `health_beauty` Attributes
+
+Common fields shared across all `health_beauty` sub_types:
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `sub_type` | string | REQUIRED | Health & beauty sub-category: `skincare`, `supplement`, `fitness`, `cosmetics`, `wellness`, `medical_device`. |
+| `ingredients_highlight` | array | OPTIONAL | Key ingredients or active compounds highlighted for the product. |
+| `skin_type` | string | OPTIONAL | Target skin type such as `oily`, `dry`, `combination`, `sensitive`, `normal`. |
+| `organic` | boolean | OPTIONAL | Whether the product holds an organic certification. |
+
+> **Note**: Sub_type-specific attributes for `health_beauty` will be defined in a future revision once real Offer data is available for validation.
+
+#### `fashion` Attributes
+
+Common fields shared across all `fashion` sub_types:
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `sub_type` | string | REQUIRED | Fashion sub-category: `clothing`, `shoes`, `accessories`, `jewelry`, `luxury`, `sportswear`. |
+| `gender` | string | OPTIONAL | Target gender: `unisex`, `male`, `female`. |
+| `size_range` | string | OPTIONAL | Available size range description (e.g., `"XS-XXL"`, `"6-12"`). |
+| `material` | string | OPTIONAL | Primary material or fabric. |
+
+> **Note**: Sub_type-specific attributes for `fashion` will be defined in a future revision once real Offer data is available for validation.
+
+#### `food_grocery` Attributes
+
+Common fields shared across all `food_grocery` sub_types:
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `sub_type` | string | REQUIRED | Food & grocery sub-category: `meal_kit`, `grocery_delivery`, `specialty_food`, `beverage`, `organic`, `snack`. |
+| `dietary_info` | array | OPTIONAL | Dietary labels such as `vegan`, `gluten_free`, `keto`, `halal`, `kosher`, `organic`. |
+| `shelf_life_days` | integer | OPTIONAL | Shelf life in days. |
+| `serving_size` | string | OPTIONAL | Serving size description. |
+
+> **Note**: Sub_type-specific attributes for `food_grocery` will be defined in a future revision once real Offer data is available for validation.
+
+#### `home_garden` Attributes
+
+Common fields shared across all `home_garden` sub_types:
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `sub_type` | string | REQUIRED | Home & garden sub-category: `furniture`, `appliance`, `decor`, `smart_home`, `garden`, `cleaning`. |
+| `dimensions` | string | OPTIONAL | Product dimensions description (e.g., `"120x60x75 cm"`). |
+| `assembly_required` | boolean | OPTIONAL | Whether assembly is required. |
+| `energy_rating` | string | OPTIONAL | Energy efficiency rating (e.g., `"A+"`, `"Energy Star"`). |
+
+> **Note**: Sub_type-specific attributes for `home_garden` will be defined in a future revision once real Offer data is available for validation.
+
+#### `automotive` Attributes
+
+Common fields shared across all `automotive` sub_types:
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `sub_type` | string | REQUIRED | Automotive sub-category: `car_purchase`, `car_lease`, `insurance`, `parts`, `ev_charging`, `ride_service`. |
+| `vehicle_type` | string | OPTIONAL | Vehicle classification such as `sedan`, `suv`, `truck`, `ev`, `motorcycle`. |
+| `fuel_type` | string | OPTIONAL | Fuel or power type: `gasoline`, `diesel`, `electric`, `hybrid`. |
+| `warranty_years` | integer | OPTIONAL | Warranty duration in years. |
+
+> **Note**: Sub_type-specific attributes for `automotive` will be defined in a future revision once real Offer data is available for validation.
+
 ### Entity
 
 `entity` is the normalized business subject of the offer. It uses neutral wording so the model can work for merchants, brands, service providers, platforms, and other supply-side entities.
@@ -635,25 +706,71 @@ For a `web_redirect` action flow:
 | `targeting[].language` | string | OPTIONAL | Preferred or required language context. |
 | `targeting[].device_type` | array | OPTIONAL | Target device types such as `mobile`, `desktop`, `tablet`. |
 
-### Commission (OPTIONAL)
+### Source (OPTIONAL)
 
-`commission` expresses payout information for recommendation, ranking, or settlement workflows.
-
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `commission.amount` | string | OPTIONAL | Decimal string representing the commission amount. |
-| `commission.currency` | string | OPTIONAL | ISO 4217 currency code for the commission amount. |
-| `commission.model` | string | OPTIONAL | Commission model such as `fixed`, `percentage`, `cpa`, or `cps`. |
-
-### Conversion Rule (OPTIONAL)
-
-`conversion_rule` defines what constitutes a valid conversion and how attribution is assigned.
+`source` provides offer origin and tracking configuration, enabling postback and tracking URL generation for affiliate workflows.
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `conversion_rule.trigger` | string | OPTIONAL | Event type that triggers a valid conversion (e.g., `purchase`, `booking_complete`, `signup`, `install`). |
-| `conversion_rule.window_hours` | integer | OPTIONAL | Attribution window in hours from the initial click. |
-| `conversion_rule.attribution_type` | string | OPTIONAL | Attribution model such as `last_click`, `first_click`, or `multi_touch`. |
+| `source.postback_url_template` | string | OPTIONAL | Agent-side conversion callback URL template. Supports variable substitution (e.g., `{tracking_id}`, `{offer_id}`). See Events spec for template variable definitions. |
+| `source.tracking_url_template` | string | OPTIONAL | Tracking link generation template. Used to construct click-tracking URLs with embedded parameters. |
+
+### Commission (RECOMMENDED)
+
+`commission` expresses affiliate commission and payout information for recommendation, ranking, or settlement workflows. It is RECOMMENDED: the field SHOULD be present when the offer participates in affiliate or performance-based compensation.
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `commission.model` | string | REQUIRED | Commission model: `cpa` (cost per action), `cps` (cost per sale, percentage-based), `cpl` (cost per lead), `cpi` (cost per install), `hybrid` (base amount plus percentage). |
+| `commission.amount` | string | CONDITIONAL | Fixed commission amount, decimal string. REQUIRED when `model` is `cpa`, `cpl`, or `cpi`. REQUIRED when `model` is `hybrid` (base/floor amount). OPTIONAL when `model` is `cps`. |
+| `commission.currency` | string | REQUIRED | ISO 4217 currency code for the commission amount. |
+| `commission.rate` | string | CONDITIONAL | Commission rate as a decimal string (e.g., `"0.15"` = 15%). REQUIRED when `model` is `cps` or `hybrid`. OPTIONAL for other models. |
+| `commission.tier` | array | OPTIONAL | Tiered commission rules. When present, tier rules take precedence over top-level `amount`/`rate`. |
+| `commission.tier[].threshold` | string | REQUIRED | Threshold value that triggers this tier, decimal string. |
+| `commission.tier[].threshold_type` | string | REQUIRED | Threshold measurement type: `revenue` (cumulative amount) or `count` (cumulative conversions). |
+| `commission.tier[].amount` | string | CONDITIONAL | Fixed commission for this tier. Used when parent `model` is `cpa`, `cpl`, `cpi`, or `hybrid`. |
+| `commission.tier[].rate` | string | CONDITIONAL | Commission rate for this tier. Used when parent `model` is `cps` or `hybrid`. |
+| `commission.cap` | string | OPTIONAL | Maximum commission per single conversion, decimal string. |
+| `commission.cap_currency` | string | OPTIONAL | Currency for the commission cap. When omitted, defaults to `commission.currency`. |
+| `commission.payout_delay_days` | integer | OPTIONAL | Settlement delay in days (lock-up period). Default `0`. |
+| `commission.validation_window_days` | integer | OPTIONAL | Conversion validation window in days (advertiser confirmation period). |
+
+**Model-to-Required-Fields Matrix**:
+
+| `model` | `amount` | `rate` | `tier` | Calculation logic |
+|---------|----------|--------|--------|-------------------|
+| `cpa` | REQUIRED | --- | OPTIONAL | Fixed amount: pay `amount` per conversion. |
+| `cps` | --- | REQUIRED | OPTIONAL | Percentage: `revenue * rate`. |
+| `cpl` | REQUIRED | --- | OPTIONAL | Fixed amount: pay `amount` per lead. |
+| `cpi` | REQUIRED | --- | OPTIONAL | Fixed amount: pay `amount` per install. |
+| `hybrid` | REQUIRED | REQUIRED | OPTIONAL | Floor + percentage: `max(amount, revenue * rate)`. |
+
+> **Hybrid semantics**: `amount` is the floor (guaranteed minimum) commission, `rate` is the revenue share percentage. The final commission is the greater of the two: `max(amount, revenue * rate)`. When `tier` is present, tier rules take precedence over the top-level `amount`/`rate`.
+
+Design notes:
+
+- CONDITIONAL fields (`amount`, `rate`, `tier[].amount`, `tier[].rate`) have their requirement level determined by the value of `commission.model`. See the matrix above for the exact mapping.
+- `cap` and `cap_currency` provide an upper bound on per-conversion commission to protect advertiser budgets.
+- `payout_delay_days` and `validation_window_days` inform agents about settlement timing expectations.
+
+### Conversion Rule (RECOMMENDED)
+
+`conversion_rule` defines what constitutes a valid conversion, how attribution is assigned, and the time windows for tracking. It is RECOMMENDED: the field SHOULD be present to establish clear attribution expectations between advertisers and agents.
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `conversion_rule.click_window_hours` | integer | RECOMMENDED | Click attribution window in hours. Conversions occurring within this window after a click event are eligible for attribution. Default: `720` (30 days). |
+| `conversion_rule.view_window_hours` | integer | OPTIONAL | View-through attribution window in hours. Default: `0` (view-through attribution not supported). |
+| `conversion_rule.attribution_model` | string | RECOMMENDED | Attribution method: `last_click` (default, credit goes to the last click before conversion), `first_click` (credit goes to the first click). `linear` is reserved for future use and MUST NOT be used in v0.1. |
+| `conversion_rule.accepted_types` | array | RECOMMENDED | Accepted conversion types for this offer, e.g., `["sale", "lead"]`. Values reference the `conversion_type` enumeration defined in the Events spec. |
+| `conversion_rule.dedup_strategy` | string | OPTIONAL | Deduplication strategy for multiple conversions from the same user: `first` (only the first conversion counts, default), `all` (every conversion counts), `highest` (only the highest-value conversion counts). |
+| `conversion_rule.minimum_amount` | string | OPTIONAL | Minimum conversion amount (decimal string). Conversions below this threshold do not qualify for commission. |
+
+Design notes:
+
+- Default values (`click_window_hours` = 720, `attribution_model` = `last_click`, `dedup_strategy` = `first`) reflect industry-standard affiliate marketing defaults. Consumers SHOULD apply these defaults when the fields are absent.
+- `linear` attribution is reserved for a future protocol revision. Implementations receiving `"linear"` SHOULD treat it as an unknown value and fall back gracefully.
+- `accepted_types` enables advertisers to scope which conversion events qualify for commission under this offer.
 
 ### Frequency Capping (OPTIONAL)
 
@@ -689,6 +806,8 @@ These fields SHOULD be present in the offer object and MUST follow the standard 
 - `material` SHOULD be present as an array. MAY be an empty array `[]` when no assets are available. When items are provided, each SHOULD include `image_url`, `tag`, and `format`.
 - `category.attributes` SHOULD be present as an object. MAY be an empty object `{}` when no vertical-specific data is available.
 - `category.commercial` SHOULD be present as an object. `price.amount` and `price.currency` MAY be empty strings when pricing is not exposed.
+- `commission` SHOULD be present as an object. When present, `commission.model` and `commission.currency` are REQUIRED. `commission.amount` and `commission.rate` are CONDITIONAL based on `commission.model` (see Model-to-Required-Fields Matrix). All monetary values MUST be decimal strings.
+- `conversion_rule` SHOULD be present as an object. When present, `click_window_hours`, `attribution_model`, and `accepted_types` are RECOMMENDED. When `click_window_hours` is absent, consumers SHOULD apply a default of `720`. When `attribution_model` is absent, consumers SHOULD apply `last_click`. When `dedup_strategy` is absent, consumers SHOULD apply `first`.
 
 ### OPTIONAL Fields
 
@@ -696,7 +815,15 @@ These fields MAY be omitted entirely. When included, they SHOULD follow the spec
 
 - `offer_info.start_at` and `offer_info.expire_at`, when present, MUST be valid RFC 3339 timestamps.
 - `entity.website`, when present, SHOULD be a valid URI.
-- `conversion_rule`, when present, SHOULD include `trigger`, `window_hours`, and `attribution_type`.
+- `source`, when present, SHOULD include at least one of `postback_url_template` or `tracking_url_template`.
+- `conversion_rule.minimum_amount`, when present, MUST be a decimal string.
+- `conversion_rule.dedup_strategy`, when present, MUST be one of `first`, `all`, or `highest`.
+
+## Enum Extensibility
+
+All enumeration types defined in this specification (`commission.model`, `category.type`, `offer_info.offer_type`, `offer_info.status`, `commercial.availability`, `conversion_rule.attribution_model`, `conversion_rule.dedup_strategy`, etc.) follow an **open-ended design**. The protocol reserves the right to introduce new enumeration values in future revisions without treating the addition as a breaking change.
+
+Consumers SHOULD handle unknown enumeration values gracefully — either by ignoring the unrecognized value or passing it through — rather than returning an error or rejecting the entire offer document. This principle enables the protocol to evolve incrementally while maintaining backward compatibility with existing implementations.
 
 ## Example
 
@@ -769,16 +896,24 @@ These fields MAY be omitted entirely. When included, they SHOULD follow the spec
     }
   ],
   "commission": {
+    "model": "cpa",
     "amount": "42.00",
     "currency": "USD",
-    "model": "cpa"
+    "payout_delay_days": 30,
+    "validation_window_days": 7
+  },
+  "conversion_rule": {
+    "click_window_hours": 720,
+    "attribution_model": "last_click",
+    "accepted_types": ["sale"],
+    "dedup_strategy": "first"
   }
 }
 ```
 
 ## Example Coverage
 
-The protocol examples cover all six registered category types:
+The protocol examples cover the original six registered category types. Existing examples use the legacy commission format and will be updated in a subsequent revision to reflect the enhanced commission, conversion_rule, and source fields introduced in this specification.
 
 | Category Type | Example File | Notes |
 |--------------|-------------|-------|
@@ -796,6 +931,24 @@ The protocol examples cover all six registered category types:
 - **`material` as array**: A single offer may need multiple creative assets (logo, banner, video). The array structure handles this naturally.
 - **OPTIONAL for targeting, commission, conversion, frequency, tags**: These are powerful features but not every offer needs them. Keeping them optional prevents the protocol from forcing complexity on simple use cases.
 
+## Appendix: schema.org Compatibility
+
+The following table maps core AON Offer fields to their closest [schema.org](https://schema.org) equivalents. This mapping is provided as a reference for implementers building adapters or interoperability layers between AON and schema.org-based systems.
+
+| AON Field | schema.org Equivalent | Notes |
+|-----------|----------------------|-------|
+| `offer_info.title` | `Product.name` / `Offer.name` | Direct mapping. |
+| `offer_info.description` | `Product.description` | Direct mapping. |
+| `entity.name` | `Organization.name` / `Brand.name` | Maps to the seller or provider entity. |
+| `category.commercial.price.amount` | `Offer.price` | Direct mapping. |
+| `category.commercial.price.currency` | `Offer.priceCurrency` | ISO 4217. |
+| `category.commercial.availability` | `Offer.availability` | Enumeration values require mapping (e.g., `available` to `InStock`). |
+| `action.payload.target` | `Offer.url` | Maps to the offer landing page URL. |
+| `offer_info.start_at` | `Offer.validFrom` | RFC 3339 (AON) to ISO 8601 (schema.org). |
+| `offer_info.expire_at` | `Offer.validThrough` | RFC 3339 (AON) to ISO 8601 (schema.org). |
+| `commission` | --- | No schema.org equivalent. AON differentiator for affiliate/performance marketing. |
+| `intent` (Query API) | --- | No schema.org equivalent. AON differentiator for agent-driven semantic matching. |
+
 ## Changelog
 
 | Version | Date | Changes |
@@ -807,3 +960,4 @@ The protocol examples cover all six registered category types:
 | 0.1 | 2026-03-24 | Proposed `uuid`, `offer_info`, executable `action.type`, and optional `targeting` plus `commission` as the next draft shape. |
 | 0.1 | 2026-03-24 | Refined the draft with `offer_info.offer_type`, `offer_info.source_offer_id`, `commercial.availability`, `entity.website`, and `commission.model`. |
 | 0.1 | 2026-03-25 | Introduced REQUIRED/RECOMMENDED/OPTIONAL requirement levels (RFC 2119). Unified `industry` + `industry_attributes` + `commercial` into `offer_info.category`. Renamed `creative` to `material` (array, RECOMMENDED). Reclassified `targeting`, `commission`, `conversion_rule`, `frequency_capping`, and `tags` as OPTIONAL. Added `version` field. Removed `tracking`. Defined 6 category types with entertainment sub_type system. |
+| 0.1 | 2026-03-28 | PROTO-F004 industry alignment enhancement: Upgraded `commission` and `conversion_rule` from OPTIONAL to RECOMMENDED. Enhanced `commission` with 12 fields (model/amount/currency/rate/tier/cap/payout_delay_days/validation_window_days) and model-to-required-fields matrix (cpa/cps/cpl/cpi/hybrid). Enhanced `conversion_rule` with 6 fields (click_window_hours/view_window_hours/attribution_model/accepted_types/dedup_strategy/minimum_amount) and industry-standard defaults. Added `source` object for postback and tracking URL templates. Expanded category types from 6 to 11 (added health_beauty, fashion, food_grocery, home_garden, automotive) with common attributes. Added Enum Extensibility section. Added schema.org Compatibility appendix. Updated inline example with enhanced commission and conversion_rule. |
