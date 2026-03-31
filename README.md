@@ -23,7 +23,7 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 
 **AgentOffer Protocol** provides a shared vocabulary for describing commercial offers, discovering relevant recommendations, and reporting attribution events -- so that agents, platforms, and offer providers can interoperate on one open standard.
 
-```
+```text
 +------------------+     +-----------------+     +-------------------+
 |  Agent (Claude,  |     |   AON Protocol  |     |  Offer Providers  |
 |  GPT, LangChain, | <-> |  Query + Track  | <-> |  (SaaS, Travel,   |
@@ -91,7 +91,7 @@ AON is complementary to MCP and A2A. It adds the commercial layer that enables a
 
 ## Repository Map
 
-```
+```text
 protocol/
   specs/
     offer-schema.md        # Canonical offer object definition
