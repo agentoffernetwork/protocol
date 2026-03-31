@@ -87,7 +87,7 @@ Design notes:
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `offer_info.category.type` | string | REQUIRED | Industry vertical. Registered values: `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive`. See **Category Types** section. |
+| `offer_info.category.type` | string | REQUIRED | Industry vertical. Registered values: `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`. See **Category Types** section. |
 | `offer_info.category.attributes` | object | RECOMMENDED | Vertical-specific attributes. Structure varies by `category.type`. See `category-attributes.types.ts` for per-type definitions. |
 | `offer_info.category.commercial` | object | RECOMMENDED | Pricing, availability, and inventory information. |
 
@@ -109,7 +109,7 @@ Design notes:
 
 ### Category Types
 
-Eleven registered industry verticals. All types use `attributes.sub_type` for finer industry-specific classification. Each `sub_type` defines its own set of required and optional attribute fields.
+Six registered industry verticals. All types use `attributes.sub_type` for finer industry-specific classification. Each `sub_type` defines its own set of required and optional attribute fields.
 
 | `category.type` | Description | `sub_type` values |
 |-----------------|-------------|-------------------|
@@ -119,11 +119,6 @@ Eleven registered industry verticals. All types use `attributes.sub_type` for fi
 | `financial_service` | Credit cards, loans, insurance, payments | `credit_card`, `insurance`, `loan`, `investment`, `banking`, `payment` |
 | `electronics` | Consumer electronics, smart devices | `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera` |
 | `entertainment` | Games, streaming, AI companions, betting | `game`, `streaming_video`, `ai_companion`, `social_audio`, `sports_betting`, `music_audio`, `live_streaming` |
-| `health_beauty` | Health, beauty, and personal care | `skincare`, `supplement`, `fitness`, `cosmetics`, `wellness`, `medical_device` |
-| `fashion` | Fashion, clothing, and accessories | `clothing`, `shoes`, `accessories`, `jewelry`, `luxury`, `sportswear` |
-| `food_grocery` | Food, grocery, and meal delivery | `meal_kit`, `grocery_delivery`, `specialty_food`, `beverage`, `organic`, `snack` |
-| `home_garden` | Home, garden, and household | `furniture`, `appliance`, `decor`, `smart_home`, `garden`, `cleaning` |
-| `automotive` | Automotive and transportation | `car_purchase`, `car_lease`, `insurance`, `parts`, `ev_charging`, `ride_service` |
 
 Each type shares a set of common fields across all its sub_types, plus sub_type-specific fields. The tables below are the normative reference. See also `category-attributes.types.ts` for the machine-readable TypeScript definitions.
 
@@ -586,71 +581,6 @@ All `entertainment` offers MUST include a `sub_type` field that determines the s
 | `vod_replay` | boolean | OPTIONAL | Whether VOD replay is available after live ends. |
 | `streamer_tools` | array | OPTIONAL | Tools provided for streamers. |
 
-#### `health_beauty` Attributes
-
-Common fields shared across all `health_beauty` sub_types:
-
-| Field | Type | Level | Description |
-|-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Health & beauty sub-category: `skincare`, `supplement`, `fitness`, `cosmetics`, `wellness`, `medical_device`. |
-| `ingredients_highlight` | array | OPTIONAL | Key ingredients or active compounds highlighted for the product. |
-| `skin_type` | string | OPTIONAL | Target skin type such as `oily`, `dry`, `combination`, `sensitive`, `normal`. |
-| `organic` | boolean | OPTIONAL | Whether the product holds an organic certification. |
-
-> **Note**: Sub_type-specific attributes for `health_beauty` will be defined in a future revision once real Offer data is available for validation.
-
-#### `fashion` Attributes
-
-Common fields shared across all `fashion` sub_types:
-
-| Field | Type | Level | Description |
-|-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Fashion sub-category: `clothing`, `shoes`, `accessories`, `jewelry`, `luxury`, `sportswear`. |
-| `gender` | string | OPTIONAL | Target gender: `unisex`, `male`, `female`. |
-| `size_range` | string | OPTIONAL | Available size range description (e.g., `"XS-XXL"`, `"6-12"`). |
-| `material` | string | OPTIONAL | Primary material or fabric. |
-
-> **Note**: Sub_type-specific attributes for `fashion` will be defined in a future revision once real Offer data is available for validation.
-
-#### `food_grocery` Attributes
-
-Common fields shared across all `food_grocery` sub_types:
-
-| Field | Type | Level | Description |
-|-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Food & grocery sub-category: `meal_kit`, `grocery_delivery`, `specialty_food`, `beverage`, `organic`, `snack`. |
-| `dietary_info` | array | OPTIONAL | Dietary labels such as `vegan`, `gluten_free`, `keto`, `halal`, `kosher`, `organic`. |
-| `shelf_life_days` | integer | OPTIONAL | Shelf life in days. |
-| `serving_size` | string | OPTIONAL | Serving size description. |
-
-> **Note**: Sub_type-specific attributes for `food_grocery` will be defined in a future revision once real Offer data is available for validation.
-
-#### `home_garden` Attributes
-
-Common fields shared across all `home_garden` sub_types:
-
-| Field | Type | Level | Description |
-|-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Home & garden sub-category: `furniture`, `appliance`, `decor`, `smart_home`, `garden`, `cleaning`. |
-| `dimensions` | string | OPTIONAL | Product dimensions description (e.g., `"120x60x75 cm"`). |
-| `assembly_required` | boolean | OPTIONAL | Whether assembly is required. |
-| `energy_rating` | string | OPTIONAL | Energy efficiency rating (e.g., `"A+"`, `"Energy Star"`). |
-
-> **Note**: Sub_type-specific attributes for `home_garden` will be defined in a future revision once real Offer data is available for validation.
-
-#### `automotive` Attributes
-
-Common fields shared across all `automotive` sub_types:
-
-| Field | Type | Level | Description |
-|-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Automotive sub-category: `car_purchase`, `car_lease`, `insurance`, `parts`, `ev_charging`, `ride_service`. |
-| `vehicle_type` | string | OPTIONAL | Vehicle classification such as `sedan`, `suv`, `truck`, `ev`, `motorcycle`. |
-| `fuel_type` | string | OPTIONAL | Fuel or power type: `gasoline`, `diesel`, `electric`, `hybrid`. |
-| `warranty_years` | integer | OPTIONAL | Warranty duration in years. |
-
-> **Note**: Sub_type-specific attributes for `automotive` will be defined in a future revision once real Offer data is available for validation.
-
 ### Entity
 
 `entity` is the normalized business subject of the offer. It uses neutral wording so the model can work for merchants, brands, service providers, platforms, and other supply-side entities.
@@ -960,4 +890,4 @@ The following table maps core AON Offer fields to their closest [schema.org](htt
 | 0.1 | 2026-03-24 | Proposed `uuid`, `offer_info`, executable `action.type`, and optional `targeting` plus `commission` as the next draft shape. |
 | 0.1 | 2026-03-24 | Refined the draft with `offer_info.offer_type`, `offer_info.source_offer_id`, `commercial.availability`, `entity.website`, and `commission.model`. |
 | 0.1 | 2026-03-25 | Introduced REQUIRED/RECOMMENDED/OPTIONAL requirement levels (RFC 2119). Unified `industry` + `industry_attributes` + `commercial` into `offer_info.category`. Renamed `creative` to `material` (array, RECOMMENDED). Reclassified `targeting`, `commission`, `conversion_rule`, `frequency_capping`, and `tags` as OPTIONAL. Added `version` field. Removed `tracking`. Defined 6 category types with entertainment sub_type system. |
-| 0.1 | 2026-03-28 | PROTO-F004 industry alignment enhancement: Upgraded `commission` and `conversion_rule` from OPTIONAL to RECOMMENDED. Enhanced `commission` with 12 fields (model/amount/currency/rate/tier/cap/payout_delay_days/validation_window_days) and model-to-required-fields matrix (cpa/cps/cpl/cpi/hybrid). Enhanced `conversion_rule` with 6 fields (click_window_hours/view_window_hours/attribution_model/accepted_types/dedup_strategy/minimum_amount) and industry-standard defaults. Added `source` object for postback and tracking URL templates. Expanded category types from 6 to 11 (added health_beauty, fashion, food_grocery, home_garden, automotive) with common attributes. Added Enum Extensibility section. Added schema.org Compatibility appendix. Updated inline example with enhanced commission and conversion_rule. |
+| 0.1 | 2026-03-28 | PROTO-F004 industry alignment enhancement: Upgraded `commission` and `conversion_rule` from OPTIONAL to RECOMMENDED. Enhanced `commission` with 12 fields (model/amount/currency/rate/tier/cap/payout_delay_days/validation_window_days) and model-to-required-fields matrix (cpa/cps/cpl/cpi/hybrid). Enhanced `conversion_rule` with 6 fields (click_window_hours/view_window_hours/attribution_model/accepted_types/dedup_strategy/minimum_amount) and industry-standard defaults. Added `source` object for postback and tracking URL templates. Moved 5 additional category types (health_beauty, fashion, food_grocery, home_garden, automotive) to reserved/future status; registered types remain at 6. Added Enum Extensibility section. Added schema.org Compatibility appendix. Updated inline example with enhanced commission and conversion_rule. |
