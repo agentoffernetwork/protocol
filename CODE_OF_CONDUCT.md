@@ -21,3 +21,7 @@ Examples of unacceptable behavior:
 ## Enforcement
 
 Project maintainers may remove, edit, or reject contributions and interactions that violate this code of conduct.
+
+## Reporting
+
+If you experience or witness unacceptable behavior, please contact [info@agentoffernetwork.com](mailto:info@agentoffernetwork.com). All reports will be handled confidentially.

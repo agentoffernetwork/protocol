@@ -9,14 +9,14 @@ labels: bug
 
 Describe the issue clearly.
 
-## Affected Spec
+## Affected File
 
-Which file or section is affected?
+Which spec file or section is affected? (e.g., `specs/offer-schema.md`)
 
 ## Expected Behavior
 
-What should the protocol say or do?
+What should the protocol say or do instead?
 
-## Evidence
+## Steps to Reproduce
 
-Link relevant lines, examples, or implementation notes.
+How can maintainers verify this issue? Link relevant lines, examples, or implementation notes.

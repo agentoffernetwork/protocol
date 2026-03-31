@@ -1,0 +1,7 @@
+# Default owners for the protocol repository
+# These users will be requested for review on all PRs
+
+* @agentoffernetwork/maintainers
+
+# Specification documents require core team review
+specs/ @agentoffernetwork/maintainers

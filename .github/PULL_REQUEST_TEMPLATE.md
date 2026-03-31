@@ -1,18 +1,18 @@
 ## Summary
 
-Describe the change.
+Describe the change and its motivation.
 
 ## Type
 
-- docs
-- clarification
-- example
-- protocol change
+- [ ] Editorial (typo, wording, formatting)
+- [ ] Clarification (no semantic change)
+- [ ] Protocol change (new/modified fields, behavior)
+- [ ] Other
 
 ## Validation
 
-Describe how you verified the update.
+How did you verify the update? (e.g., reviewed related examples, checked schema compatibility)
 
-## Follow-ups
+## Related Issues / RFCs
 
-List any remaining questions or related RFCs.
+Link any related issues or RFCs. If this is a protocol change, an [RFC](https://github.com/agentoffernetwork/rfcs) may be required.

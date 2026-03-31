@@ -7,7 +7,7 @@ labels: proposal
 
 ## Problem
 
-What gap are you trying to solve?
+What gap or pain point are you trying to solve?
 
 ## Proposed Change
 
@@ -17,6 +17,6 @@ Describe the change at a high level.
 
 Who would be affected and how?
 
-## RFC Needed
+## RFC Needed?
 
-Does this change alter protocol semantics, governance, or compatibility?
+Does this change alter protocol semantics, field definitions, or compatibility? If yes, an [RFC](https://github.com/agentoffernetwork/rfcs) is required.
