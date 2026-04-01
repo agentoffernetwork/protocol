@@ -13,6 +13,7 @@
   <a href="#current-status"><img src="https://img.shields.io/badge/status-Draft-yellow.svg" alt="Status" /></a>
   <a href="https://github.com/agentoffernetwork/protocol/issues"><img src="https://img.shields.io/github/issues/agentoffernetwork/protocol.svg" alt="Issues" /></a>
   <a href="https://agentoffernetwork.org"><img src="https://img.shields.io/badge/website-agentoffernetwork.org-green.svg" alt="Website" /></a>
+  <a href="https://github.com/agentoffernetwork/protocol/actions/workflows/lint.yml"><img src="https://github.com/agentoffernetwork/protocol/actions/workflows/lint.yml/badge.svg" alt="Lint" /></a>
 </p>
 
 ---

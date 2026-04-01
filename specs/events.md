@@ -159,7 +159,7 @@ The `postback_url_template` supports the following substitution variables:
 
 Each postback request includes an `X-AON-Signature` HTTP header for authenticity verification. The signature is computed as:
 
-```
+```text
 HMAC-SHA256(secret, request_body_json)
 ```
 

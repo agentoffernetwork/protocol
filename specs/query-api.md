@@ -46,8 +46,8 @@ The query request uses the same REQUIRED/RECOMMENDED/OPTIONAL field requirement 
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `request_id` | string | REQUIRED | Unique request identifier. UUIDv7 is recommended. |
-| `timestamp` | string | REQUIRED | RFC 3339 timestamp of the request. |
+| `request_id` | string | OPTIONAL | Unique request identifier. UUIDv7 is recommended. When omitted, the server generates one. |
+| `timestamp` | string | OPTIONAL | RFC 3339 timestamp of the request. When omitted, the server uses the current time. |
 | `test_mode` | boolean | OPTIONAL | When `true`, the request is treated as a test and SHOULD NOT generate real tracking or billing events. Defaults to `false`. |
 | `context` | object | REQUIRED | Contextual information about the requesting platform, session, and user. |
 | `intent` | object | REQUIRED | The user's intent expressed as multimodal content. |
@@ -312,3 +312,4 @@ Design notes:
 | 0.1 | 2026-03-24 | Updated the response example to the `uuid + offer_info + entity + action + targeting + commission` draft shape. |
 | 0.1 | 2026-03-25 | Restructured from GET parameters to POST JSON body. Introduced `context` (platform, session, user_profile), multimodal `intent.content[]`, REQUIRED/RECOMMENDED/OPTIONAL requirement levels (RFC 2119), and offset-based pagination. |
 | 0.1 | 2026-03-28 | Added `filter` object for structured query constraints (category_types, commission_models, status, availability, price/commission range, brand, country, tags). Added enum extensibility note. Updated request example with filter fields and response example with commission and conversion_rule fields. |
+| 0.1 | 2026-03-31 | Changed `request_id` and `timestamp` from REQUIRED to OPTIONAL. Server generates defaults when omitted. Backward compatible (existing requests with these fields still work). |
