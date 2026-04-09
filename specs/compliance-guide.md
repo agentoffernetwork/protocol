@@ -33,7 +33,7 @@ When implemented, this guide will be supported by a `compliance` object in the O
 
 ### Long Form
 
-`Disclosure: I may earn a commission if you purchase through this link, at no additional cost to you.`
+`Disclosure: I may earn a bid if you purchase through this link, at no additional cost to you.`
 
 ## Example Usage
 

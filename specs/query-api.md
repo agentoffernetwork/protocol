@@ -121,12 +121,12 @@ Design notes:
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
 | `filter.category_types` | array | OPTIONAL | Filter by category type. Values reference `offer_info.category.type` enum (e.g., `["software_saas", "education"]`). |
-| `filter.commission_models` | array | OPTIONAL | Filter by commission model. Values reference `commission.model` enum (e.g., `["cps", "cpa"]`). |
+| `filter.bid_models` | array | OPTIONAL | Filter by bid model. Values reference `bid.model` enum (e.g., `["cps", "cpa"]`). |
 | `filter.status` | array | OPTIONAL | Filter by offer status (e.g., `["active"]`). |
 | `filter.availability` | array | OPTIONAL | Filter by availability (e.g., `["available", "limited"]`). |
-| `filter.min_commission_amount` | string | OPTIONAL | Minimum commission amount. Decimal string. Requires `filter.currency`. |
+| `filter.min_bid_amount` | string | OPTIONAL | Minimum bid amount. Decimal string. Requires `filter.currency`. |
 | `filter.max_price_amount` | string | OPTIONAL | Maximum consumer-facing price. Decimal string. Requires `filter.currency`. |
-| `filter.currency` | string | OPTIONAL | ISO 4217 currency code for `min_commission_amount` and `max_price_amount`. Applies to both fields simultaneously; offers with mismatched currencies are excluded. |
+| `filter.currency` | string | OPTIONAL | ISO 4217 currency code for `min_bid_amount` and `max_price_amount`. Applies to both fields simultaneously; offers with mismatched currencies are excluded. |
 | `filter.brand` | string | OPTIONAL | Filter by brand or entity name (case-insensitive substring match). |
 | `filter.country` | string | OPTIONAL | Filter by target country. ISO 3166-1 alpha-2 code. |
 | `filter.tags` | array | OPTIONAL | Filter by tags (AND logic: offer must match all specified tags). |
@@ -135,10 +135,10 @@ Design notes:
 
 - `filter` is entirely OPTIONAL. When omitted, the query relies solely on `intent` for matching.
 - Array-typed filters use OR logic within the array (e.g., `category_types: ["software_saas", "education"]` matches either).
-- `min_commission_amount` and `max_price_amount` require `currency` to be set; if `currency` is absent, numeric filters are ignored.
+- `min_bid_amount` and `max_price_amount` require `currency` to be set; if `currency` is absent, numeric filters are ignored.
 - `brand` uses case-insensitive substring matching against `entity.name`.
 
-> **Enum Extensibility**: All enum values referenced in filter fields (`category_types`, `commission_models`, `status`, `availability`) follow the protocol's open-ended enum design. Servers SHOULD accept unknown enum values gracefully (return empty results rather than errors). New enum values may be added in future revisions without being considered a breaking change.
+> **Enum Extensibility**: All enum values referenced in filter fields (`category_types`, `bid_models`, `status`, `availability`) follow the protocol's open-ended enum design. Servers SHOULD accept unknown enum values gracefully (return empty results rather than errors). New enum values may be added in future revisions without being considered a breaking change.
 
 ### Pagination
 
@@ -249,7 +249,7 @@ Design notes:
           "target": "https://www.manhattangrand.example/book/deluxe-king"
         }
       },
-      "commission": {
+      "bid": {
         "model": "cps",
         "rate": "0.10",
         "currency": "USD",
@@ -309,7 +309,7 @@ Design notes:
 | 0.1 | 2026-03-23 | Added CTA-oriented action semantics to the response example. |
 | 0.1 | 2026-03-24 | Reframed the query result as `offer response { trace_id, offers[] }`, aligned the payload with `offer`, and updated key field names. |
 | 0.1 | 2026-03-24 | Added `offer-query` example guidance and clarified the boundary between query request, canonical `offer`, and `offer response`. |
-| 0.1 | 2026-03-24 | Updated the response example to the `uuid + offer_info + entity + action + targeting + commission` draft shape. |
+| 0.1 | 2026-03-24 | Updated the response example to the `uuid + offer_info + entity + action + targeting + bid` draft shape. |
 | 0.1 | 2026-03-25 | Restructured from GET parameters to POST JSON body. Introduced `context` (platform, session, user_profile), multimodal `intent.content[]`, REQUIRED/RECOMMENDED/OPTIONAL requirement levels (RFC 2119), and offset-based pagination. |
-| 0.1 | 2026-03-28 | Added `filter` object for structured query constraints (category_types, commission_models, status, availability, price/commission range, brand, country, tags). Added enum extensibility note. Updated request example with filter fields and response example with commission and conversion_rule fields. |
+| 0.1 | 2026-03-28 | Added `filter` object for structured query constraints (category_types, bid_models, status, availability, price/bid range, brand, country, tags). Added enum extensibility note. Updated request example with filter fields and response example with bid and conversion_rule fields. |
 | 0.1 | 2026-03-31 | Changed `request_id` and `timestamp` from REQUIRED to OPTIONAL. Server generates defaults when omitted. Backward compatible (existing requests with these fields still work). |

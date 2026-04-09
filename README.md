@@ -12,7 +12,7 @@
   <a href="#current-status"><img src="https://img.shields.io/badge/version-v0.1-orange.svg" alt="Version" /></a>
   <a href="#current-status"><img src="https://img.shields.io/badge/status-Draft-yellow.svg" alt="Status" /></a>
   <a href="https://github.com/agentoffernetwork/protocol/issues"><img src="https://img.shields.io/github/issues/agentoffernetwork/protocol.svg" alt="Issues" /></a>
-  <a href="https://agentoffernetwork.org"><img src="https://img.shields.io/badge/website-agentoffernetwork.org-green.svg" alt="Website" /></a>
+  <a href="https://agentoffernetwork.org"><img src="https://img.shields.io/badge/website-https%3A%2F%2Fagentoffernetwork.org-green.svg" alt="Website" /></a>
   <a href="https://github.com/agentoffernetwork/protocol/actions/workflows/lint.yml"><img src="https://github.com/agentoffernetwork/protocol/actions/workflows/lint.yml/badge.svg" alt="Lint" /></a>
 </p>
 
@@ -62,7 +62,7 @@ Six industry verticals with typed attributes and sub-type discrimination:
 | `electronics` | Smartphones, laptops, audio, wearables |
 | `entertainment` | Games, streaming, AI companions, live streaming |
 
-### Commission Models
+### Bid Models
 
 | Model | Description |
 |-------|-------------|
@@ -140,7 +140,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed routing guidelines.
 
 ## Community
 
-- **Website:** [agentoffernetwork.org](https://agentoffernetwork.org)
+- **Website:** [https://agentoffernetwork.org](https://agentoffernetwork.org)
 - **Email:** [info@agentoffernetwork.com](mailto:info@agentoffernetwork.com)
 - **Security:** [SECURITY.md](SECURITY.md)
 

@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Agent Identity specification (minimal registration model)
 - Compliance Guide (disclosure requirements and restriction policies)
 - RFC 2119 requirement levels (REQUIRED / RECOMMENDED / OPTIONAL)
-- Commission models: CPA, CPS, CPL, CPI, Hybrid
+- Bid models: CPA, CPS, CPL, CPI, Hybrid
 - Sub-ID tracking for granular attribution
 - Conversion types: sale, lead, install, subscription, trial, custom
 

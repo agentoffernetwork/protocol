@@ -15,7 +15,7 @@ The object is centered on:
 - entity
 - action
 - targeting
-- commission
+- bid
 
 ### Conformance Keywords
 
@@ -44,7 +44,7 @@ The protocol classifies fields into three requirement levels to balance standard
 | `action` | object | REQUIRED | Primary executable action exposed by the offer. |
 | `material` | array | RECOMMENDED | Creative assets associated with the offer. |
 | `targeting` | array | OPTIONAL | Targeting constraints that influence where the offer should be shown. |
-| `commission` | object | RECOMMENDED | Commission information associated with the offer. |
+| `bid` | object | RECOMMENDED | Bid information associated with the offer. |
 | `conversion_rule` | object | RECOMMENDED | Rules for valid conversion events and attribution logic. |
 | `source` | object | OPTIONAL | Offer source and tracking configuration. |
 | `frequency_capping` | object | OPTIONAL | Exposure frequency limits. |
@@ -645,25 +645,25 @@ For a `web_redirect` action flow:
 | `source.postback_url_template` | string | OPTIONAL | Agent-side conversion callback URL template. Supports variable substitution (e.g., `{tracking_id}`, `{offer_id}`). See Events spec for template variable definitions. |
 | `source.tracking_url_template` | string | OPTIONAL | Tracking link generation template. Used to construct click-tracking URLs with embedded parameters. |
 
-### Commission (RECOMMENDED)
+### Bid (RECOMMENDED)
 
-`commission` expresses affiliate commission and payout information for recommendation, ranking, or settlement workflows. It is RECOMMENDED: the field SHOULD be present when the offer participates in affiliate or performance-based compensation.
+`bid` expresses affiliate bid and payout information for recommendation, ranking, or settlement workflows. It is RECOMMENDED: the field SHOULD be present when the offer participates in affiliate or performance-based compensation.
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `commission.model` | string | REQUIRED | Commission model: `cpa` (cost per action), `cps` (cost per sale, percentage-based), `cpl` (cost per lead), `cpi` (cost per install), `hybrid` (base amount plus percentage). |
-| `commission.amount` | string | CONDITIONAL | Fixed commission amount, decimal string. REQUIRED when `model` is `cpa`, `cpl`, or `cpi`. REQUIRED when `model` is `hybrid` (base/floor amount). OPTIONAL when `model` is `cps`. |
-| `commission.currency` | string | REQUIRED | ISO 4217 currency code for the commission amount. |
-| `commission.rate` | string | CONDITIONAL | Commission rate as a decimal string (e.g., `"0.15"` = 15%). REQUIRED when `model` is `cps` or `hybrid`. OPTIONAL for other models. |
-| `commission.tier` | array | OPTIONAL | Tiered commission rules. When present, tier rules take precedence over top-level `amount`/`rate`. |
-| `commission.tier[].threshold` | string | REQUIRED | Threshold value that triggers this tier, decimal string. |
-| `commission.tier[].threshold_type` | string | REQUIRED | Threshold measurement type: `revenue` (cumulative amount) or `count` (cumulative conversions). |
-| `commission.tier[].amount` | string | CONDITIONAL | Fixed commission for this tier. Used when parent `model` is `cpa`, `cpl`, `cpi`, or `hybrid`. |
-| `commission.tier[].rate` | string | CONDITIONAL | Commission rate for this tier. Used when parent `model` is `cps` or `hybrid`. |
-| `commission.cap` | string | OPTIONAL | Maximum commission per single conversion, decimal string. |
-| `commission.cap_currency` | string | OPTIONAL | Currency for the commission cap. When omitted, defaults to `commission.currency`. |
-| `commission.payout_delay_days` | integer | OPTIONAL | Settlement delay in days (lock-up period). Default `0`. |
-| `commission.validation_window_days` | integer | OPTIONAL | Conversion validation window in days (advertiser confirmation period). |
+| `bid.model` | string | REQUIRED | Bid model: `cpa` (cost per action), `cps` (cost per sale, percentage-based), `cpl` (cost per lead), `cpi` (cost per install), `hybrid` (base amount plus percentage). |
+| `bid.amount` | string | CONDITIONAL | Fixed bid amount, decimal string. REQUIRED when `model` is `cpa`, `cpl`, or `cpi`. REQUIRED when `model` is `hybrid` (base/floor amount). OPTIONAL when `model` is `cps`. |
+| `bid.currency` | string | REQUIRED | ISO 4217 currency code for the bid amount. |
+| `bid.rate` | string | CONDITIONAL | Bid rate as a decimal string (e.g., `"0.15"` = 15%). REQUIRED when `model` is `cps` or `hybrid`. OPTIONAL for other models. |
+| `bid.tier` | array | OPTIONAL | Tiered bid rules. When present, tier rules take precedence over top-level `amount`/`rate`. |
+| `bid.tier[].threshold` | string | REQUIRED | Threshold value that triggers this tier, decimal string. |
+| `bid.tier[].threshold_type` | string | REQUIRED | Threshold measurement type: `revenue` (cumulative amount) or `count` (cumulative conversions). |
+| `bid.tier[].amount` | string | CONDITIONAL | Fixed bid for this tier. Used when parent `model` is `cpa`, `cpl`, `cpi`, or `hybrid`. |
+| `bid.tier[].rate` | string | CONDITIONAL | Bid rate for this tier. Used when parent `model` is `cps` or `hybrid`. |
+| `bid.cap` | string | OPTIONAL | Maximum bid per single conversion, decimal string. |
+| `bid.cap_currency` | string | OPTIONAL | Currency for the bid cap. When omitted, defaults to `bid.currency`. |
+| `bid.payout_delay_days` | integer | OPTIONAL | Settlement delay in days (lock-up period). Default `0`. |
+| `bid.validation_window_days` | integer | OPTIONAL | Conversion validation window in days (advertiser confirmation period). |
 
 **Model-to-Required-Fields Matrix**:
 
@@ -675,12 +675,12 @@ For a `web_redirect` action flow:
 | `cpi` | REQUIRED | --- | OPTIONAL | Fixed amount: pay `amount` per install. |
 | `hybrid` | REQUIRED | REQUIRED | OPTIONAL | Floor + percentage: `max(amount, revenue * rate)`. |
 
-> **Hybrid semantics**: `amount` is the floor (guaranteed minimum) commission, `rate` is the revenue share percentage. The final commission is the greater of the two: `max(amount, revenue * rate)`. When `tier` is present, tier rules take precedence over the top-level `amount`/`rate`.
+> **Hybrid semantics**: `amount` is the floor (guaranteed minimum) bid, `rate` is the revenue share percentage. The final bid is the greater of the two: `max(amount, revenue * rate)`. When `tier` is present, tier rules take precedence over the top-level `amount`/`rate`.
 
 Design notes:
 
-- CONDITIONAL fields (`amount`, `rate`, `tier[].amount`, `tier[].rate`) have their requirement level determined by the value of `commission.model`. See the matrix above for the exact mapping.
-- `cap` and `cap_currency` provide an upper bound on per-conversion commission to protect advertiser budgets.
+- CONDITIONAL fields (`amount`, `rate`, `tier[].amount`, `tier[].rate`) have their requirement level determined by the value of `bid.model`. See the matrix above for the exact mapping.
+- `cap` and `cap_currency` provide an upper bound on per-conversion bid to protect advertiser budgets.
 - `payout_delay_days` and `validation_window_days` inform agents about settlement timing expectations.
 
 ### Conversion Rule (RECOMMENDED)
@@ -694,13 +694,13 @@ Design notes:
 | `conversion_rule.attribution_model` | string | RECOMMENDED | Attribution method: `last_click` (default, credit goes to the last click before conversion), `first_click` (credit goes to the first click). `linear` is reserved for future use and MUST NOT be used in v0.1. |
 | `conversion_rule.accepted_types` | array | RECOMMENDED | Accepted conversion types for this offer, e.g., `["sale", "lead"]`. Values reference the `conversion_type` enumeration defined in the Events spec. |
 | `conversion_rule.dedup_strategy` | string | OPTIONAL | Deduplication strategy for multiple conversions from the same user: `first` (only the first conversion counts, default), `all` (every conversion counts), `highest` (only the highest-value conversion counts). |
-| `conversion_rule.minimum_amount` | string | OPTIONAL | Minimum conversion amount (decimal string). Conversions below this threshold do not qualify for commission. |
+| `conversion_rule.minimum_amount` | string | OPTIONAL | Minimum conversion amount (decimal string). Conversions below this threshold do not qualify for bid. |
 
 Design notes:
 
 - Default values (`click_window_hours` = 720, `attribution_model` = `last_click`, `dedup_strategy` = `first`) reflect industry-standard affiliate marketing defaults. Consumers SHOULD apply these defaults when the fields are absent.
 - `linear` attribution is reserved for a future protocol revision. Implementations receiving `"linear"` SHOULD treat it as an unknown value and fall back gracefully.
-- `accepted_types` enables advertisers to scope which conversion events qualify for commission under this offer.
+- `accepted_types` enables advertisers to scope which conversion events qualify for bid under this offer.
 
 ### Frequency Capping (OPTIONAL)
 
@@ -736,7 +736,7 @@ These fields SHOULD be present in the offer object and MUST follow the standard 
 - `material` SHOULD be present as an array. MAY be an empty array `[]` when no assets are available. When items are provided, each SHOULD include `image_url`, `tag`, and `format`.
 - `category.attributes` SHOULD be present as an object. MAY be an empty object `{}` when no vertical-specific data is available.
 - `category.commercial` SHOULD be present as an object. `price.amount` and `price.currency` MAY be empty strings when pricing is not exposed.
-- `commission` SHOULD be present as an object. When present, `commission.model` and `commission.currency` are REQUIRED. `commission.amount` and `commission.rate` are CONDITIONAL based on `commission.model` (see Model-to-Required-Fields Matrix). All monetary values MUST be decimal strings.
+- `bid` SHOULD be present as an object. When present, `bid.model` and `bid.currency` are REQUIRED. `bid.amount` and `bid.rate` are CONDITIONAL based on `bid.model` (see Model-to-Required-Fields Matrix). All monetary values MUST be decimal strings.
 - `conversion_rule` SHOULD be present as an object. When present, `click_window_hours`, `attribution_model`, and `accepted_types` are RECOMMENDED. When `click_window_hours` is absent, consumers SHOULD apply a default of `720`. When `attribution_model` is absent, consumers SHOULD apply `last_click`. When `dedup_strategy` is absent, consumers SHOULD apply `first`.
 
 ### OPTIONAL Fields
@@ -751,7 +751,7 @@ These fields MAY be omitted entirely. When included, they SHOULD follow the spec
 
 ## Enum Extensibility
 
-All enumeration types defined in this specification (`commission.model`, `category.type`, `offer_info.offer_type`, `offer_info.status`, `commercial.availability`, `conversion_rule.attribution_model`, `conversion_rule.dedup_strategy`, etc.) follow an **open-ended design**. The protocol reserves the right to introduce new enumeration values in future revisions without treating the addition as a breaking change.
+All enumeration types defined in this specification (`bid.model`, `category.type`, `offer_info.offer_type`, `offer_info.status`, `commercial.availability`, `conversion_rule.attribution_model`, `conversion_rule.dedup_strategy`, etc.) follow an **open-ended design**. The protocol reserves the right to introduce new enumeration values in future revisions without treating the addition as a breaking change.
 
 Consumers SHOULD handle unknown enumeration values gracefully — either by ignoring the unrecognized value or passing it through — rather than returning an error or rejecting the entire offer document. This principle enables the protocol to evolve incrementally while maintaining backward compatibility with existing implementations.
 
@@ -825,7 +825,7 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
       "device_type": ["mobile", "desktop", "tablet"]
     }
   ],
-  "commission": {
+  "bid": {
     "model": "cpa",
     "amount": "42.00",
     "currency": "USD",
@@ -843,7 +843,7 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
 
 ## Example Coverage
 
-The protocol examples cover the original six registered category types. Existing examples use the legacy commission format and will be updated in a subsequent revision to reflect the enhanced commission, conversion_rule, and source fields introduced in this specification.
+The protocol examples cover the original six registered category types. Existing examples use the legacy bid format and will be updated in a subsequent revision to reflect the enhanced bid, conversion_rule, and source fields introduced in this specification.
 
 | Category Type | Example File | Notes |
 |--------------|-------------|-------|
@@ -859,7 +859,7 @@ The protocol examples cover the original six registered category types. Existing
 - **Requirement Levels (RFC 2119)**: REQUIRED enforces a strict core contract (must have valid values). RECOMMENDED enforces structural consistency across implementations (field should exist and follow the standard shape, even if the value is empty) — this ensures all offer documents share the same structure for parsing and tooling. OPTIONAL fields allow richer modeling without breaking backward compatibility.
 - **`category` consolidation**: Industry type, vertical-specific attributes, and commercial terms are inherently related. Grouping them under `category` reduces top-level field sprawl and makes it clear that pricing and availability are category-dependent.
 - **`material` as array**: A single offer may need multiple creative assets (logo, banner, video). The array structure handles this naturally.
-- **OPTIONAL for targeting, commission, conversion, frequency, tags**: These are powerful features but not every offer needs them. Keeping them optional prevents the protocol from forcing complexity on simple use cases.
+- **OPTIONAL for targeting, bid, conversion, frequency, tags**: These are powerful features but not every offer needs them. Keeping them optional prevents the protocol from forcing complexity on simple use cases.
 
 ## Appendix: schema.org Compatibility
 
@@ -876,7 +876,7 @@ The following table maps core AON Offer fields to their closest [schema.org](htt
 | `action.payload.target` | `Offer.url` | Maps to the offer landing page URL. |
 | `offer_info.start_at` | `Offer.validFrom` | RFC 3339 (AON) to ISO 8601 (schema.org). |
 | `offer_info.expire_at` | `Offer.validThrough` | RFC 3339 (AON) to ISO 8601 (schema.org). |
-| `commission` | --- | No schema.org equivalent. AON differentiator for affiliate/performance marketing. |
+| `bid` | --- | No schema.org equivalent. AON differentiator for affiliate/performance marketing. |
 | `intent` (Query API) | --- | No schema.org equivalent. AON differentiator for agent-driven semantic matching. |
 
 ## Changelog
@@ -887,7 +887,7 @@ The following table maps core AON Offer fields to their closest [schema.org](htt
 | 0.1 | 2026-03-22 | Added compatibility-oriented fields and industry mapping guidance. |
 | 0.1 | 2026-03-23 | Added `primary_action` and `action_labels` for CTA semantics. |
 | 0.1 | 2026-03-24 | Reframed the protocol around `offer`, `entity`, and `action`, simplified field guidance to required versus optional, and aligned key names around `id`, `offer_type`, `source_offer_id`, and user-facing action semantics. |
-| 0.1 | 2026-03-24 | Proposed `uuid`, `offer_info`, executable `action.type`, and optional `targeting` plus `commission` as the next draft shape. |
-| 0.1 | 2026-03-24 | Refined the draft with `offer_info.offer_type`, `offer_info.source_offer_id`, `commercial.availability`, `entity.website`, and `commission.model`. |
-| 0.1 | 2026-03-25 | Introduced REQUIRED/RECOMMENDED/OPTIONAL requirement levels (RFC 2119). Unified `industry` + `industry_attributes` + `commercial` into `offer_info.category`. Renamed `creative` to `material` (array, RECOMMENDED). Reclassified `targeting`, `commission`, `conversion_rule`, `frequency_capping`, and `tags` as OPTIONAL. Added `version` field. Removed `tracking`. Defined 6 category types with entertainment sub_type system. |
-| 0.1 | 2026-03-28 | PROTO-F004 industry alignment enhancement: Upgraded `commission` and `conversion_rule` from OPTIONAL to RECOMMENDED. Enhanced `commission` with 12 fields (model/amount/currency/rate/tier/cap/payout_delay_days/validation_window_days) and model-to-required-fields matrix (cpa/cps/cpl/cpi/hybrid). Enhanced `conversion_rule` with 6 fields (click_window_hours/view_window_hours/attribution_model/accepted_types/dedup_strategy/minimum_amount) and industry-standard defaults. Added `source` object for postback and tracking URL templates. Moved 5 additional category types (health_beauty, fashion, food_grocery, home_garden, automotive) to reserved/future status; registered types remain at 6. Added Enum Extensibility section. Added schema.org Compatibility appendix. Updated inline example with enhanced commission and conversion_rule. |
+| 0.1 | 2026-03-24 | Proposed `uuid`, `offer_info`, executable `action.type`, and optional `targeting` plus `bid` as the next draft shape. |
+| 0.1 | 2026-03-24 | Refined the draft with `offer_info.offer_type`, `offer_info.source_offer_id`, `commercial.availability`, `entity.website`, and `bid.model`. |
+| 0.1 | 2026-03-25 | Introduced REQUIRED/RECOMMENDED/OPTIONAL requirement levels (RFC 2119). Unified `industry` + `industry_attributes` + `commercial` into `offer_info.category`. Renamed `creative` to `material` (array, RECOMMENDED). Reclassified `targeting`, `bid`, `conversion_rule`, `frequency_capping`, and `tags` as OPTIONAL. Added `version` field. Removed `tracking`. Defined 6 category types with entertainment sub_type system. |
+| 0.1 | 2026-03-28 | PROTO-F004 industry alignment enhancement: Upgraded `bid` and `conversion_rule` from OPTIONAL to RECOMMENDED. Enhanced `bid` with 12 fields (model/amount/currency/rate/tier/cap/payout_delay_days/validation_window_days) and model-to-required-fields matrix (cpa/cps/cpl/cpi/hybrid). Enhanced `conversion_rule` with 6 fields (click_window_hours/view_window_hours/attribution_model/accepted_types/dedup_strategy/minimum_amount) and industry-standard defaults. Added `source` object for postback and tracking URL templates. Moved 5 additional category types (health_beauty, fashion, food_grocery, home_garden, automotive) to reserved/future status; registered types remain at 6. Added Enum Extensibility section. Added schema.org Compatibility appendix. Updated inline example with enhanced bid and conversion_rule. |

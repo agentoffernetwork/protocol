@@ -10,7 +10,7 @@ This document defines the event payloads used for attribution and revenue tracki
 
 The Offer Schema defines the surrounding settlement context that these events operate within, including:
 
-- `commission` object (model, amount, currency, rate, tier, cap, payout_delay_days, validation_window_days)
+- `bid` object (model, amount, currency, rate, tier, cap, payout_delay_days, validation_window_days)
 - `conversion_rule` object (click_window_hours, view_window_hours, attribution_model, accepted_types, dedup_strategy, minimum_amount)
 - `source.postback_url_template`
 - `source.tracking_url_template`
@@ -81,7 +81,7 @@ AgentOffer v0.1 defines two core event types:
 | `amount` | number | Yes | Gross converted amount. |
 | `currency` | string | Yes | ISO 4217 currency code for the converted amount. |
 | `timestamp` | string | Yes | ISO 8601 event timestamp. |
-| `commission_amount` | number | Yes | Commission amount computed by the platform. |
+| `bid_amount` | number | Yes | Bid amount computed by the platform. |
 | `conversion_type` | string | Yes | Conversion classification: `sale`, `lead`, `install`, `subscription`, `trial`, or `custom`. |
 | `sub_id_1` through `sub_id_5` | string | No | Inherited from the associated click event. Absent (not null) when not set on the original click. |
 
@@ -97,7 +97,7 @@ AgentOffer v0.1 defines two core event types:
   "amount": 120,
   "currency": "USD",
   "timestamp": "2026-03-21T03:10:00Z",
-  "commission_amount": 24,
+  "bid_amount": 24,
   "conversion_type": "sale",
   "sub_id_1": "homepage_widget",
   "sub_id_2": "cohort_a"
@@ -128,7 +128,7 @@ The protocol defines **POST** as the sole request method. The request body is a 
 | `conversion_type` | string | Conversion classification: `sale`, `lead`, `install`, `subscription`, `trial`, or `custom`. |
 | `amount` | number | Gross converted amount. |
 | `currency` | string | ISO 4217 currency code. |
-| `commission_amount` | number | Commission amount computed by the platform. |
+| `bid_amount` | number | Bid amount computed by the platform. |
 | `sub_id_1` | string | Custom tracking parameter 1 (absent when not set on the original click). |
 | `sub_id_2` | string | Custom tracking parameter 2 (absent when not set on the original click). |
 | `sub_id_3` | string | Custom tracking parameter 3 (absent when not set on the original click). |
@@ -146,7 +146,7 @@ The `postback_url_template` supports the following substitution variables:
 | `{offer_id}` | Identifier of the converted offer. |
 | `{conversion_type}` | Conversion classification value. |
 | `{amount}` | Gross converted amount. |
-| `{commission_amount}` | Computed commission amount. |
+| `{bid_amount}` | Computed bid amount. |
 | `{currency}` | ISO 4217 currency code. |
 | `{sub_id_1}` | Custom tracking parameter 1 (empty string when not set). |
 | `{sub_id_2}` | Custom tracking parameter 2 (empty string when not set). |
@@ -195,7 +195,7 @@ Each postback contains a unique `event_id`. The platform MAY deliver the same po
   "conversion_type": "sale",
   "amount": 120,
   "currency": "USD",
-  "commission_amount": 24,
+  "bid_amount": 24,
   "sub_id_1": "homepage_widget",
   "sub_id_2": "cohort_a",
   "timestamp": "2026-03-21T03:10:00Z"
@@ -210,13 +210,13 @@ The following event types are reserved for a future revision of the protocol. Th
 
 ### offer_updated
 
-Emitted when one or more Offer fields change (e.g., price, commission, description).
+Emitted when one or more Offer fields change (e.g., price, bid, description).
 
 | Field | Type | Description |
 |------|------|-------------|
 | `event_type` | string | Fixed value: `"offer_updated"`. |
 | `offer_id` | string | Identifier of the updated offer. |
-| `updated_fields` | array | List of field paths that changed (e.g., `["commission.amount", "offer_info.description"]`). |
+| `updated_fields` | array | List of field paths that changed (e.g., `["bid.amount", "offer_info.description"]`). |
 | `timestamp` | string | ISO 8601 event timestamp. |
 
 ### offer_expired
@@ -248,7 +248,7 @@ Emitted when an Offer is temporarily paused by the advertiser.
 
 - Event payloads are intentionally flat in v0.1 so they are easy to emit from multiple systems without schema translation overhead.
 - `session_id` is optional because not every surface has stable conversation state, but it is valuable when agents need recommendation traceability.
-- `commission_amount` lives on the conversion event so downstream settlement systems can consume a single normalized record.
+- `bid_amount` lives on the conversion event so downstream settlement systems can consume a single normalized record.
 - `tracking_id` is the shared join key across click and conversion flows in v0.1.
 - `offer_id` examples use the same `ao_{ulid}` shape as the reference Offer Schema so event records can be joined to canonical offer documents without translation.
 - `sub_id_1` through `sub_id_5` follow the numbered naming convention used by industry affiliate networks (e.g., Impact, CJ Affiliate) to maximize data import compatibility. Five sub-IDs is the protocol ceiling; extending beyond five requires a protocol revision.
