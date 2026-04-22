@@ -1,10 +1,10 @@
 # Compliance and Disclosure Guide v0.1
 
 **Version**: 0.1
-**Status**: Draft — Placeholder
+**Status**: Draft — Informational Companion Spec
 **Last Updated**: 2026-03-25
 
-> **Note**: This specification is a forward-looking placeholder. The `compliance` fields referenced below (e.g., `compliance.disclosure_required`, `compliance.terms_url`) are **not yet part of the v0.1 Offer Schema**. They represent planned extensions for a future protocol revision. The behavioral guidance in this document is informational and does not impose schema-level requirements at this time.
+> **Note**: This specification is a forward-looking informational companion spec. The `compliance` fields referenced below (e.g., `compliance.disclosure_required`, `compliance.terms_url`) are **not yet part of the v0.1 Offer Schema**. They represent planned extensions for a future protocol revision. The guidance in this document is published to clarify direction and disclosure expectations, not to expand the current implementation-ready core.
 
 ## Introduction
 

@@ -1,10 +1,10 @@
 # Agent Identity v0.1
 
 **Version**: 0.1
-**Status**: Draft — Placeholder
+**Status**: Draft — Informational Companion Spec
 **Last Updated**: 2026-03-25
 
-> **Note**: This specification is a forward-looking placeholder. Agent identity is not yet modeled as a standalone schema in the v0.1 schema package. The `agent_id` references to source tracking templates and event attribution flows depend on tracking and events capabilities that are planned for a future protocol revision. The registration model described here is informational.
+> **Note**: This specification is a forward-looking informational companion spec. Agent identity is not yet modeled as a standalone schema artifact in the v0.1 schema package. The `agent_id` references to source tracking templates and event attribution flows depend on capabilities that are planned for a future protocol revision. The registration model described here is published to show direction, not to expand the current implementation-ready core.
 
 ## Introduction
 

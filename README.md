@@ -37,17 +37,31 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 1. Read the [Offer Schema](specs/offer-schema.md) to understand the canonical offer object
 2. Read the [Query API](specs/query-api.md) to learn how agents discover offers
 3. Read the [Events](specs/events.md) spec for click & conversion tracking
-4. Try the [SDK](https://github.com/agentoffernetwork/schema) or browse [Examples](https://github.com/agentoffernetwork/examples)
+4. Try the [SDK](https://github.com/agentoffernetwork/sdk) or browse [Examples](https://github.com/agentoffernetwork/examples)
 
-## What's in v0.1
+## Implementation-Ready Core
 
 | Specification | Description |
 |---------------|-------------|
 | [Offer Schema](specs/offer-schema.md) | Canonical offer object with 6 category types, 40+ sub-types, and per-vertical attribute contracts |
 | [Query API](specs/query-api.md) | `POST /v1/offers/query` with multimodal intent, structured filters, and pagination |
 | [Events](specs/events.md) | Click and conversion event definitions with stable identifiers for full-funnel attribution |
-| [Agent Identity](specs/agent-identity.md) | Minimal registration model with agent_id, developer linkage, and API key binding |
-| [Compliance Guide](specs/compliance-guide.md) | Machine-readable disclosure requirements and restriction policies |
+| [OfferProvider API](specs/offer-provider-api.md) | Partner-facing request/response, signing, and error semantics for standardized offer supply |
+| [Postback](specs/postback.md) | AON→Agent and Partner→AON callback rules, payloads, signatures, and retry behavior |
+
+These documents make up the current **implementation-ready core** of the protocol. They
+are still published as **v0.1 Draft** because the ecosystem and governance process are
+young, but the core contract surface is intended for real integration and feedback.
+
+## Companion Drafts
+
+The following documents are published for direction-setting and early review, but they are
+**not** part of the current implementation-ready core:
+
+| Specification | Current role |
+|---------------|--------------|
+| [Agent Identity](specs/agent-identity.md) | Informational companion spec for future registration and attribution identity work |
+| [Compliance Guide](specs/compliance-guide.md) | Informational companion spec for future machine-readable compliance extensions |
 
 ### Category Types
 
@@ -120,13 +134,16 @@ protocol/
 |---------|---------|-------------|
 | TypeScript SDK | `npm install @agentoffernetwork/sdk` | Intent-driven offer search, click tracking, formatting |
 | Python SDK | `pip install agentoffernetwork` | Full parity with TypeScript SDK |
-| MCP Skill | `aon skill install @agentoffernetwork/skill` | Zero-code integration for Claude, ChatGPT, IDE agents |
+| MCP Skill | `aon skill install @agentoffernetwork/skill` | Zero-code integration for Claude and other MCP-compatible hosts |
+| ChatGPT Action | See `sdk/chatgpt-action/` | Custom GPT Actions integration for ChatGPT |
 
 ## Current Status
 
 - **Version:** `v0.1`
 - **Status:** `Draft`
+- **Release posture:** `Public beta for the core contract surface`
 - **Stability:** Fields marked REQUIRED are unlikely to change. RECOMMENDED and OPTIONAL fields may evolve.
+- **Scope note:** Agent Identity and Compliance remain companion drafts and are not yet reflected as standalone schema artifacts in the v0.1 machine-readable package.
 
 ## Contributing
 

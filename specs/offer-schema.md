@@ -642,7 +642,7 @@ For a `web_redirect` action flow:
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `source.postback_url_template` | string | OPTIONAL | Agent-side conversion callback URL template. Supports variable substitution (e.g., `{tracking_id}`, `{offer_id}`). See Events spec for template variable definitions. |
+| `source.postback_url_template` | string | OPTIONAL | Agent-side conversion callback URL template. Supports variable substitution (e.g., `{tracking_id}`, `{offer_id}`). See [`postback.md` S4.1 Registration and S4.5 URL Template Variables](./postback.md#41-registration) for the template variable definitions and substitution rules. |
 | `source.tracking_url_template` | string | OPTIONAL | Tracking link generation template. Used to construct click-tracking URLs with embedded parameters. |
 
 ### Bid (RECOMMENDED)

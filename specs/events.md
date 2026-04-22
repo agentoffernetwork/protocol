@@ -106,103 +106,9 @@ AgentOffer v0.1 defines two core event types:
 
 ## Postback Notification
 
-Postback is the mechanism for notifying Agent developers of conversion events in real time. When a conversion is attributed to an Agent's click, the platform sends an HTTP request to the Agent developer's registered endpoint with the full conversion details.
+Postback is the mechanism for notifying Agent developers of conversion events in real time, and for Partners to report conversions, refunds, and adjustments back to AON. The full Postback specification -- including payload schemas, HMAC-SHA256 signing, retry policies, idempotency rules, and HTTP examples -- is defined in the dedicated [`postback.md`](./postback.md) document.
 
-### Registration
-
-Agent developers provide a `postback_url_template` during onboarding. This template is stored in the Offer Schema's `source.postback_url_template` field and supports variable substitution for dynamic routing.
-
-### Request Method
-
-The protocol defines **POST** as the sole request method. The request body is a JSON payload containing the full conversion event details. GET compatibility is a platform adapter concern and is not part of this specification.
-
-### Request Body
-
-| Field | Type | Description |
-|------|------|-------------|
-| `event_id` | string | Unique identifier for this notification, used for idempotency. |
-| `event_type` | string | Fixed value: `"conversion"`. |
-| `tracking_id` | string | Tracking identifier from the original click event. |
-| `offer_id` | string | Identifier of the converted offer. |
-| `agent_id` | string | Identifier of the agent that drove the conversion. |
-| `conversion_type` | string | Conversion classification: `sale`, `lead`, `install`, `subscription`, `trial`, or `custom`. |
-| `amount` | number | Gross converted amount. |
-| `currency` | string | ISO 4217 currency code. |
-| `bid_amount` | number | Bid amount computed by the platform. |
-| `sub_id_1` | string | Custom tracking parameter 1 (absent when not set on the original click). |
-| `sub_id_2` | string | Custom tracking parameter 2 (absent when not set on the original click). |
-| `sub_id_3` | string | Custom tracking parameter 3 (absent when not set on the original click). |
-| `sub_id_4` | string | Custom tracking parameter 4 (absent when not set on the original click). |
-| `sub_id_5` | string | Custom tracking parameter 5 (absent when not set on the original click). |
-| `timestamp` | string | ISO 8601 event timestamp. |
-
-### URL Template Variables
-
-The `postback_url_template` supports the following substitution variables:
-
-| Variable | Description |
-|----------|-------------|
-| `{tracking_id}` | Tracking identifier from the original click. |
-| `{offer_id}` | Identifier of the converted offer. |
-| `{conversion_type}` | Conversion classification value. |
-| `{amount}` | Gross converted amount. |
-| `{bid_amount}` | Computed bid amount. |
-| `{currency}` | ISO 4217 currency code. |
-| `{sub_id_1}` | Custom tracking parameter 1 (empty string when not set). |
-| `{sub_id_2}` | Custom tracking parameter 2 (empty string when not set). |
-| `{sub_id_3}` | Custom tracking parameter 3 (empty string when not set). |
-| `{sub_id_4}` | Custom tracking parameter 4 (empty string when not set). |
-| `{sub_id_5}` | Custom tracking parameter 5 (empty string when not set). |
-| `{timestamp}` | ISO 8601 event timestamp. |
-
-### Signature Verification
-
-Each postback request includes an `X-AON-Signature` HTTP header for authenticity verification. The signature is computed as:
-
-```text
-HMAC-SHA256(secret, request_body_json)
-```
-
-Where `secret` is the shared secret established during Agent developer onboarding and `request_body_json` is the raw JSON string of the request body. Agent developers MUST verify the signature before processing the postback payload.
-
-### Retry Policy
-
-If the Agent developer's endpoint does not return an HTTP 2xx response within **10 seconds**, the platform retries delivery using the following schedule:
-
-| Attempt | Delay after previous attempt |
-|---------|------------------------------|
-| 1 | Immediate (first delivery) |
-| 2 | 1 minute |
-| 3 | 5 minutes |
-| 4 | 30 minutes |
-| 5 | 2 hours |
-
-After 5 failed attempts the postback is marked as permanently failed. The maximum total retry window is approximately 24 hours from the initial attempt.
-
-### Idempotency
-
-Each postback contains a unique `event_id`. The platform MAY deliver the same postback more than once due to retry logic or internal recovery. Agent developers MUST handle duplicate deliveries gracefully by deduplicating on `event_id`.
-
-### Postback Example
-
-```json
-{
-  "event_id": "evt_pb_01HX9A2B3C4D5E6F",
-  "event_type": "conversion",
-  "tracking_id": "trk_01_click_abc",
-  "offer_id": "ao_01HX2B3C4D5E6F7G8H9J0KABCD",
-  "agent_id": "agt_assistant_123",
-  "conversion_type": "sale",
-  "amount": 120,
-  "currency": "USD",
-  "bid_amount": 24,
-  "sub_id_1": "homepage_widget",
-  "sub_id_2": "cohort_a",
-  "timestamp": "2026-03-21T03:10:00Z"
-}
-```
-
-> **Platform implementation note**: The webhook infrastructure, retry queues, dead-letter handling, and subscription management are platform concerns delivered separately in SVC-CORE. This specification defines only the protocol-level contract between the platform and Agent developer endpoints.
+> **Moved**: The detailed Postback contract (previously in this section) has been consolidated into [`postback.md`](./postback.md) as of PROTO-F010. Part A covers AON -> Agent notification; Part B covers Partner -> AON callbacks.
 
 ## Offer Lifecycle Events (P2)
 
@@ -242,7 +148,7 @@ Emitted when an Offer is temporarily paused by the advertiser.
 | `expected_resume_at` | string | ISO 8601 timestamp of expected resumption, or empty string if unknown. |
 | `timestamp` | string | ISO 8601 event timestamp. |
 
-> **Note**: These events share the same webhook delivery and signature mechanism defined in the Postback Notification section. Implementation is deferred to a future revision of the protocol.
+> **Note**: These events share the same webhook delivery and signature mechanism defined in [`postback.md`](./postback.md). Implementation is deferred to a future revision of the protocol.
 
 ## Design Decisions
 
@@ -263,3 +169,4 @@ Emitted when an Offer is temporarily paused by the advertiser.
 | 0.1 | 2026-03-20 | Initial draft. |
 | 0.1 | 2026-03-20 | Clarified mapping to settlement fields from the reference Offer Schema and aligned `offer_id` examples with the canonical ID format. |
 | 0.1 | 2026-03-28 | PROTO-F004 revision: added Conformance Keywords section; added `sub_id_1`–`sub_id_5` to Click Event; added `conversion_type` and `sub_id_1`–`sub_id_5` to Conversion Event; added Postback Notification chapter; added Offer Lifecycle Events (P2) chapter; updated Design Decisions with sub-ID naming rationale, conversion_type separation rationale, POST-only postback design, and enum extensibility policy; removed placeholder status and forward-looking language. |
+| 0.1 | 2026-04-17 | PROTO-F010: Consolidated Postback Notification section into dedicated `postback.md`; replaced detailed content with overview and pointer. Lifecycle Events note updated to reference `postback.md`. |
