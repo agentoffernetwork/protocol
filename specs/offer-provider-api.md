@@ -23,7 +23,7 @@ Two kinds of entities implement this contract:
 
 Offer content returned over this API MUST conform to the Offer Schema
 defined in [`offer-schema.md`](./offer-schema.md) and
-[`json-schema/offer-schema-v0.1.json`](../../schema/json-schema/offer-schema-v0.1.json).
+[`json-schema/offer-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-schema-v0.1.json).
 
 ### 1.1 Conformance Keywords
 
@@ -58,10 +58,10 @@ Level 1 requirements below:
   skew window **independently of** signature verification.
 - **L1-4** — Returns responses shaped per §7 on success and per §9 on
   error. All error payloads MUST be valid against the
-  [`offer-provider-response-v0.1.json`](../../schema/json-schema/offer-provider-response-v0.1.json)
+  [`offer-provider-response-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-provider-response-v0.1.json)
   ErrorEnvelope definition.
 - **L1-5** — Returned offers MUST satisfy every REQUIRED field in
-  [`offer-schema-v0.1.json`](../../schema/json-schema/offer-schema-v0.1.json).
+  [`offer-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-schema-v0.1.json).
 - **L1-6** — Honors `X-AON-Test: true` by suppressing tracking, billing,
   fulfillment and conversion side-effects (§5).
 
@@ -81,7 +81,7 @@ onboarding guide). AON concatenates standard protocol paths onto the
 Partner's Base URL; Partners therefore retain full control of domain,
 path prefix, and deployment topology.
 
-```
+```text
 {base_url}  =  e.g.  https://api.partner.example.com/aon
 ```
 
@@ -121,7 +121,7 @@ at onboarding; AON signs every outbound request; Partner verifies.
 
 ### 4.2 Signing String
 
-```
+```text
 METHOD        + "\n"
 PATH          + "\n"
 CANONICAL_BODY + "\n"
@@ -149,7 +149,7 @@ No trailing newline. Components are joined by a single LF (`U+000A`).
 
 Compute the signature as:
 
-```
+```text
 signature_bytes = HMAC_SHA256(secret, signing_string)
 X-AON-Signature = hex_lowercase(signature_bytes)
 ```
@@ -197,7 +197,7 @@ certification:
 
 Reproducible test vectors (secret, timestamp, nonce, expected signature
 hex) for all four cases are published at
-[`examples/http/offer-provider/hmac-signing-cases.md`](../../examples/http/offer-provider/hmac-signing-cases.md).
+[`examples/http/offer-provider/hmac-signing-cases.md`](https://github.com/agentoffernetwork/examples/blob/main/http/offer-provider/hmac-signing-cases.md).
 
 ## 5. Test Mode
 
@@ -222,9 +222,9 @@ repeated test requests cause production side-effects.
 ## 6. Request Body
 
 The request body reuses the canonical `OfferQueryRequest` shape defined
-in [`offer-query-schema-v0.1.json`](../../schema/json-schema/offer-query-schema-v0.1.json);
+in [`offer-query-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-query-schema-v0.1.json);
 the OfferProvider-specific JSON Schema
-([`offer-provider-request-v0.1.json`](../../schema/json-schema/offer-provider-request-v0.1.json))
+([`offer-provider-request-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-provider-request-v0.1.json))
 matches that shape 1-to-1 so that the same request can be validated on
 either side of the wire.
 
@@ -307,7 +307,7 @@ revision are non-breaking.
 
 On success, Partner MUST return `200 OK` with `Content-Type:
 application/json` and a body matching the **SuccessEnvelope** in
-[`offer-provider-response-v0.1.json`](../../schema/json-schema/offer-provider-response-v0.1.json):
+[`offer-provider-response-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-provider-response-v0.1.json):
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
@@ -321,8 +321,8 @@ application/json` and a body matching the **SuccessEnvelope** in
 Each element of `offers[]` is an **Offer object** as defined in:
 
 - Human spec: [`protocol/specs/offer-schema.md`](./offer-schema.md)
-- JSON Schema: [`schema/json-schema/offer-schema-v0.1.json`](../../schema/json-schema/offer-schema-v0.1.json)
-- TypeScript types: [`schema/types/offer.types.ts`](../../schema/types/offer.types.ts)
+- JSON Schema: [`schema/json-schema/offer-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-schema-v0.1.json)
+- TypeScript types: [`schema/types/offer.types.ts`](https://github.com/agentoffernetwork/schema/blob/main/types/offer.types.ts)
 
 The OfferProvider response schema does **not** restate Offer fields; it
 treats each element as an opaque `object`. AON validates offer structure
@@ -423,7 +423,7 @@ entries document design choices surfaced during technical review.
    tracing) treats Partner errors identically to any other AON service.
 5. **Adapter DSL covers both standard and non-standard Partners.** The
    DSL itself lives outside this document — see
-   [`services/offer-mgmt/docs/architecture/PARTNER_CREDENTIALS_DSL.md`](../../../../services/offer-mgmt/docs/architecture/PARTNER_CREDENTIALS_DSL.md).
+   [`services/offer-mgmt/docs/architecture/PARTNER_CREDENTIALS_DSL.md`](https://github.com/agentoffernetwork/protocol/blob/main/specs/offer-provider-api.md#42-signing-string).
    Standard Partners leave the adapter unconfigured and receive the raw
    `OfferQueryRequest` / return the raw envelope. Non-standard Partners
    declare a mapping and the runtime reshapes requests/responses. The

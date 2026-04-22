@@ -83,7 +83,7 @@ signing string. The sender holds a `key_id` and a matching `secret`:
 
 ### 3.3 Signing String
 
-```
+```text
 METHOD        + "\n"
 PATH          + "\n"
 CANONICAL_BODY + "\n"
@@ -106,7 +106,7 @@ No trailing newline. Components are joined by a single LF (`U+000A`).
 
 Compute the signature as:
 
-```
+```text
 signature_bytes = HMAC_SHA256(secret, signing_string)
 X-AON-Signature = hex_lowercase(signature_bytes)
 ```
@@ -203,7 +203,7 @@ POST request to the resulting URL.
 | `sub_id_5` | string | OPTIONAL | Custom tracking parameter 5. |
 | `timestamp` | string | REQUIRED | ISO 8601 event timestamp. |
 
-JSON Schema: [`postback-agent-payload-v0.1.json`](../../schema/json-schema/postback-agent-payload-v0.1.json)
+JSON Schema: [`postback-agent-payload-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/postback-agent-payload-v0.1.json)
 
 ### 4.5 URL Template Variables
 
@@ -259,10 +259,10 @@ Any non-2xx response or timeout (> 10 seconds) triggers retry per S4.6.
 
 ### 4.8 Example
 
-See [`examples/http/postback/agent/basic-conversion.http`](../../examples/http/postback/agent/basic-conversion.http)
-and [`examples/http/postback/agent/retry-scenario.http`](../../examples/http/postback/agent/retry-scenario.http).
+See [`examples/http/postback/agent/basic-conversion.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/basic-conversion.http)
+and [`examples/http/postback/agent/retry-scenario.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/retry-scenario.http).
 
-HMAC test vectors: [`examples/http/postback/agent/signature-verification.md`](../../examples/http/postback/agent/signature-verification.md).
+HMAC test vectors: [`examples/http/postback/agent/signature-verification.md`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/signature-verification.md).
 
 ## 5. Part B -- Partner -> AON Postback
 
@@ -329,7 +329,7 @@ fields. The `event_type` field discriminates the variant.
 | `currency` | string | REQUIRED | ISO 4217 currency code. |
 | `adjustment_reason` | string | OPTIONAL | Human-readable adjustment reason. |
 
-JSON Schema: [`postback-partner-payload-v0.1.json`](../../schema/json-schema/postback-partner-payload-v0.1.json)
+JSON Schema: [`postback-partner-payload-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/postback-partner-payload-v0.1.json)
 
 ### 5.4 Retry Policy
 
@@ -382,11 +382,11 @@ response as successful delivery regardless of the `deduplicated` flag.
 
 ### 5.6 Example
 
-See [`examples/http/postback/partner/conversion.http`](../../examples/http/postback/partner/conversion.http),
-[`examples/http/postback/partner/refund.http`](../../examples/http/postback/partner/refund.http),
-and [`examples/http/postback/partner/error-unauthorized.http`](../../examples/http/postback/partner/error-unauthorized.http).
+See [`examples/http/postback/partner/conversion.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/partner/conversion.http),
+[`examples/http/postback/partner/refund.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/partner/refund.http),
+and [`examples/http/postback/partner/error-unauthorized.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/partner/error-unauthorized.http).
 
-HMAC test vectors: [`examples/http/postback/partner/signature-verification.md`](../../examples/http/postback/partner/signature-verification.md).
+HMAC test vectors: [`examples/http/postback/partner/signature-verification.md`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/partner/signature-verification.md).
 
 ## 6. Idempotency
 
@@ -421,6 +421,7 @@ When retrying a postback:
 3. The sender MUST recompute `X-AON-Signature` over the new signing string.
 
 This ensures that:
+
 - Business-level deduplication works (same `event_id`).
 - HTTP-level replay protection works (different nonce + timestamp pass
   anti-replay checks).
