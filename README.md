@@ -37,7 +37,7 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 1. Read the [Offer Schema](specs/offer-schema.md) to understand the canonical offer object
 2. Read the [Query API](specs/query-api.md) to learn how agents discover offers
 3. Read the [Events](specs/events.md) spec for click & conversion tracking
-4. Try the [SDK](https://github.com/agentoffernetwork/sdk) or browse [Examples](https://github.com/agentoffernetwork/examples)
+4. Browse [Examples](https://github.com/agentoffernetwork/examples) and use the SDK installation pointers in the Developer Tools section below
 
 ## Implementation-Ready Core
 
