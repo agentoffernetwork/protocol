@@ -34,16 +34,17 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 
 ## Quick Start
 
-1. Read the [Offer Schema](specs/offer-schema.md) to understand the canonical offer object
-2. Read the [Query API](specs/query-api.md) to learn how agents discover offers
-3. Read the [Events](specs/events.md) spec for click & conversion tracking
-4. Browse [Examples](https://github.com/agentoffernetwork/examples) and use the SDK installation pointers in the Developer Tools section below
+1. Read the [Category Taxonomy](specs/category-taxonomy.md) to understand the current canonical category surface
+2. Read the [Offer Schema](specs/offer-schema.md) to understand the canonical offer object
+3. Read the [Query API](specs/query-api.md) to learn how agents discover offers
+4. Read the [Events](specs/events.md) spec for click & conversion tracking
+5. Browse [Examples](https://github.com/agentoffernetwork/examples) and use the SDK installation pointers in the Developer Tools section below
 
 ## Implementation-Ready Core
 
 | Specification | Description |
 |---------------|-------------|
-| [Offer Schema](specs/offer-schema.md) | Canonical offer object with 6 category types, 40+ sub-types, and per-vertical attribute contracts |
+| [Offer Schema](specs/offer-schema.md) | Canonical offer object with 11 category types, 70+ sub-types, and per-vertical attribute contracts |
 | [Query API](specs/query-api.md) | `POST /v1/offers/query` with multimodal intent, structured filters, and pagination |
 | [Events](specs/events.md) | Click and conversion event definitions with stable identifiers for full-funnel attribution |
 | [OfferProvider API](specs/offer-provider-api.md) | Partner-facing request/response, signing, and error semantics for standardized offer supply |
@@ -65,16 +66,12 @@ The following documents are published for direction-setting and early review, bu
 
 ### Category Types
 
-Six industry verticals with typed attributes and sub-type discrimination:
+The current public category surface is defined in
+[`specs/category-taxonomy.md`](specs/category-taxonomy.md).
 
-| Category | Examples |
-|----------|----------|
-| `software_saas` | Project management, CRM, dev tools, AI tools |
-| `travel_hospitality` | Hotels, flights, car rentals, vacation packages |
-| `education` | Online courses, certifications, bootcamps |
-| `financial_service` | Credit cards, insurance, loans, investment |
-| `electronics` | Smartphones, laptops, audio, wearables |
-| `entertainment` | Games, streaming, AI companions, live streaming |
+- Current canonical output contains 11 categories in v0.1.
+- Historical aliases may still be accepted in input normalization layers, but they are not canonical public output.
+- External taxonomy mappings are intentionally handled outside the current implementation-ready core.
 
 ### Bid Models
 
@@ -109,6 +106,7 @@ AON is complementary to MCP and A2A. It adds the commercial layer that enables a
 ```text
 protocol/
   specs/
+    category-taxonomy.md    # Canonical category registry and boundary rules
     offer-schema.md        # Canonical offer object definition
     query-api.md           # Offer discovery API
     events.md              # Click & conversion tracking
@@ -125,7 +123,7 @@ protocol/
 |------------|---------|
 | [`agentoffernetwork/protocol`](https://github.com/agentoffernetwork/protocol) | Human-readable specification (this repo) |
 | [`agentoffernetwork/schema`](https://github.com/agentoffernetwork/schema) | JSON Schema, TypeScript types, and validators |
-| [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples) | Request/response payloads for all 6 categories |
+| [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples) | Canonical request/response payloads aligned with the current public category surface |
 | [`agentoffernetwork/rfcs`](https://github.com/agentoffernetwork/rfcs) | Protocol change proposals and governance |
 
 **Developer Tools:**

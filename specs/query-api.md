@@ -120,7 +120,7 @@ Design notes:
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `filter.category_types` | array | OPTIONAL | Filter by category type. Values reference `offer_info.category.type` enum (e.g., `["software_saas", "education"]`). |
+| `filter.category_types` | array | OPTIONAL | Filter by category type. Values reference the current 11-value `offer_info.category.type` enum (e.g., `["software_saas", "education", "health_beauty"]`). |
 | `filter.bid_models` | array | OPTIONAL | Filter by bid model. Values reference `bid.model` enum (e.g., `["cps", "cpa"]`). |
 | `filter.status` | array | OPTIONAL | Filter by offer status (e.g., `["active"]`). |
 | `filter.availability` | array | OPTIONAL | Filter by availability (e.g., `["available", "limited"]`). |

@@ -281,7 +281,7 @@ applied **before** any semantic ranking Partner performs.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `filter.category_types[]` | array<enum> | From `offer_info.category.type`: `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`. OR-logic within the array. |
+| `filter.category_types[]` | array<enum> | From `offer_info.category.type`: `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive`. OR-logic within the array. |
 | `filter.bid_models[]` | array<enum> | From `bid.model`: `cps`, `cpa`, `cpl`, `cpi`, `hybrid`. OR-logic. |
 | `filter.status[]` | array<enum> | From offer lifecycle: `active`, `paused`, `pending`, `rejected`, `expired`. OR-logic. |
 | `filter.availability[]` | array<enum> | From `commercial.availability`: `available`, `limited`, `out_of_stock`, `coming_soon`. OR-logic. |

@@ -18,6 +18,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Sub-ID tracking for granular attribution
 - Conversion types: sale, lead, install, subscription, trial, custom
 
+## [0.1.1] - 2026-04-23
+
+### Changed
+
+- Promoted `health_beauty`, `fashion`, `food_grocery`, `home_garden`, and `automotive` from reserved/future to canonical public categories
+- Expanded the canonical category surface from 6 to 11
+- Added common attribute definitions for the 5 newly canonical categories
+
 ### Status
 
 - Version: `v0.1`
