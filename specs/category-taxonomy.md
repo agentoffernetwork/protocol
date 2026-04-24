@@ -158,6 +158,4 @@ This taxonomy document is the intended upstream reference for:
 - service-side parser / adapter normalization rules
 - AON-ORG public documentation alignment
 
-See the feature-local drift tracking document for current downstream follow-up actions:
-
-- [`PROTO-F012 DRIFT-MATRIX.md`](../../../docs/features/PROTO-F012-canonical-category-surface收敛/DRIFT-MATRIX.md)
+Downstream follow-up actions are tracked in the monorepo planning and delivery docs, not in this public repository.
