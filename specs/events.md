@@ -41,7 +41,7 @@ AgentOffer v0.1 defines two core event types:
 | Field | Type | Required | Description |
 |------|------|----------|-------------|
 | `event_type` | string | Yes | Fixed value: `"click"`. |
-| `tracking_id` | string | Yes | Unique identifier of the tracking link instance. |
+| `aon_tracking_id` | string | Yes | Unique identifier of the tracking link instance. |
 | `offer_id` | string | Yes | Identifier of the recommended offer. |
 | `agent_id` | string | Yes | Identifier of the agent that issued the recommendation. |
 | `session_id` | string | No | Optional session or conversation correlation identifier. |
@@ -58,7 +58,7 @@ AgentOffer v0.1 defines two core event types:
 ```json
 {
   "event_type": "click",
-  "tracking_id": "trk_01_click_abc",
+  "aon_tracking_id": "trk_01_click_abc",
   "offer_id": "ao_01HX2B3C4D5E6F7G8H9J0KABCD",
   "agent_id": "agt_assistant_123",
   "session_id": "sess_chat_456",
@@ -74,7 +74,7 @@ AgentOffer v0.1 defines two core event types:
 | Field | Type | Required | Description |
 |------|------|----------|-------------|
 | `event_type` | string | Yes | Fixed value: `"conversion"`. |
-| `tracking_id` | string | Yes | Tracking identifier previously associated with a click event. |
+| `aon_tracking_id` | string | Yes | Tracking identifier previously associated with a click event. |
 | `offer_id` | string | Yes | Identifier of the converted offer. |
 | `agent_id` | string | Yes | Identifier of the agent that drove the conversion. |
 | `order_id` | string | Yes | Advertiser-side order or action identifier. |
@@ -90,7 +90,7 @@ AgentOffer v0.1 defines two core event types:
 ```json
 {
   "event_type": "conversion",
-  "tracking_id": "trk_01_click_abc",
+  "aon_tracking_id": "trk_01_click_abc",
   "offer_id": "ao_01HX2B3C4D5E6F7G8H9J0KABCD",
   "agent_id": "agt_assistant_123",
   "order_id": "ord_987654",
@@ -155,7 +155,7 @@ Emitted when an Offer is temporarily paused by the advertiser.
 - Event payloads are intentionally flat in v0.1 so they are easy to emit from multiple systems without schema translation overhead.
 - `session_id` is optional because not every surface has stable conversation state, but it is valuable when agents need recommendation traceability.
 - `bid_amount` lives on the conversion event so downstream settlement systems can consume a single normalized record.
-- `tracking_id` is the shared join key across click and conversion flows in v0.1.
+- `aon_tracking_id` is the shared join key across click and conversion flows in v0.1.
 - `offer_id` examples use the same `ao_{ulid}` shape as the reference Offer Schema so event records can be joined to canonical offer documents without translation.
 - `sub_id_1` through `sub_id_5` follow the numbered naming convention used by industry affiliate networks (e.g., Impact, CJ Affiliate) to maximize data import compatibility. Five sub-IDs is the protocol ceiling; extending beyond five requires a protocol revision.
 - `conversion_type` is a separate field from `event_type` for backward compatibility. `event_type` remains `"conversion"` for all conversion events, while `conversion_type` provides the fine-grained classification (sale, lead, install, etc.). This avoids breaking consumers that switch on `event_type`.

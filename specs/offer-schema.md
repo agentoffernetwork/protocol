@@ -37,7 +37,8 @@ The protocol classifies fields into three requirement levels to balance standard
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `uuid` | string | REQUIRED | Stable offer identifier. UUIDv7 is recommended. |
+| `offer_id` | string | REQUIRED | Stable inventory-level offer identifier. UUIDv7 is recommended. Same value across multiple query responses for the same offer. |
+| `offer_instance_id` | string | REQUIRED | Per-dispatch unique identifier. UUIDv7 is recommended. Generated fresh for each query response and used as the primary key for click → conversion → settlement attribution. Carried at the integration layer as `?aon_tracking_id={offer_instance_id}` (URL query param + S2S postback). |
 | `version` | string | REQUIRED | Offer document version. Indicates which schema revision the offer instance conforms to. Current value: `"1.0"`. |
 | `offer_info` | object | REQUIRED | Core descriptive, categorical, and commercial information for the offer. |
 | `entity` | object | REQUIRED | Business entity the offer belongs to. |
@@ -56,12 +57,26 @@ The protocol classifies fields into three requirement levels to balance standard
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `uuid` | string | REQUIRED | Stable offer identifier in the protocol response. UUIDv7 is recommended. |
+| `offer_id` | string | REQUIRED | Stable inventory-level offer identifier. UUIDv7 is recommended. Same `offer_id` across multiple query responses for the same offer. |
+| `offer_instance_id` | string | REQUIRED | Per-dispatch unique identifier. UUIDv7 is recommended. Generated fresh for each query response (each "serve"). Primary key for click → conversion → settlement attribution. |
 | `version` | string | REQUIRED | Offer document version. Indicates which schema revision the offer instance conforms to. Current value: `"1.0"`. |
 
 Design notes:
 
-- `uuid` is the protocol-facing offer identity for query, tracking, and downstream reconciliation use cases.
+- `offer_id` is the inventory-stable identifier. Multiple query responses
+  delivering the same underlying offer share the same `offer_id`. Industry
+  alignment: affiliate platforms such as PartnerStack and Rakuten Advertising
+  use `offer_id` for the inventory-stable identifier.
+- `offer_instance_id` is the per-dispatch identifier (generated fresh for
+  each query response). It is the same value carried at the integration
+  layer as the `aon_tracking_id` URL query parameter on landing-page
+  redirects (`?aon_tracking_id={offer_instance_id}`) and as the
+  `aon_tracking_id` field in S2S postback bodies. The `aon_tracking_id`
+  pattern aligns with industry conventions like Google Ads `gclid`, Meta
+  `fbclid`, TikTok `ttclid`, and Microsoft `msclkid`. AON keeps the
+  protocol-side field name neutral (`offer_instance_id`) for protocol
+  openness, while expressing the brand prefix only at the integration
+  layer (URL/S2S contracts).
 - `version` enables forward compatibility when the schema evolves.
 
 ### Offer Information
@@ -74,7 +89,6 @@ Design notes:
 | `offer_info.offer_type` | string | REQUIRED | Offer classification such as `physical_product`, `content`, `online_service`, or `offline_service`. |
 | `offer_info.category` | object | REQUIRED | Industry category, vertical-specific attributes, and commercial details. |
 | `offer_info.description` | string | REQUIRED | Core semantic description used by agents and clients. |
-| `offer_info.source_offer_id` | string | OPTIONAL | Upstream source-side offer or inventory identifier. |
 | `offer_info.start_at` | string | OPTIONAL | RFC 3339 timestamp indicating when the offer becomes active. |
 | `offer_info.expire_at` | string | OPTIONAL | RFC 3339 timestamp indicating when the offer should no longer be surfaced. |
 | `offer_info.status` | string | OPTIONAL | Lifecycle status such as `active`, `paused`, `pending`, `rejected`, or `expired`. |
@@ -709,7 +723,7 @@ For a `web_redirect` action flow:
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `source.postback_url_template` | string | OPTIONAL | Agent-side conversion callback URL template. Supports variable substitution (e.g., `{tracking_id}`, `{offer_id}`). See [`postback.md` S4.1 Registration and S4.5 URL Template Variables](./postback.md#41-registration) for the template variable definitions and substitution rules. |
+| `source.postback_url_template` | string | OPTIONAL | Agent-side conversion callback URL template. Supports variable substitution (e.g., `{aon_tracking_id}`, `{offer_id}`). See [`postback.md` S4.1 Registration and S4.5 URL Template Variables](./postback.md#41-registration) for the template variable definitions and substitution rules. |
 | `source.tracking_url_template` | string | OPTIONAL | Tracking link generation template. Used to construct click-tracking URLs with embedded parameters. |
 
 ### Bid (RECOMMENDED)
@@ -786,7 +800,8 @@ Design notes:
 
 ### REQUIRED Fields
 
-- `uuid` MUST be a non-empty string. UUIDv7 format is recommended.
+- `offer_id` MUST be a non-empty string. UUIDv7 format is recommended.
+- `offer_instance_id` MUST be a non-empty string. UUIDv7 format is recommended.
 - `version` MUST be a non-empty string.
 - `offer_info.title` MUST be a non-empty string suitable for direct display.
 - `offer_info.offer_type` MUST be a non-empty string that classifies the offer.
@@ -826,7 +841,8 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
 
 ```json
 {
-  "uuid": "0195ef94-f17d-7a4f-b6e0-2c52bb49e142",
+  "offer_id": "0195ef94-f17d-7a4f-b6e0-2c52bb49e142",
+  "offer_instance_id": "019dd208-27d2-7673-b16f-6897fa120303",
   "version": "1.0",
   "offer_info": {
     "title": "The Manhattan Grand — Deluxe King Room",
@@ -953,9 +969,10 @@ The following table maps core AON Offer fields to their closest [schema.org](htt
 | 0.1 | 2026-03-20 | Initial draft. |
 | 0.1 | 2026-03-22 | Added compatibility-oriented fields and industry mapping guidance. |
 | 0.1 | 2026-03-23 | Added `primary_action` and `action_labels` for CTA semantics. |
-| 0.1 | 2026-03-24 | Reframed the protocol around `offer`, `entity`, and `action`, simplified field guidance to required versus optional, and aligned key names around `id`, `offer_type`, `source_offer_id`, and user-facing action semantics. |
-| 0.1 | 2026-03-24 | Proposed `uuid`, `offer_info`, executable `action.type`, and optional `targeting` plus `bid` as the next draft shape. |
-| 0.1 | 2026-03-24 | Refined the draft with `offer_info.offer_type`, `offer_info.source_offer_id`, `commercial.availability`, `entity.website`, and `bid.model`. |
+| 0.1 | 2026-03-24 | Reframed the protocol around `offer`, `entity`, and `action`, simplified field guidance to required versus optional, and aligned key names around offer identity, `offer_type`, and user-facing action semantics. |
+| 0.1 | 2026-03-24 | Proposed the initial identity fields, `offer_info`, executable `action.type`, and optional `targeting` plus `bid` as the next draft shape. |
+| 0.1 | 2026-03-24 | Refined the draft with `offer_info.offer_type`, `commercial.availability`, `entity.website`, and `bid.model`. |
 | 0.1 | 2026-03-25 | Introduced REQUIRED/RECOMMENDED/OPTIONAL requirement levels (RFC 2119). Unified `industry` + `industry_attributes` + `commercial` into `offer_info.category`. Renamed `creative` to `material` (array, RECOMMENDED). Reclassified `targeting`, `bid`, `conversion_rule`, `frequency_capping`, and `tags` as OPTIONAL. Added `version` field. Removed `tracking`. Defined 6 category types with entertainment sub_type system. |
 | 0.1 | 2026-03-28 | PROTO-F004 industry alignment enhancement: Upgraded `bid` and `conversion_rule` from OPTIONAL to RECOMMENDED. Enhanced `bid` with 12 fields (model/amount/currency/rate/tier/cap/payout_delay_days/validation_window_days) and model-to-required-fields matrix (cpa/cps/cpl/cpi/hybrid). Enhanced `conversion_rule` with 6 fields (click_window_hours/view_window_hours/attribution_model/accepted_types/dedup_strategy/minimum_amount) and industry-standard defaults. Added `source` object for postback and tracking URL templates. Added Enum Extensibility section. Added schema.org Compatibility appendix. Updated inline example with enhanced bid and conversion_rule. |
 | 0.1 | 2026-04-23 | PROTO-F013 canonical category expansion: Promoted `health_beauty`, `fashion`, `food_grocery`, `home_garden`, and `automotive` from reserved/future into the canonical public category surface, expanding the category registry from 6 to 11. Added sub_type tables and common attribute definitions for the 5 newly canonical categories. |
+| 0.1 | 2026-04-28 | PROTO-F014a Offer Protocol ID Naming Convergence (v0.1 Draft 内部精化, non-breaking): ① Finalized `offer_id` as the stable inventory-level identifier. ② Added REQUIRED top-level `offer_instance_id` as the per-dispatch unique identifier (UUIDv7 recommended) for click → conversion → settlement attribution; carried at the integration layer as `?aon_tracking_id={offer_instance_id}` URL query param + S2S postback body, aligned with Google Ads `gclid` / Meta `fbclid` / TikTok `ttclid` industry pattern. ③ Removed upstream-source identity from the open `offer_info` contract; adapter-source offers persist upstream ids in internal adapter storage outside the open protocol. ④ Updated all 12 example payloads under `examples/http/`. ⑤ Non-breaking justification: protocol still in v0.1 Draft with no GA consumers. Cross-protocol family alignment continues in PROTO-F014b (events.md / postback.md `tracking_id` → `aon_tracking_id`). |

@@ -332,8 +332,9 @@ against `offer-schema-v0.1.json` downstream.
 
 See §7.1 for the authoritative pointers. Partners MUST at minimum populate
 every REQUIRED field listed in `offer-schema.md` §"Top-Level Shape":
-`uuid`, `version`, `offer_info` (with nested REQUIREDs), `entity`,
-`action`, and `bid`. Partners SHOULD populate RECOMMENDED fields such as
+`offer_id`, `offer_instance_id`, `version`, `offer_info` (with nested
+REQUIREDs), `entity`, `action`, and `bid`. Partners SHOULD populate
+RECOMMENDED fields such as
 `material`, `category.attributes`, and `category.commercial` when the
 data is available; routing quality depends on completeness.
 

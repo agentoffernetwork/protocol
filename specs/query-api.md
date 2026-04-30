@@ -217,7 +217,8 @@ Design notes:
   "trace_id": "0195ef98-90af-7e1f-b57d-1130cf0c57f2",
   "offers": [
     {
-      "uuid": "0195ef94-f17d-7a4f-b6e0-2c52bb49e142",
+      "offer_id": "0195ef94-f17d-7a4f-b6e0-2c52bb49e142",
+      "offer_instance_id": "019dd208-27d2-7673-b16f-6897fa120303",
       "version": "1.0",
       "offer_info": {
         "title": "The Manhattan Grand — Deluxe King Room",
@@ -309,7 +310,7 @@ Design notes:
 | 0.1 | 2026-03-23 | Added CTA-oriented action semantics to the response example. |
 | 0.1 | 2026-03-24 | Reframed the query result as `offer response { trace_id, offers[] }`, aligned the payload with `offer`, and updated key field names. |
 | 0.1 | 2026-03-24 | Added `offer-query` example guidance and clarified the boundary between query request, canonical `offer`, and `offer response`. |
-| 0.1 | 2026-03-24 | Updated the response example to the `uuid + offer_info + entity + action + targeting + bid` draft shape. |
+| 0.1 | 2026-03-24 | Updated the response example to the `offer_id + offer_instance_id + offer_info + entity + action + targeting + bid` draft shape. |
 | 0.1 | 2026-03-25 | Restructured from GET parameters to POST JSON body. Introduced `context` (platform, session, user_profile), multimodal `intent.content[]`, REQUIRED/RECOMMENDED/OPTIONAL requirement levels (RFC 2119), and offset-based pagination. |
 | 0.1 | 2026-03-28 | Added `filter` object for structured query constraints (category_types, bid_models, status, availability, price/bid range, brand, country, tags). Added enum extensibility note. Updated request example with filter fields and response example with bid and conversion_rule fields. |
 | 0.1 | 2026-03-31 | Changed `request_id` and `timestamp` from REQUIRED to OPTIONAL. Server generates defaults when omitted. Backward compatible (existing requests with these fields still work). |

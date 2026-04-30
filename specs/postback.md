@@ -189,7 +189,7 @@ POST request to the resulting URL.
 |-------|------|-------|-------------|
 | `event_id` | string | REQUIRED | Unique identifier (`evt_pb_{ulid}`). Idempotency key; all retries share this value. |
 | `event_type` | string | REQUIRED | Fixed value: `"conversion"`. |
-| `tracking_id` | string | REQUIRED | Tracking identifier from the original click event. |
+| `aon_tracking_id` | string | REQUIRED | Tracking identifier from the original click event. |
 | `offer_id` | string | REQUIRED | Identifier of the converted offer. |
 | `agent_id` | string | REQUIRED | Identifier of the agent that drove the conversion. |
 | `conversion_type` | string | REQUIRED | Conversion classification: `sale`, `lead`, `install`, `subscription`, `trial`, or `custom`. |
@@ -213,7 +213,7 @@ introduced without a spec revision.
 
 | Variable | Source field | Description |
 |----------|-------------|-------------|
-| `{tracking_id}` | `tracking_id` | Tracking identifier from the original click. |
+| `{aon_tracking_id}` | `aon_tracking_id` | Tracking identifier from the original click. |
 | `{offer_id}` | `offer_id` | Identifier of the converted offer. |
 | `{conversion_type}` | `conversion_type` | Conversion classification value. |
 | `{amount}` | `amount` | Gross converted amount. |
@@ -295,7 +295,7 @@ fields. The `event_type` field discriminates the variant.
 |-------|------|-------|-------------|
 | `event_id` | string | REQUIRED | Partner-generated unique identifier (`evt_pb_{ulid}`). AON deduplication key. |
 | `event_type` | string | REQUIRED | `"conversion"`, `"refund"`, or `"adjustment"`. |
-| `tracking_id` | string | REQUIRED | AON tracking identifier from the original click (attribution key). |
+| `aon_tracking_id` | string | REQUIRED | AON tracking identifier from the original click (attribution key). |
 | `offer_id` | string | REQUIRED | Identifier of the associated offer. |
 | `conversion_id` | string | REQUIRED | Partner-side unique identifier for the conversion or transaction. |
 | `timestamp` | string | REQUIRED | ISO 8601 event timestamp. |
@@ -495,7 +495,7 @@ Error responses follow the AON `ApiResponse` contract, consistent with
 | 400 | `BAD_REQUEST` | Payload format error, missing REQUIRED fields, invalid `event_type`. |
 | 401 | `UNAUTHORIZED` | Missing auth header, invalid signature, expired timestamp, or replayed nonce. |
 | 403 | `FORBIDDEN` | Valid `appkey` but suspended or not permitted. |
-| 404 | `NOT_FOUND` | `tracking_id` or `original_event_id` not found. |
+| 404 | `NOT_FOUND` | `aon_tracking_id` or `original_event_id` not found. |
 | 422 | `UNPROCESSABLE_ENTITY` | Fields are valid but semantically conflicting (e.g. `refund_amount` > original `amount`). |
 | 429 | `RATE_LIMITED` | Frequency cap exceeded. Response SHOULD include a `Retry-After` header (integer seconds). |
 | 500 | `INTERNAL_ERROR` | AON internal failure. |
@@ -572,7 +572,7 @@ Postback payloads MAY contain PII-adjacent fields:
 
 | Field | PII risk | Mitigation |
 |-------|---------|------------|
-| `tracking_id` | Pseudonymous identifier | Short TTL; rotated per click |
+| `aon_tracking_id` | Pseudonymous identifier | Short TTL; rotated per click |
 | `sub_id_1` .. `sub_id_5` | May contain user-supplied data | Agent developers MUST NOT store raw sub_id values beyond the attribution window without consent |
 | `coupon_code` | Low risk | No PII in standard usage |
 
@@ -612,11 +612,26 @@ regulations (GDPR, CCPA, etc.) when processing postback data.
    operational analytics (e.g. Partner anomaly detection) but is not a
    business field. Making it OPTIONAL keeps the L1 bar low for Partners.
 
-7. **`tracking_id` replaces `aon_id`.** The legacy `aon_id` field in the
-   Partner onboarding manual has been renamed to `tracking_id` for
-   consistency with the `events.md` click/conversion event schema. Since
-   the protocol is in v0.1 Draft with no GA consumers, this is a
-   non-breaking rename.
+7. **`aon_tracking_id` (final name; previously `aon_id` then `tracking_id`).**
+   The integration-layer attribution key has gone through two non-breaking
+   renames within the v0.1 Draft window:
+   - First: legacy `aon_id` → `tracking_id` (early v0.1, unifying with
+     `events.md` click/conversion event schema for the join-key naming).
+   - Second (PROTO-F014b, 2026-04-28): `tracking_id` → `aon_tracking_id`,
+     adding the `aon_` brand prefix to align with industry convention for
+     integration-layer click identifiers (Google Ads `gclid`, Meta `fbclid`,
+     TikTok `ttclid`, Microsoft `msclkid`). The protocol-side field name in
+     the Offer query response is the neutral `offer_instance_id` (see
+     PROTO-F014a in `offer-schema.md` Changelog). The brand prefix lives
+     only at the integration layer (URL query param + S2S body), preserving
+     protocol openness while making the partner-facing contract explicit
+     about its origin platform.
+   - Both renames are non-breaking because the protocol is in v0.1 Draft
+     with no GA consumers.
+   - Value semantics unchanged across all renames: a per-dispatch unique
+     identifier (UUIDv7 recommended) generated by AON when an offer is
+     served, and used as the primary key for click → conversion → settlement
+     attribution.
 
 8. **12-variable closed set for URL templates.** Limiting to a fixed set
    prevents template injection and keeps AON's substitution engine simple.
@@ -628,3 +643,4 @@ regulations (GDPR, CCPA, etc.) when processing postback data.
 | Version | Date | Changes |
 |---------|------|---------|
 | 0.1 | 2026-04-17 | Initial draft. Consolidated from `events.md` Postback section; added Part B (Partner -> AON) with conversion/refund/adjustment event types; added `event_id` (ULID-based) idempotency; aligned signing with F009 `offer-provider-api.md`; added JSON Schema, HTTP examples, and HMAC test vectors. |
+| 0.1 | 2026-04-28 | PROTO-F014b non-breaking rename: `tracking_id` → `aon_tracking_id` across all schema tables, design notes, and HTTP examples (this spec). Aligns with industry integration-layer convention (Google Ads `gclid` / Meta `fbclid` / TikTok `ttclid` / Microsoft `msclkid` pattern). Value semantics unchanged. Cross-protocol family alignment: `events.md` (click/conversion events) renamed in the same wave; `offer-schema.md` Offer response keeps the neutral protocol-side field name `offer_instance_id` (PROTO-F014a). |
