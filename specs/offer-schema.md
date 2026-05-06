@@ -48,8 +48,6 @@ The protocol classifies fields into three requirement levels to balance standard
 | `bid` | object | RECOMMENDED | Bid information associated with the offer. |
 | `conversion_rule` | object | RECOMMENDED | Rules for valid conversion events and attribution logic. |
 | `source` | object | OPTIONAL | Offer source and tracking configuration. |
-| `frequency_capping` | object | OPTIONAL | Exposure frequency limits. |
-| `tags` | array | OPTIONAL | Custom tags for filtering and semantic matching. |
 
 ## Object Model
 
@@ -670,7 +668,7 @@ All `automotive` offers MUST include a `sub_type` field that determines the sub-
 |------|------|-------|-------------|
 | `entity.id` | string | REQUIRED | Stable entity identifier. |
 | `entity.name` | string | REQUIRED | Display name of the entity. |
-| `entity.type` | string | OPTIONAL | Entity classification such as `merchant`, `brand`, `creator`, `seller`, `service_provider`, or `financial_institution`. |
+| `entity.type` | string | OPTIONAL | Entity classification: `business`, `individual`, or `institution`. |
 | `entity.description` | string | OPTIONAL | Short description of the entity. |
 | `entity.website` | string | OPTIONAL | Canonical website for the entity. |
 
@@ -701,10 +699,10 @@ For a `web_redirect` action flow:
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `material[].image_url` | string | RECOMMENDED | URL to the creative asset. |
+| `material[].url` | string | RECOMMENDED | URL to the creative asset. |
 | `material[].tag` | string | RECOMMENDED | Asset purpose tag such as `logo`, `banner`, `hero`, or `thumbnail`. |
 | `material[].format` | string | RECOMMENDED | Asset format such as `image`, `video`, or `html5`. |
-| `material[].size` | string | OPTIONAL | Dimension specification such as `300x250`, `728x90`. |
+| `material[].dimensions` | string | OPTIONAL | Dimension specification such as `300x250`, `728x90`. |
 
 ### Targeting (OPTIONAL)
 
@@ -783,19 +781,6 @@ Design notes:
 - `linear` attribution is reserved for a future protocol revision. Implementations receiving `"linear"` SHOULD treat it as an unknown value and fall back gracefully.
 - `accepted_types` enables advertisers to scope which conversion events qualify for bid under this offer.
 
-### Frequency Capping (OPTIONAL)
-
-`frequency_capping` prevents user overexposure to the same offer.
-
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `frequency_capping.per_user_day` | integer | OPTIONAL | Maximum impressions per user per day. |
-| `frequency_capping.per_user_total` | integer | OPTIONAL | Maximum lifetime impressions per user. |
-
-### Tags (OPTIONAL)
-
-`tags` is an optional array of strings for filtering, semantic matching, and audience targeting.
-
 ## Validation Rules
 
 ### REQUIRED Fields
@@ -815,7 +800,7 @@ Design notes:
 
 These fields SHOULD be present in the offer object and MUST follow the standard structure when present. Values MAY be empty or null when data is unavailable, but the field key itself SHOULD exist:
 
-- `material` SHOULD be present as an array. MAY be an empty array `[]` when no assets are available. When items are provided, each SHOULD include `image_url`, `tag`, and `format`.
+- `material` SHOULD be present as an array. MAY be an empty array `[]` when no assets are available. When items are provided, each SHOULD include `url`, `tag`, and `format`.
 - `category.attributes` SHOULD be present as an object. MAY be an empty object `{}` when no vertical-specific data is available.
 - `category.commercial` SHOULD be present as an object. `price.amount` and `price.currency` MAY be empty strings when pricing is not exposed.
 - `bid` SHOULD be present as an object. When present, `bid.model` and `bid.currency` are REQUIRED. `bid.amount` and `bid.rate` are CONDITIONAL based on `bid.model` (see Model-to-Required-Fields Matrix). All monetary values MUST be decimal strings.
@@ -879,16 +864,16 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
   },
   "material": [
     {
-      "image_url": "https://manhattangrand.example/deluxe_king_300x250.jpg",
+      "url": "https://manhattangrand.example/deluxe_king_300x250.jpg",
       "tag": "banner",
       "format": "image",
-      "size": "300x250"
+      "dimensions": "300x250"
     }
   ],
   "entity": {
     "id": "ent_manhattan_grand",
     "name": "The Manhattan Grand Hotel",
-    "type": "service_provider",
+    "type": "business",
     "website": "https://www.manhattangrand.example"
   },
   "action": {
@@ -926,7 +911,7 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
 
 ## Example Coverage
 
-The protocol examples cover the original six registered category types. Existing examples use the legacy bid format and will be updated in a subsequent revision to reflect the enhanced bid, conversion_rule, and source fields introduced in this specification.
+The protocol examples cover representative category types and use the current v0.1 field names, including `material[].url`, `entity.type`, `bid.amount`, and `conversion_rule`.
 
 | Category Type | Example File | Notes |
 |--------------|-------------|-------|
@@ -942,7 +927,7 @@ The protocol examples cover the original six registered category types. Existing
 - **Requirement Levels (RFC 2119)**: REQUIRED enforces a strict core contract (must have valid values). RECOMMENDED enforces structural consistency across implementations (field should exist and follow the standard shape, even if the value is empty) — this ensures all offer documents share the same structure for parsing and tooling. OPTIONAL fields allow richer modeling without breaking backward compatibility.
 - **`category` consolidation**: Industry type, vertical-specific attributes, and commercial terms are inherently related. Grouping them under `category` reduces top-level field sprawl and makes it clear that pricing and availability are category-dependent.
 - **`material` as array**: A single offer may need multiple creative assets (logo, banner, video). The array structure handles this naturally.
-- **OPTIONAL for targeting, bid, conversion, frequency, tags**: These are powerful features but not every offer needs them. Keeping them optional prevents the protocol from forcing complexity on simple use cases.
+- **OPTIONAL for targeting and source**: These are powerful features but not every offer needs them. Keeping them optional prevents the protocol from forcing complexity on simple use cases.
 
 ## Appendix: schema.org Compatibility
 

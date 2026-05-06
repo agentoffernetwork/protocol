@@ -2,7 +2,7 @@
 
 **Version**: 0.1
 **Status**: Draft
-**Last Updated**: 2026-04-15
+**Last Updated**: 2026-05-05
 
 ## 1. Overview
 
@@ -40,8 +40,8 @@ routing weight and deep-integration features.
 | Level | Label | Obligation | Summary |
 |-------|-------|-----------|---------|
 | **Level 1** | Baseline compliance | MUST pass to integrate | Endpoint + signed requests + error envelope + test-mode handling + REQUIRED offer fields |
-| **Level 2** | Recommended | SHOULD | Full `filter` support, pagination metadata, test-mode isolation, p95 latency under 2 s |
-| **Level 3** | Enhanced | MAY | `/health`, deep pagination, `request_id` echo, multimodal intent handling |
+| **Level 2** | Recommended | SHOULD | Full `filter` support, robust offset/limit handling, test-mode isolation, p95 latency under 2 s |
+| **Level 3** | Enhanced | MAY | `/health`, deep pagination, `X-AON-Request-Id` header echo, multimodal intent handling |
 
 The normative requirement lists for each level are in §12.
 
@@ -190,7 +190,7 @@ certification:
 
 | # | Scenario | Inputs | Partner expected response |
 |---|----------|--------|---------------------------|
-| 1 | Valid signature | Fresh timestamp, unique nonce, correct signature | `200 SUCCESS` with a valid success envelope |
+| 1 | Valid signature | Fresh timestamp, unique nonce, correct signature | `200 OK` with a valid success envelope |
 | 2 | Tampered signature | Fresh timestamp, unique nonce, random 64-hex signature | `401 UNAUTHORIZED`, `message` describing signature mismatch |
 | 3 | Expired timestamp | Timestamp > 5 minutes in the past, correct signature | `401 UNAUTHORIZED`, `message` describing timestamp skew |
 | 4 | Replayed nonce | Replay Case 1's nonce within 5 minutes with a fresh timestamp and fresh signature | `401 UNAUTHORIZED`, `message` describing nonce replay — Partners that declared stateless operation (§4.4) return `200` here, and AON records the L1-degraded posture |
@@ -241,7 +241,7 @@ The requirement levels follow the same three-tier system used in
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `request_id` | string (uuid) | OPTIONAL | UUIDv7 recommended. AON generates it at dispatch; Partners MAY echo it in logs. See also `X-AON-Request-Id` in §12. |
+| `request_id` | string (uuid) | REQUIRED | UUIDv7 recommended. AON always generates one at dispatch so Partner logs, replay protection, and billing reconciliation can correlate every request. Partners MAY echo it via `X-AON-Request-Id` (see §12). Stricter than `query-api.md`'s agent-facing channel (where it is OPTIONAL) because the supply-side channel always has an authenticated AON dispatcher upstream. |
 | `timestamp` | string (RFC 3339) | OPTIONAL | AON dispatch time. Distinct from `X-AON-Timestamp`, which is Unix epoch and drives signing. |
 | `test_mode` | boolean | OPTIONAL | Mirrors `X-AON-Test`. Header wins on disagreement. |
 | `context` | object | REQUIRED | Platform, session, and user context (§6.2). |
@@ -258,7 +258,7 @@ The requirement levels follow the same three-tier system used in
 | `context.platform.channel` | string | RECOMMENDED | e.g. `plugin`, `sdk`, `api`. |
 | `context.session_id` | string | RECOMMENDED | Groups related queries. |
 | `context.conversation_id` | string \| number | OPTIONAL | Thread identifier within a session. |
-| `context.user_profile.viewer_id` | string | RECOMMENDED | Pseudonymous viewer id. |
+| `context.user_profile.user_pseudo_id` | string | RECOMMENDED | Pseudonymous viewer id. |
 | `context.user_profile.language` | string | RECOMMENDED | ISO 639-1. |
 | `context.user_profile.interests[]` | array<string> | RECOMMENDED | MAY be empty. |
 | `context.user_profile.device_info.device_type` | string | RECOMMENDED | `desktop`/`mobile`/`tablet`. |
@@ -311,10 +311,8 @@ application/json` and a body matching the **SuccessEnvelope** in
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `trace_id` | string | OPTIONAL | AON-generated Query Trace ID (UUIDv7 recommended). AON injects it at request time and backfills its own value downstream; Partners MAY omit it, MAY return the same value, or MAY return their own correlation id — AON's value always wins. |
+| `request_id` | string | REQUIRED | Echoes the request's `request_id` (UUIDv7) so the agent → AON → Partner chain shares one correlation id. Partners MUST echo the same value AON sent and MUST NOT replace it with a Partner-generated id. |
 | `offers` | array<Offer> | REQUIRED | List of offers conforming to `offer-schema-v0.1.json`. MAY be empty. |
-| `has_more` | boolean | OPTIONAL | `true` when the query has further pages. |
-| `total` | integer ≥ 0 | OPTIONAL | Total number of matching offers when known. |
 
 ### 7.1 Offer Schema Reference
 
@@ -354,12 +352,15 @@ with the rest of AON's HTTP surface):
 
 | HTTP | `code` | When it happens |
 |-----:|--------|-----------------|
-| 200 | `SUCCESS` | Normal success envelope (§7). |
 | 400 | `BAD_REQUEST` | Malformed body or missing REQUIRED fields. |
 | 401 | `UNAUTHORIZED` | Missing auth header, bad signature, expired timestamp, or replayed nonce. |
 | 403 | `FORBIDDEN` | Valid `appkey` but suspended / not permitted. |
 | 429 | `RATE_LIMITED` | Frequency cap exceeded. Response SHOULD include a `Retry-After` header (integer seconds). |
 | 500 | `INTERNAL_ERROR` | Unexpected server-side failure. |
+
+Success responses are `200 OK` with the `{request_id, offers}` envelope
+defined in §7. They do not include `code`; `code` is only present in the
+error envelope.
 
 Additional codes MAY be introduced; AON will treat unknown codes as
 `INTERNAL_ERROR`-equivalent and may degrade routing weight.
@@ -377,17 +378,16 @@ OfferProvider API uses **offset-based** pagination, aligned with
 
 - `pagination.limit` bounds page size (default 20, max 100).
 - `pagination.offset` skips entries from the start of the result set.
-- Partners SHOULD return accurate `has_more` whenever they can determine
-  it cheaply (e.g. by fetching `limit + 1` and truncating).
-- Partners SHOULD return `total` when inexpensive to compute; MAY omit
-  it for large catalogs.
+- Partners MUST NOT return `has_more`, `total`, cursor, or any other
+  top-level pagination metadata in v0.1 success responses. The success
+  envelope is exactly `{request_id, offers}`.
 - Deep pagination (`offset > 500`) is a Level 3 MAY-level capability.
   Partners MAY return `BAD_REQUEST` with message `"deep pagination not
   supported"` when they do not support it.
 
-Cursor-based pagination is deliberately not adopted in v0.1 to match
-`query-api.md`; a future revision MAY add an opaque cursor alongside
-offset.
+Cursor-based pagination and response metadata are deliberately not
+adopted in v0.1 to match the current response schema; a future schema
+revision MAY add them explicitly.
 
 ## 11. Versioning
 
@@ -410,9 +410,11 @@ entries document design choices surfaced during technical review.
 1. **POST + JSON body.** Moving to POST matches `query-api.md` and lets
    the request carry structured multimodal intent, filters, and user
    profile — impractical to encode in a URL.
-2. **Envelope `{ trace_id, offers, has_more, total }`.** `trace_id` is
-   AON-generated and AON-authoritative; Partner responses are allowed to
-   omit it so Partners do not accidentally become a source of truth for
+2. **Envelope `{ request_id, offers }`.** `request_id` echoes the
+   request's id so the agent → AON → Partner chain shares one correlation
+   value end-to-end. AON injects a UUIDv7 at ingress when the agent omits
+   it, sends it to Partner as REQUIRED, and Partner success responses
+   MUST echo the same value. Partners do not become a source of truth for
    a field that belongs to the AON network.
 3. **Reuse `OfferQueryRequest` verbatim.** The supply-side request body
    is the exact same shape that agents send. This keeps a single
@@ -465,4 +467,5 @@ entries document design choices surfaced during technical review.
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 0.1 | 2026-04-15 | Initial draft. Defines endpoint, HMAC-SHA256 auth with ±5-minute skew and SHOULD-level nonce anti-replay, `OfferQueryRequest` reuse, `{trace_id, offers, has_more, total}` success envelope, `ApiResponse` error envelope, offset/limit pagination, Level 1/2/3 conformance, onboarding compliance test matrix, `X-AON-Request-Id` as MAY, and adapter DSL cross-reference. |
+| 0.1 | 2026-05-05 | Clarifies that the success envelope requires `request_id`, does not use `code: SUCCESS`, and does not include pagination metadata such as `has_more` or `total`. |
+| 0.1 | 2026-04-15 | Initial draft. Defines endpoint, HMAC-SHA256 auth with ±5-minute skew and SHOULD-level nonce anti-replay, `OfferQueryRequest` reuse, `{request_id, offers}` success envelope, `ApiResponse` error envelope, offset/limit pagination, Level 1/2/3 conformance, onboarding compliance test matrix, `X-AON-Request-Id` as MAY, and adapter DSL cross-reference. |
