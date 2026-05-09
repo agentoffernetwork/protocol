@@ -1,189 +1,192 @@
 # Offer Query API v0.1
 
-**Version**: 0.1
-**Status**: Draft
-**Last Updated**: 2026-03-25
-
-## Introduction
+- **Version**: 0.1
+- **Status**: Draft
+- **Last Updated**: 2026-05-09
+- **Source of truth**: `agentoffernetwork/protocol/specs/query-api.md`
 
 This document defines the HTTP query interface that AI agents and SDKs use to discover offers from an AgentOffer-compatible service.
 
-The API is organized around two protocol concepts:
+## At a Glance
 
-- `offer query`: the structured request submitted by agents to express intent and context
-- `offer response`: the query envelope that wraps one result set of `offer` objects
+| Item | Value |
+|------|-------|
+| Method | `POST` |
+| Path | `/v1/offers/query` |
+| Auth | `Authorization: Bearer YOUR_API_KEY` |
+| Content-Type | `application/json` |
+| Request contract | `context` + `intent`, with optional `filter` and `pagination` |
+| Response contract | `request_id` + `offers[]` |
+| Schema companion | [`offer-query-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-query-schema-v0.1.json) |
+| Example companion | [`offer-query-request.json`](https://github.com/agentoffernetwork/examples/blob/main/http/offer-query-request.json) |
 
-### Conformance Keywords
+Use this API when an agent has user intent and wants ranked commercial offers it can recommend or present.
+
+## 5-Minute Integration Path
+
+1. Copy the [minimal request](#minimal-request) and replace `YOUR_API_KEY`.
+2. Fill the two required objects: [`context`](#required-fields) and [`intent`](#required-fields).
+3. Add [`filter`](#optional-fields) only when you need hard constraints such as category, country, price, or bid model.
+4. Read the [canonical response shape](#success-response) and use `offers[].offer_instance_id` for click/conversion attribution.
+5. Validate payloads with the [schema repository](https://github.com/agentoffernetwork/schema) and compare with [examples](https://github.com/agentoffernetwork/examples).
+
+## Conformance Keywords
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHOULD", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
-## Endpoint Overview
+| Level | Meaning |
+|-------|---------|
+| **REQUIRED** | Field MUST be present with a valid, non-empty value. |
+| **RECOMMENDED** | Field SHOULD be present and MUST follow the standard structure when present, but the value MAY be empty or null. |
+| **OPTIONAL** | Field MAY be omitted entirely. When included, it SHOULD follow the specified format. |
 
-- Method: `POST`
-- Path: `/v1/offers/query`
-- Content-Type: `application/json`
-- Purpose: Submit intent and context to discover relevant offers for recommendation and action-taking flows
+## Minimal Request
 
-## Authentication
+This is the shortest useful request shape for a first integration. Production systems SHOULD add richer platform, session, user profile, filter, and pagination fields when available.
 
-Requests MUST include a bearer token in the `Authorization` header.
-
-```http
-Authorization: Bearer {api_key}
+```bash
+curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "context": {
+      "user_profile": {}
+    },
+    "intent": {
+      "content": [
+        {
+          "type": "input_text",
+          "text": "Find project management software for a 20-person design team"
+        }
+      ]
+    }
+  }'
 ```
 
 ## Request Body
 
-The query request uses the same REQUIRED/RECOMMENDED/OPTIONAL field requirement levels as the Offer Schema:
+### Required Fields
 
-| Level | Label | Meaning |
-|-------|-------|---------|
-| **REQUIRED** | Required | Field MUST be present with a valid, non-empty value. |
-| **RECOMMENDED** | Recommended | Field SHOULD be present and MUST follow the standard structure when present, but the value MAY be empty or null. |
-| **OPTIONAL** | Optional | Field MAY be omitted entirely. When included, it SHOULD follow the specified format. |
+| Field | Type | Description |
+|------|------|-------------|
+| `context` | object | Platform, session, and user context used for matching and targeting. |
+| `context.user_profile` | object | User profile container. It may be sparse, but the object must be present. |
+| `intent` | object | The user's intent expressed as multimodal content. |
+| `intent.content` | array | One or more content items. At least one item is REQUIRED. |
+| `intent.content[].type` | string | Content type. Current values: `input_text`, `input_image`. |
+| `intent.content[].text` | string | Text intent. REQUIRED when `type` is `input_text`. |
+| `intent.content[].image_url` | string | Image URL. REQUIRED when `type` is `input_image`. |
 
-### Top-Level Shape
+### Recommended Fields
 
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `request_id` | string | OPTIONAL | Unique request identifier. UUIDv7 is recommended. When omitted, the server generates one. |
-| `timestamp` | string | OPTIONAL | RFC 3339 timestamp of the request. When omitted, the server uses the current time. |
-| `test_mode` | boolean | OPTIONAL | When `true`, the request is treated as a test and SHOULD NOT generate real tracking or billing events. Defaults to `false`. |
-| `context` | object | REQUIRED | Contextual information about the requesting platform, session, and user. |
-| `intent` | object | REQUIRED | The user's intent expressed as multimodal content. |
-| `filter` | object | OPTIONAL | Structured filter constraints. Hard constraints applied before intent-based semantic ranking. |
-| `pagination` | object | RECOMMENDED | Pagination control. Field SHOULD be present; values have defaults. |
+| Field | Type | Description |
+|------|------|-------------|
+| `context.platform` | object | Requesting platform or agent metadata. |
+| `context.platform.name` | string | Platform or agent name, for example `TravelBot` or `CustomAgent`. |
+| `context.platform.version` | string | Platform, agent, or model version. |
+| `context.platform.channel` | string | Integration channel, for example `api`, `sdk`, `plugin`, or `skill`. |
+| `context.session_id` | string | Session identifier for grouping related queries. |
+| `context.user_profile.user_pseudo_id` | string | Pseudonymous viewer identifier. Do not send raw personal identifiers unless your integration is authorized to do so. |
+| `context.user_profile.language` | string | User language preference. ISO 639-1 code is recommended. |
+| `context.user_profile.interests` | string[] | User interest tags. May be an empty array. |
+| `context.user_profile.device_info` | object | Device information used for targeting and rendering. |
+| `pagination` | object | Pagination control. Defaults apply when omitted. |
+| `pagination.limit` | integer | Number of offers to return. Default: `20`. Maximum: `100`. |
+| `pagination.offset` | integer | Number of offers to skip. Default: `0`. |
+
+### Optional Fields
+
+| Field | Type | Description |
+|------|------|-------------|
+| `request_id` | string | Unique request identifier. UUIDv7 is recommended. When omitted, the server generates one. |
+| `timestamp` | string | RFC 3339 timestamp. When omitted, the server uses the current time. |
+| `test_mode` | boolean | When `true`, the request is treated as a test and SHOULD NOT generate real tracking or billing events. Defaults to `false`. |
+| `context.conversation_id` | string/number | Conversation or thread identifier within the session. |
+| `filter` | object | Hard constraints applied before semantic ranking. Omit it when intent-only matching is enough. |
+| `filter.category_types` | string[] | Category filters. OR logic within the array. |
+| `filter.bid_models` | string[] | Bid model filters. OR logic within the array. |
+| `filter.status` | string[] | Offer lifecycle status filters. |
+| `filter.availability` | string[] | Availability filters. |
+| `filter.min_bid_amount` | string | Minimum bid amount as a decimal string. Requires `filter.currency`. |
+| `filter.max_price_amount` | string | Maximum consumer-facing price as a decimal string. Requires `filter.currency`. |
+| `filter.currency` | string | ISO 4217 currency code for amount filters. |
+| `filter.brand` | string | Brand or entity-name substring filter. |
+| `filter.country` | string | Target country. ISO 3166-1 alpha-2 code. |
+| `filter.tags` | string[] | Tag filters. AND logic: the offer should match all specified tags. |
+
+<details>
+<summary>Full field notes</summary>
 
 ### Context
 
-`context` provides the environment and user information that the offer matching engine uses for personalization and targeting.
+`context` provides environment and user information. Keep it privacy-preserving: use pseudonymous IDs and coarse preferences unless the user and integration explicitly permit more detail.
 
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `context.platform` | object | RECOMMENDED | Information about the requesting platform or agent. |
-| `context.session_id` | string | RECOMMENDED | Session identifier for grouping related queries. |
-| `context.conversation_id` | string/number | OPTIONAL | Conversation or thread identifier within the session. |
-| `context.user_profile` | object | REQUIRED | User profile information for intent matching and targeting. |
+`context.user_profile.device_info` may include:
 
-#### `context.platform`
-
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `platform.name` | string | RECOMMENDED | Platform or agent name (e.g., `ChatGPT`, `Claude`, `CustomAgent`). |
-| `platform.version` | string | RECOMMENDED | Platform or model version (e.g., `gpt-4o`, `claude-sonnet-4-6`). |
-| `platform.channel` | string | RECOMMENDED | Integration channel (e.g., `plugin`, `sdk`, `api`, `skill`). |
-
-#### `context.user_profile`
-
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `user_profile.user_pseudo_id` | string | RECOMMENDED | Pseudonymous viewer identifier for frequency capping and personalization. Not required to be a real user ID. |
-| `user_profile.language` | string | RECOMMENDED | User language preference. ISO 639-1 code. |
-| `user_profile.interests` | array | RECOMMENDED | User interest tags for intent matching. MAY be an empty array. |
-| `user_profile.device_info` | object | RECOMMENDED | Device information for targeting and rendering. |
-
-#### `context.user_profile.device_info`
-
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `device_info.device_type` | string | RECOMMENDED | Device type such as `desktop`, `mobile`, `tablet`. |
-| `device_info.os` | string | RECOMMENDED | Operating system such as `macOS`, `Windows`, `iOS`, `Android`. |
-| `device_info.os_version` | string | RECOMMENDED | OS version string. |
+| Field | Type | Description |
+|------|------|-------------|
+| `device_type` | string | Device type such as `desktop`, `mobile`, or `tablet`. |
+| `os` | string | Operating system such as `macOS`, `Windows`, `iOS`, or `Android`. |
+| `os_version` | string | OS version string. |
 
 ### Intent
 
-`intent` expresses what the user is looking for. It uses a multimodal content array to support text, images, and other input types.
+`intent.content[]` is a typed multimodal array similar to LLM message formats. `input_text` is the primary signal. `input_image` supports visual search scenarios.
 
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `intent.content` | array | REQUIRED | Array of content items representing the user's intent. At least one item is REQUIRED. |
-
-#### `intent.content[]`
-
-Each content item has a `type` field that determines the payload:
-
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `content[].type` | string | REQUIRED | Content type such as `input_text` or `input_image`. |
-| `content[].text` | string | REQUIRED (when type=input_text) | The text content of the user's intent. |
-| `content[].image_url` | string | REQUIRED (when type=input_image) | URL to the image representing the user's intent. |
-
-Design notes:
-
-- The multimodal content array follows a pattern similar to LLM message formats, making it natural for AI agent platforms to construct.
-- `input_text` is the primary intent signal. `input_image` supports visual search scenarios (e.g., "find me a hotel like this").
-- Future content types (e.g., `input_audio`, `input_file`) can be added without changing the array structure.
+Future content types can be added without changing the array structure. Clients should ignore unknown content types they do not support and preserve the payload when proxying.
 
 ### Filter
 
-`filter` provides structured constraints that narrow the result set before semantic ranking. When both `filter` and `intent` are present, `filter` acts as a hard constraint (exact match) and `intent` acts as a soft signal (semantic relevance) within the filtered results.
+`filter` narrows the candidate set before semantic ranking:
 
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `filter.category_types` | array | OPTIONAL | Filter by category type. Values reference the current 11-value `offer_info.category.type` enum (e.g., `["software_saas", "education", "health_beauty"]`). |
-| `filter.bid_models` | array | OPTIONAL | Filter by bid model. Values reference `bid.model` enum (e.g., `["cps", "cpa"]`). |
-| `filter.status` | array | OPTIONAL | Filter by offer status (e.g., `["active"]`). |
-| `filter.availability` | array | OPTIONAL | Filter by availability (e.g., `["available", "limited"]`). |
-| `filter.min_bid_amount` | string | OPTIONAL | Minimum bid amount. Decimal string. Requires `filter.currency`. |
-| `filter.max_price_amount` | string | OPTIONAL | Maximum consumer-facing price. Decimal string. Requires `filter.currency`. |
-| `filter.currency` | string | OPTIONAL | ISO 4217 currency code for `min_bid_amount` and `max_price_amount`. Applies to both fields simultaneously; offers with mismatched currencies are excluded. |
-| `filter.brand` | string | OPTIONAL | Filter by brand or entity name (case-insensitive substring match). |
-| `filter.country` | string | OPTIONAL | Filter by target country. ISO 3166-1 alpha-2 code. |
-| `filter.tags` | array | OPTIONAL | Filter by tags (AND logic: offer must match all specified tags). |
-
-Design notes:
-
-- `filter` is entirely OPTIONAL. When omitted, the query relies solely on `intent` for matching.
-- Array-typed filters use OR logic within the array (e.g., `category_types: ["software_saas", "education"]` matches either).
-- `min_bid_amount` and `max_price_amount` require `currency` to be set; if `currency` is absent, numeric filters are ignored.
-- `brand` uses case-insensitive substring matching against `entity.name`.
-
-> **Enum Extensibility**: All enum values referenced in filter fields (`category_types`, `bid_models`, `status`, `availability`) follow the protocol's open-ended enum design. Servers SHOULD accept unknown enum values gracefully (return empty results rather than errors). New enum values may be added in future revisions without being considered a breaking change.
+- Array filters use OR logic within the array, for example `category_types: ["software_saas", "education"]`.
+- `tags` uses AND logic: an offer should match all specified tags.
+- `min_bid_amount` and `max_price_amount` require `currency`; without currency, servers may ignore amount filters.
+- `brand` is intended as a case-insensitive match against provider or entity names.
 
 ### Pagination
 
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `pagination.limit` | integer | RECOMMENDED | Number of offers to return. Default: `20`. Maximum: `100`. |
-| `pagination.offset` | integer | RECOMMENDED | Number of offers to skip. Default: `0`. |
+The initial design uses offset pagination for simplicity. Cursor pagination may be introduced in a future revision if large result sets require it.
 
-## Offer Response
+</details>
 
-The query result is wrapped in an `offer response` envelope.
+## Common Values
 
-| Field | Type | Level | Description |
-|------|------|-------|-------------|
-| `request_id` | string | REQUIRED | Echoes the request's `request_id` (UUIDv7). AON injects one at ingress when the agent did not supply it, then propagates the same value through Partner dispatch and downstream events (impression / click / conversion) so the full chain shares one correlation id. |
-| `offers` | array | REQUIRED | List of `offer` objects matching the intent. |
+Enums follow the protocol's open-ended enum design. Servers SHOULD handle unknown values gracefully, usually by returning no matching offers instead of failing the entire request.
 
-Design notes:
+| Field | Current values |
+|------|----------------|
+| `intent.content[].type` | `input_text`, `input_image` |
+| `filter.category_types` / `offer_info.category.type` | `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive` |
+| `filter.bid_models` / `bid.model` | `cpa`, `cps`, `cpl`, `cpi`, `hybrid` |
+| `filter.status` / `offer_info.status` | `active`, `paused`, `pending`, `rejected`, `expired` |
+| `filter.availability` / `offer_info.category.commercial.availability` | `available`, `limited`, `sold_out`, `pre_order` |
+| `offer_info.offer_type` | `physical_product`, `digital_goods`, `content`, `online_service`, `offline_service` |
 
-- `request_id` belongs to the response envelope, not to the offer itself.
-- `offers[]` SHOULD contain full `offer` objects as defined in the Offer Schema.
-- Pagination shifted from cursor-based to offset-based to align with the request structure. Cursor-based pagination may be reintroduced in a future revision if needed for large result sets.
+For category boundaries and sub-types, see [`category-taxonomy.md`](category-taxonomy.md) and [`offer-schema.md`](offer-schema.md).
 
 ## Request Example
 
 ```json
 {
-  "request_id": "0195f0a1-2b3c-4d5e-6f7a-8b9c0d1e2f3a",
-  "timestamp": "2026-03-25T14:30:00Z",
+  "request_id": "019dd200-1234-7890-abcd-ef0123456789",
+  "timestamp": "2026-04-28T03:30:00Z",
   "test_mode": false,
   "context": {
     "platform": {
-      "name": "ChatGPT",
-      "version": "gpt-4o",
-      "channel": "plugin"
+      "name": "TravelBot",
+      "version": "2.1.0",
+      "channel": "api"
     },
-    "session_id": "sess_0195f0a1-2b3c-4d5e-6f7a-8b9c0d1e2f3b",
+    "session_id": "sess_abc123",
     "user_profile": {
-      "user_pseudo_id": "user_789012",
+      "user_pseudo_id": "viewer_xyz",
       "language": "en",
-      "interests": ["travel", "luxury", "hospitality"],
+      "interests": ["travel", "hotels", "luxury"],
       "device_info": {
-        "device_type": "desktop",
-        "os": "macOS",
-        "os_version": "14.4"
+        "device_type": "mobile",
+        "os": "ios",
+        "os_version": "18.2"
       }
     }
   },
@@ -191,108 +194,132 @@ Design notes:
     "content": [
       {
         "type": "input_text",
-        "text": "I want to book a 5-star hotel in Manhattan New York for next month"
+        "text": "Find me a luxury hotel in Tokyo under $300/night for a weekend trip"
       }
     ]
   },
   "filter": {
     "category_types": ["travel_hospitality"],
-    "availability": ["available", "limited"],
+    "bid_models": ["cpa", "cps"],
+    "status": ["active"],
+    "min_bid_amount": "5.00",
+    "max_price_amount": "300.00",
     "currency": "USD",
-    "max_price_amount": "500.00"
+    "brand": "Hilton",
+    "country": "JP"
   },
   "pagination": {
-    "limit": 5,
+    "limit": 10,
     "offset": 0
   }
 }
 ```
 
+## Success Response
+
+The response envelope is intentionally small and canonical:
+
+| Field | Type | Description |
+|------|------|-------------|
+| `request_id` | string | Echoes the request identifier. If the client omitted it, the server-generated value is returned. |
+| `offers` | array | Ranked `Offer` objects matching the request. Empty array means no eligible offer. |
+| `offers[].offer_id` | string | Stable inventory-level Offer ID. |
+| `offers[].offer_instance_id` | string | Per-dispatch Offer instance ID generated for this presentation. Use this for click -> conversion -> settlement attribution. |
+| `offers[].offer_info` | object | Human-readable title, offer type, category, description, and commercial details. |
+| `offers[].entity` | object | Provider or advertiser identity. |
+| `offers[].action` | object | User action target, such as web redirect or deep link. |
+| `offers[].bid` | object | Payout model and amount/rate information. Follow [`offer-schema.md`](offer-schema.md) for the current requirement level and model-specific rules. |
+
+The canonical `offers.query` response does **not** include `query_id`, `trace_id`, `has_more`, or `total` as top-level public response fields. Historical or internal uses must be labeled as such; see [`contract-governance.md`](contract-governance.md).
+
 ## Response Example
 
 ```json
 {
-  "request_id": "0195ef98-90af-7e1f-b57d-1130cf0c57f2",
+  "request_id": "019dd200-1234-7890-abcd-ef0123456789",
   "offers": [
     {
-      "offer_id": "0195ef94-f17d-7a4f-b6e0-2c52bb49e142",
-      "offer_instance_id": "019dd208-27d2-7673-b16f-6897fa120303",
+      "offer_id": "0195ef94-f17d-7a4f-b6e0-2c52bb49e13f",
+      "offer_instance_id": "019dd208-27d2-7673-b16f-2c52bb49e13f",
       "version": "1.0",
       "offer_info": {
-        "title": "The Manhattan Grand — Deluxe King Room",
+        "title": "The Tokyo Grand Weekend Stay",
         "offer_type": "offline_service",
         "category": {
           "type": "travel_hospitality",
           "attributes": {
+            "sub_type": "hotel",
             "property_type": "hotel",
-            "destination": { "city": "New York", "country": "US" },
+            "destination": {
+              "city": "Tokyo",
+              "country": "JP"
+            },
             "star_rating": 5
           }
         },
-        "description": "Luxury 5-star hotel in Midtown Manhattan with rooftop pool, full-service spa, and complimentary breakfast.",
+        "description": "Luxury hotel stay in central Tokyo with weekend availability.",
         "commercial": {
-          "price": { "amount": "420.00", "currency": "USD" }
+          "price": {
+            "amount": "289.00",
+            "currency": "USD"
+          },
+          "availability": "limited"
         }
       },
-      "material": [],
       "entity": {
-        "id": "ent_manhattan_grand",
-        "name": "The Manhattan Grand Hotel",
+        "id": "ent_tokyo_grand",
+        "name": "Tokyo Grand Hotel",
         "type": "business"
       },
       "action": {
         "type": "web_redirect",
         "name": "Book now",
         "payload": {
-          "target": "https://www.manhattangrand.example/book/deluxe-king"
+          "target": "https://travel.example/hotels/tokyo-grand"
         }
       },
       "bid": {
-        "model": "cps",
-        "amount": "0.10",
+        "model": "cpa",
+        "amount": "12.50",
         "currency": "USD"
-      },
-      "conversion_rule": {
-        "click_window_hours": 720,
-        "attribution_model": "last_click",
-        "accepted_types": ["sale"],
-        "dedup_strategy": "first"
       }
     }
   ]
 }
 ```
 
-## Error Codes
+## Troubleshooting
 
-| HTTP Status | Error Code | When It Happens |
-|-------------|------------|-----------------|
-| `400` | `BAD_REQUEST` | The request body is malformed or missing required fields. |
-| `401` | `UNAUTHORIZED` | The request is missing an API key or the key cannot be authenticated. |
-| `403` | `FORBIDDEN` | The API key is valid but suspended, blocked, or not allowed to access the resource. |
-| `429` | `RATE_LIMITED` | The client exceeded the allowed request rate. |
-| `500` | `INTERNAL_ERROR` | The server failed to process the request due to an unexpected error. |
+| Symptom | Likely cause | What to check |
+|---------|--------------|---------------|
+| `400 BAD_REQUEST` | Malformed JSON or missing required fields | Confirm `context`, `context.user_profile`, `intent.content[]`, and content item `type` are present. |
+| `401 UNAUTHORIZED` | Missing or invalid bearer token | Use `Authorization: Bearer YOUR_API_KEY`. Do not paste real keys into examples or issues. |
+| `403 FORBIDDEN` | Key is valid but not allowed for this environment or endpoint | Confirm the key is active and has Query API access. |
+| `429 RATE_LIMITED` | Too many requests | Add backoff and retry later. |
+| Empty `offers` | No eligible offer matched the hard filters | Remove or loosen `filter`, especially category, country, brand, price, and bid constraints. |
+| Amount filters ignored | Missing `filter.currency` | Send `currency` with `min_bid_amount` or `max_price_amount`. |
+| Pagination repeats results | Incorrect `offset` | Increase `offset` by the previous `limit`. |
+| Attribution cannot be reconciled | Wrong identifier propagated | Use `offers[].offer_instance_id` for the dispatched offer instance; use `offer_id` only for inventory-level identity. |
 
-## Error Response Example
+## Related Files
 
-```json
-{
-  "error": {
-    "code": "BAD_REQUEST",
-    "message": "intent.content must contain at least one item"
-  }
-}
-```
+| Need | File |
+|------|------|
+| Canonical offer object | [`offer-schema.md`](offer-schema.md) |
+| Category boundaries | [`category-taxonomy.md`](category-taxonomy.md) |
+| Field lifecycle and stale-field handling | [`contract-governance.md`](contract-governance.md) |
+| JSON Schema validation | [`agentoffernetwork/schema`](https://github.com/agentoffernetwork/schema) |
+| Request/response examples | [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples) |
+| Protocol changes | [`agentoffernetwork/rfcs`](https://github.com/agentoffernetwork/rfcs) |
 
 ## Design Decisions
 
-- **POST with structured body**: The query moved from `GET` with query parameters to `POST` with a JSON body. The request now carries structured context, multimodal intent, and user profile — this complexity is better expressed as a JSON object than as URL parameters.
-- **Multimodal intent**: `intent.content[]` uses a typed array that mirrors LLM message formats. This makes it natural for AI agent platforms to construct queries from conversation context.
-- **Context separation**: `context` separates platform metadata, session tracking, and user profile into distinct sub-objects. This keeps concerns clear and allows each layer to evolve independently.
-- **RECOMMENDED for context sub-fields**: Platform, session, user profile fields, and device info are RECOMMENDED — the fields SHOULD be present for consistent request parsing, but values MAY be empty when data is unavailable.
-- **`user_pseudo_id` as pseudonymous**: The protocol does not require real user IDs. A pseudonymous viewer identifier is sufficient for frequency capping and personalization, preserving user privacy.
-- **Offset pagination**: The initial design uses offset-based pagination for simplicity. Cursor-based pagination can be reintroduced if performance requirements demand it.
-- **Structured filter + semantic intent**: `filter` provides deterministic narrowing (SQL WHERE equivalent) while `intent` provides relevance ranking (search scoring equivalent). This dual-signal design lets agents express both hard business constraints and soft user preferences in a single query.
+- **POST with structured body**: intent, context, filters, and user profile are better expressed as JSON than URL parameters.
+- **Multimodal intent**: `intent.content[]` mirrors LLM message formats and can evolve beyond text.
+- **Context separation**: platform, session, and user profile are separate so each layer can evolve independently.
+- **Pseudonymous user identifiers**: `user_pseudo_id` is sufficient for personalization and frequency capping; real user IDs are not required.
+- **Structured filter + semantic intent**: `filter` provides hard constraints while `intent` provides relevance ranking.
+- **Offset pagination**: simple default for v0.1; cursor pagination may be introduced later.
 
 ## Changelog
 
@@ -304,7 +331,8 @@ Design notes:
 | 0.1 | 2026-03-24 | Reframed the query result as `offer response { trace_id, offers[] }`, aligned the payload with `offer`, and updated key field names. |
 | 0.1 | 2026-03-24 | Added `offer-query` example guidance and clarified the boundary between query request, canonical `offer`, and `offer response`. |
 | 0.1 | 2026-03-24 | Updated the response example to the `offer_id + offer_instance_id + offer_info + entity + action + targeting + bid` draft shape. |
-| 0.1 | 2026-03-25 | Restructured from GET parameters to POST JSON body. Introduced `context` (platform, session, user_profile), multimodal `intent.content[]`, REQUIRED/RECOMMENDED/OPTIONAL requirement levels (RFC 2119), and offset-based pagination. |
-| 0.1 | 2026-03-28 | Added `filter` object for structured query constraints (category_types, bid_models, status, availability, price/bid range, brand, country, tags). Added enum extensibility note. Updated request example with filter fields and response example with bid and conversion_rule fields. |
-| 0.1 | 2026-03-31 | Changed `request_id` and `timestamp` from REQUIRED to OPTIONAL. Server generates defaults when omitted. Backward compatible (existing requests with these fields still work). |
-| 0.1 | 2026-05-05 | Clarified that the response envelope uses `request_id` rather than `trace_id`, removes `has_more` / `total` response metadata, and aligns examples with `user_pseudo_id`, `bid.amount`, and the current offer schema. |
+| 0.1 | 2026-03-25 | Restructured from GET parameters to POST JSON body. Introduced `context`, multimodal `intent.content[]`, requirement levels, and offset-based pagination. |
+| 0.1 | 2026-03-28 | Added `filter` object for structured query constraints and enum extensibility note. |
+| 0.1 | 2026-03-31 | Changed `request_id` and `timestamp` from REQUIRED to OPTIONAL. Server generates defaults when omitted. |
+| 0.1 | 2026-05-05 | Clarified that the response envelope uses `request_id` rather than `trace_id`, removes `has_more` / `total` response metadata, and aligns examples with current offer identity fields. |
+| 0.1 | 2026-05-09 | Reorganized the GitHub reference for developer readability: added at-a-glance summary, minimal request, required-first field guide, common values, troubleshooting, and related files. |

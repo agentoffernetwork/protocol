@@ -4,6 +4,12 @@ All notable changes to the AgentOffer Protocol specification will be documented 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- Added Contract Governance spec covering field lifecycle, source references, public follow rules, stale-field denylist, and compatibility allowlist.
+
 ## [0.1.0] - 2026-03-28
 
 ### Added

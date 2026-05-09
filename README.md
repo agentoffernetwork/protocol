@@ -32,13 +32,25 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 +------------------+     +-----------------+     +-------------------+
 ```
 
+## Choose Your Path
+
+| If you want to... | Start here | Then go to |
+|-------------------|------------|------------|
+| Query offers from an agent or app | [Query API](specs/query-api.md) | [Examples](https://github.com/agentoffernetwork/examples/blob/main/http/offer-query-request.json), [Schema](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-query-schema-v0.1.json) |
+| Understand the canonical offer object | [Offer Schema](specs/offer-schema.md) | [Schema](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-schema-v0.1.json), [Examples](https://github.com/agentoffernetwork/examples) |
+| Choose a category or sub-type | [Category Taxonomy](specs/category-taxonomy.md) | [Offer Schema category attributes](specs/offer-schema.md#category-attributes) |
+| Track clicks and conversions | [Events](specs/events.md) | [Postback](specs/postback.md) |
+| Check whether a field is canonical or historical | [Contract Governance](specs/contract-governance.md) | [RFC process](https://github.com/agentoffernetwork/rfcs) |
+| Propose a protocol change | [RFCs](https://github.com/agentoffernetwork/rfcs) | [CONTRIBUTING.md](CONTRIBUTING.md) |
+
 ## Quick Start
 
-1. Read the [Category Taxonomy](specs/category-taxonomy.md) to understand the current canonical category surface
-2. Read the [Offer Schema](specs/offer-schema.md) to understand the canonical offer object
-3. Read the [Query API](specs/query-api.md) to learn how agents discover offers
-4. Read the [Events](specs/events.md) spec for click & conversion tracking
-5. Browse [Examples](https://github.com/agentoffernetwork/examples) and use the SDK installation pointers in the Developer Tools section below
+1. Read the [Query API](specs/query-api.md) if you are building an agent, app, or SDK that searches for offers.
+2. Read the [Offer Schema](specs/offer-schema.md) to understand the `offers[]` objects returned by the Query API.
+3. Use [Schema](https://github.com/agentoffernetwork/schema) to validate request/response payloads.
+4. Browse [Examples](https://github.com/agentoffernetwork/examples) for copyable JSON payloads.
+5. Read [Contract Governance](specs/contract-governance.md) when you need field lifecycle, source references, or stale-field handling.
+6. Open an [RFC](https://github.com/agentoffernetwork/rfcs) before proposing field, enum, compatibility, or governance changes.
 
 ## Implementation-Ready Core
 
@@ -49,10 +61,23 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 | [Events](specs/events.md) | Click and conversion event definitions with stable identifiers for full-funnel attribution |
 | [OfferProvider API](specs/offer-provider-api.md) | Partner-facing request/response, signing, and error semantics for standardized offer supply |
 | [Postback](specs/postback.md) | AON→Agent and Partner→AON callback rules, payloads, signatures, and retry behavior |
+| [Contract Governance](specs/contract-governance.md) | Field lifecycle, source references, public follow rules, and stale-field handling |
 
 These documents make up the current **implementation-ready core** of the protocol. They
 are still published as **v0.1 Draft** because the ecosystem and governance process are
 young, but the core contract surface is intended for real integration and feedback.
+
+## First Query in 5 Minutes
+
+For most agent integrations, the shortest useful path is:
+
+1. Open [`specs/query-api.md`](specs/query-api.md).
+2. Copy the minimal `POST /v1/offers/query` request.
+3. Send `context.user_profile` and `intent.content[]`.
+4. Read `request_id` and `offers[]` in the response.
+5. Use `offers[].offer_instance_id` when reporting downstream click or conversion attribution.
+
+The Query API page links to the machine-readable schema and canonical examples so you can move from prose to validation without hunting through repositories.
 
 ## Companion Drafts
 
@@ -110,6 +135,7 @@ protocol/
     offer-schema.md        # Canonical offer object definition
     query-api.md           # Offer discovery API
     events.md              # Click & conversion tracking
+    contract-governance.md # Field lifecycle and public follow rules
     agent-identity.md      # Agent registration model
     compliance-guide.md    # Disclosure requirements
   .github/                 # Community templates
@@ -125,6 +151,17 @@ protocol/
 | [`agentoffernetwork/schema`](https://github.com/agentoffernetwork/schema) | JSON Schema, TypeScript types, and validators |
 | [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples) | Canonical request/response payloads aligned with the current public category surface |
 | [`agentoffernetwork/rfcs`](https://github.com/agentoffernetwork/rfcs) | Protocol change proposals and governance |
+
+### Source-of-Truth Roles
+
+| Surface | Role |
+|---------|------|
+| This `protocol` repo | Human-readable contract and governance source |
+| `schema` repo | Machine-readable JSON Schema and TypeScript types |
+| `examples` repo | Canonical request/response payloads for inspection and validation |
+| `rfcs` repo | Required path for semantic contract changes |
+
+Markdown explains the contract. Schema and examples make it verifiable. RFCs govern semantic change.
 
 **Developer Tools:**
 
