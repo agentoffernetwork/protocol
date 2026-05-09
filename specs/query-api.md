@@ -74,7 +74,7 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 | Field | Common values |
 |------|---------------|
 | `intent.content[].type` | `input_text`, `input_image` |
-| `filter.category_types` | `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics` |
+| `filter.category_types` | `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive` |
 | `filter.bid_models` | `cpa`, `cps`, `cpl`, `cpi`, `hybrid` |
 | `filter.status` | `active`, `paused`, `pending`, `rejected`, `expired` |
 | `offer_info.offer_type` | `physical_product`, `digital_goods`, `content`, `online_service`, `offline_service` |
@@ -103,10 +103,17 @@ The canonical `offers.query` response does **not** include `query_id`, `trace_id
     {
       "offer_id": "0195ef94-f17d-7a4f-b6e0-2c52bb49e13f",
       "offer_instance_id": "019dd208-27d2-7673-b16f-2c52bb49e13f",
+      "version": "1.0",
       "offer_info": {
         "title": "The Tokyo Grand Weekend Stay",
         "offer_type": "offline_service",
-        "category": { "type": "travel_hospitality" },
+        "category": {
+          "type": "travel_hospitality",
+          "attributes": {
+            "sub_type": "hotel",
+            "destination": { "city": "Tokyo", "country": "JP" }
+          }
+        },
         "description": "Luxury hotel stay in central Tokyo with weekend availability."
       },
       "entity": { "id": "ent_tokyo_grand", "name": "Tokyo Grand Hotel" },
