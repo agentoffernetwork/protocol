@@ -8,14 +8,20 @@
 
 This document defines the protocol-facing `offer` object for AgentOffer Protocol v0.1.
 
-The object is centered on:
+Most developers only need the top-level object first:
 
-- identity
-- offer information (including category and commercial context)
-- entity
-- action
-- targeting
-- bid
+1. Identify the offer with `offer_id` and the served instance with `offer_instance_id`.
+2. Read `offer_info` for title, type, category, description, and commercial context.
+3. Render `entity` and execute `action`.
+4. Preserve `offer_instance_id` for attribution.
+5. Validate the payload with the JSON Schema package.
+
+| Need | Start here |
+|------|------------|
+| Validate an offer payload | [`offer-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-schema-v0.1.json) |
+| Inspect copyable offer examples | [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples/tree/main/http) |
+| See field-level API UI | [AON API Reference](https://docs.agentoffernetwork.com/api/offer-query) |
+| Choose category values | [Category Taxonomy](./category-taxonomy.md) |
 
 ### Conformance Keywords
 
@@ -45,7 +51,7 @@ The protocol classifies fields into three requirement levels to balance standard
 | `action` | object | REQUIRED | Primary executable action exposed by the offer. |
 | `material` | array | RECOMMENDED | Creative assets associated with the offer. |
 | `targeting` | array | OPTIONAL | Targeting constraints that influence where the offer should be shown. |
-| `bid` | object | RECOMMENDED | Bid information associated with the offer. |
+| `bid` | object | REQUIRED | Affiliate bid and payout information associated with the offer. |
 | `conversion_rule` | object | RECOMMENDED | Rules for valid conversion events and attribution logic. |
 | `source` | object | OPTIONAL | Offer source and tracking configuration. |
 
@@ -85,8 +91,9 @@ Design notes:
 |------|------|-------|-------------|
 | `offer_info.title` | string | REQUIRED | Display-ready title. |
 | `offer_info.offer_type` | string | REQUIRED | Offer classification such as `physical_product`, `content`, `online_service`, or `offline_service`. |
-| `offer_info.category` | object | REQUIRED | Industry category, vertical-specific attributes, and commercial details. |
+| `offer_info.category` | object | REQUIRED | Industry category and vertical-specific attributes. |
 | `offer_info.description` | string | REQUIRED | Core semantic description used by agents and clients. |
+| `offer_info.commercial` | object | RECOMMENDED | Pricing information, such as consumer-facing price. |
 | `offer_info.start_at` | string | OPTIONAL | RFC 3339 timestamp indicating when the offer becomes active. |
 | `offer_info.expire_at` | string | OPTIONAL | RFC 3339 timestamp indicating when the offer should no longer be surfaced. |
 | `offer_info.status` | string | OPTIONAL | Lifecycle status such as `active`, `paused`, `pending`, `rejected`, or `expired`. |
@@ -95,29 +102,28 @@ Design notes:
 
 #### `offer_info.category`
 
-`category` unifies the industry vertical classification, vertical-specific attributes, and commercial context into a single object.
+`category` contains the industry vertical classification and the attributes required by that vertical.
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
 | `offer_info.category.type` | string | REQUIRED | Industry vertical. See [Category Taxonomy](./category-taxonomy.md) for the current canonical public category registry and boundary rules. |
-| `offer_info.category.attributes` | object | RECOMMENDED | Vertical-specific attributes. Structure varies by `category.type`. See `category-attributes.types.ts` for per-type definitions. |
-| `offer_info.category.commercial` | object | RECOMMENDED | Pricing, availability, and inventory information. |
+| `offer_info.category.attributes` | object | REQUIRED | Vertical-specific attributes. Structure varies by `category.type`; `attributes.sub_type` is REQUIRED for all current categories. See `category-attributes.types.ts` for per-type definitions. |
 
-##### `offer_info.category.commercial`
+##### `offer_info.commercial`
+
+`commercial` belongs to `offer_info`, not `offer_info.category`, in the current machine-readable schema.
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `commercial.price.amount` | string | RECOMMENDED | Decimal string representing the consumer-facing price amount. |
-| `commercial.price.currency` | string | RECOMMENDED | ISO 4217 currency code for the consumer-facing price. |
-| `commercial.availability` | string | RECOMMENDED | Availability status such as `available`, `limited`, `sold_out`, or `pre_order`. |
-| `commercial.stock` | integer | OPTIONAL | Available inventory count. Omit for unlimited inventory. |
+| `offer_info.commercial.price` | object | OPTIONAL | Consumer-facing price information. |
+| `offer_info.commercial.price.amount` | string | RECOMMENDED | Decimal string representing the consumer-facing price amount. |
+| `offer_info.commercial.price.currency` | string | RECOMMENDED | ISO 4217 currency code for the consumer-facing price. |
 
 Design notes:
 
 - `offer_type` and `category.type` serve different purposes: `offer_type` classifies the **delivery form** (how the offer is fulfilled — physical product, online service, offline service, content), while `category.type` classifies the **industry vertical** (what domain the offer belongs to). An `offline_service` offer type could have a `category.type` of `travel_hospitality` or `education`.
-- `category` keeps industry classification, vertical-specific data, and commercial context together. This reflects the natural relationship: commercial terms (pricing, stock) are inherently tied to the vertical category, not to the abstract offer envelope.
 - `category.attributes` structure is determined by `category.type`. Each vertical defines its own required and optional attribute fields. For `entertainment`, an additional `sub_type` discriminator is used for finer classification.
-- `commercial` is RECOMMENDED because some offers are action-oriented or promotional and may not expose pricing.
+- `commercial` stays under `offer_info` so pricing can be read alongside the title, description, and category without changing the category discriminator shape.
 
 ### Category Types
 
@@ -678,7 +684,7 @@ All `automotive` offers MUST include a `sub_type` field that determines the sub-
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `action.type` | string | REQUIRED | Executable action type such as `web_redirect`, `app_deep_link`, or `api_trigger`. |
+| `action.type` | string | REQUIRED | Executable action type: `web_redirect` or `app_deep_link`. |
 | `action.name` | string | RECOMMENDED | Short user-facing action name (CTA text). |
 | `action.description` | string | OPTIONAL | Explanation of the action intent or destination. |
 | `action.payload` | object | REQUIRED | Action-specific payload. Structure depends on `action.type`. |
@@ -689,9 +695,15 @@ For a `web_redirect` action flow:
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `action.payload.target` | string | REQUIRED | Destination URL or executable target for the action. |
-| `action.payload.requires_auth` | boolean | OPTIONAL | Whether the user must authenticate to complete the action. |
-| `action.payload.platform` | string | OPTIONAL | Target platform such as `web`, `ios`, `android`, or `desktop`. |
+| `action.payload.target` | string | REQUIRED | Destination URL for the web redirect. |
+
+For an `app_deep_link` action flow:
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `action.payload.target` | string | REQUIRED | Deep link URI for the app. |
+| `action.payload.platform` | string | OPTIONAL | Target platform: `ios` or `android`. |
+| `action.payload.fallback_url` | string | OPTIONAL | Fallback URL when the app is not installed. |
 
 ### Material (RECOMMENDED)
 
@@ -724,43 +736,20 @@ For a `web_redirect` action flow:
 | `source.postback_url_template` | string | OPTIONAL | Agent-side conversion callback URL template. Supports variable substitution (e.g., `{aon_tracking_id}`, `{offer_id}`). See [`postback.md` S4.1 Registration and S4.5 URL Template Variables](./postback.md#41-registration) for the template variable definitions and substitution rules. |
 | `source.tracking_url_template` | string | OPTIONAL | Tracking link generation template. Used to construct click-tracking URLs with embedded parameters. |
 
-### Bid (RECOMMENDED)
+### Bid (REQUIRED)
 
-`bid` expresses affiliate bid and payout information for recommendation, ranking, or settlement workflows. It is RECOMMENDED: the field SHOULD be present when the offer participates in affiliate or performance-based compensation.
+`bid` expresses affiliate bid and payout information for recommendation, ranking, or settlement workflows. The current JSON Schema requires `bid.model`, `bid.amount`, and `bid.currency`.
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
 | `bid.model` | string | REQUIRED | Bid model: `cpa` (cost per action), `cps` (cost per sale, percentage-based), `cpl` (cost per lead), `cpi` (cost per install), `hybrid` (base amount plus percentage). |
-| `bid.amount` | string | CONDITIONAL | Fixed bid amount, decimal string. REQUIRED when `model` is `cpa`, `cpl`, or `cpi`. REQUIRED when `model` is `hybrid` (base/floor amount). OPTIONAL when `model` is `cps`. |
+| `bid.amount` | string | REQUIRED | Determined bid amount, decimal string. |
 | `bid.currency` | string | REQUIRED | ISO 4217 currency code for the bid amount. |
-| `bid.rate` | string | CONDITIONAL | Bid rate as a decimal string (e.g., `"0.15"` = 15%). REQUIRED when `model` is `cps` or `hybrid`. OPTIONAL for other models. |
-| `bid.tier` | array | OPTIONAL | Tiered bid rules. When present, tier rules take precedence over top-level `amount`/`rate`. |
-| `bid.tier[].threshold` | string | REQUIRED | Threshold value that triggers this tier, decimal string. |
-| `bid.tier[].threshold_type` | string | REQUIRED | Threshold measurement type: `revenue` (cumulative amount) or `count` (cumulative conversions). |
-| `bid.tier[].amount` | string | CONDITIONAL | Fixed bid for this tier. Used when parent `model` is `cpa`, `cpl`, `cpi`, or `hybrid`. |
-| `bid.tier[].rate` | string | CONDITIONAL | Bid rate for this tier. Used when parent `model` is `cps` or `hybrid`. |
-| `bid.cap` | string | OPTIONAL | Maximum bid per single conversion, decimal string. |
-| `bid.cap_currency` | string | OPTIONAL | Currency for the bid cap. When omitted, defaults to `bid.currency`. |
-| `bid.payout_delay_days` | integer | OPTIONAL | Settlement delay in days (lock-up period). Default `0`. |
-| `bid.validation_window_days` | integer | OPTIONAL | Conversion validation window in days (advertiser confirmation period). |
-
-**Model-to-Required-Fields Matrix**:
-
-| `model` | `amount` | `rate` | `tier` | Calculation logic |
-|---------|----------|--------|--------|-------------------|
-| `cpa` | REQUIRED | --- | OPTIONAL | Fixed amount: pay `amount` per conversion. |
-| `cps` | --- | REQUIRED | OPTIONAL | Percentage: `revenue * rate`. |
-| `cpl` | REQUIRED | --- | OPTIONAL | Fixed amount: pay `amount` per lead. |
-| `cpi` | REQUIRED | --- | OPTIONAL | Fixed amount: pay `amount` per install. |
-| `hybrid` | REQUIRED | REQUIRED | OPTIONAL | Floor + percentage: `max(amount, revenue * rate)`. |
-
-> **Hybrid semantics**: `amount` is the floor (guaranteed minimum) bid, `rate` is the revenue share percentage. The final bid is the greater of the two: `max(amount, revenue * rate)`. When `tier` is present, tier rules take precedence over the top-level `amount`/`rate`.
 
 Design notes:
 
-- CONDITIONAL fields (`amount`, `rate`, `tier[].amount`, `tier[].rate`) have their requirement level determined by the value of `bid.model`. See the matrix above for the exact mapping.
-- `cap` and `cap_currency` provide an upper bound on per-conversion bid to protect advertiser budgets.
-- `payout_delay_days` and `validation_window_days` inform agents about settlement timing expectations.
+- `bid.amount` is always a decimal string in the current v0.1 schema. For percentage-based models, integrations can interpret the value according to the bid model surfaced by the platform.
+- More advanced payout structures such as explicit `rate`, tiering, caps, or payout delays are not part of the current machine-readable v0.1 offer schema.
 
 ### Conversion Rule (RECOMMENDED)
 
@@ -791,19 +780,19 @@ Design notes:
 - `offer_info.title` MUST be a non-empty string suitable for direct display.
 - `offer_info.offer_type` MUST be a non-empty string that classifies the offer.
 - `offer_info.category.type` MUST be one of the registered category type values.
+- `offer_info.category.attributes` MUST be present and include `sub_type`.
 - `offer_info.description` MUST be a non-empty string suitable for semantic retrieval and end-user display.
 - `entity.id` and `entity.name` are both REQUIRED.
 - `action.type` and `action.payload` are both REQUIRED.
 - `action.payload.target` MUST be a valid URI when the action is a web flow.
+- `bid.model`, `bid.amount`, and `bid.currency` are REQUIRED.
 
 ### RECOMMENDED Fields
 
 These fields SHOULD be present in the offer object and MUST follow the standard structure when present. Values MAY be empty or null when data is unavailable, but the field key itself SHOULD exist:
 
 - `material` SHOULD be present as an array. MAY be an empty array `[]` when no assets are available. When items are provided, each SHOULD include `url`, `tag`, and `format`.
-- `category.attributes` SHOULD be present as an object. MAY be an empty object `{}` when no vertical-specific data is available.
-- `category.commercial` SHOULD be present as an object. `price.amount` and `price.currency` MAY be empty strings when pricing is not exposed.
-- `bid` SHOULD be present as an object. When present, `bid.model` and `bid.currency` are REQUIRED. `bid.amount` and `bid.rate` are CONDITIONAL based on `bid.model` (see Model-to-Required-Fields Matrix). All monetary values MUST be decimal strings.
+- `offer_info.commercial` SHOULD be present as an object when pricing is available. `price.amount` and `price.currency` MAY be empty strings when pricing is not exposed.
 - `conversion_rule` SHOULD be present as an object. When present, `click_window_hours`, `attribution_model`, and `accepted_types` are RECOMMENDED. When `click_window_hours` is absent, consumers SHOULD apply a default of `720`. When `attribution_model` is absent, consumers SHOULD apply `last_click`. When `dedup_strategy` is absent, consumers SHOULD apply `first`.
 
 ### OPTIONAL Fields
@@ -818,7 +807,7 @@ These fields MAY be omitted entirely. When included, they SHOULD follow the spec
 
 ## Enum Extensibility
 
-All enumeration types defined in this specification (`bid.model`, `category.type`, `offer_info.offer_type`, `offer_info.status`, `commercial.availability`, `conversion_rule.attribution_model`, `conversion_rule.dedup_strategy`, etc.) follow an **open-ended design**. The protocol reserves the right to introduce new enumeration values in future revisions without treating the addition as a breaking change.
+All enumeration types defined in this specification (`bid.model`, `category.type`, `offer_info.offer_type`, `offer_info.status`, `conversion_rule.attribution_model`, `conversion_rule.dedup_strategy`, etc.) follow an **open-ended design**. The protocol reserves the right to introduce new enumeration values in future revisions without treating the addition as a breaking change.
 
 Consumers SHOULD handle unknown enumeration values gracefully — either by ignoring the unrecognized value or passing it through — rather than returning an error or rejecting the entire offer document. This principle enables the protocol to evolve incrementally while maintaining backward compatibility with existing implementations.
 
@@ -835,6 +824,7 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
     "category": {
       "type": "travel_hospitality",
       "attributes": {
+        "sub_type": "hotel",
         "property_type": "hotel",
         "destination": {
           "city": "New York",
@@ -845,17 +835,15 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
         "room_type": "Deluxe King",
         "breakfast_included": true,
         "cancellation_policy": "Free cancellation up to 48 hours before check-in"
-      },
-      "commercial": {
-        "price": {
-          "amount": "420.00",
-          "currency": "USD"
-        },
-        "availability": "limited",
-        "stock": 15
       }
     },
     "description": "Luxury 5-star hotel in Midtown Manhattan with rooftop pool, full-service spa, and complimentary breakfast.",
+    "commercial": {
+      "price": {
+        "amount": "420.00",
+        "currency": "USD"
+      }
+    },
     "start_at": "2026-04-01T00:00:00Z",
     "expire_at": "2026-10-31T23:59:59Z",
     "status": "active",
@@ -881,9 +869,7 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
     "name": "Book now",
     "description": "Redirect to the hotel booking page to reserve your room.",
     "payload": {
-      "target": "https://www.manhattangrand.example/book/deluxe-king",
-      "requires_auth": false,
-      "platform": "web"
+      "target": "https://www.manhattangrand.example/book/deluxe-king"
     }
   },
   "targeting": [
@@ -896,9 +882,7 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
   "bid": {
     "model": "cpa",
     "amount": "42.00",
-    "currency": "USD",
-    "payout_delay_days": 30,
-    "validation_window_days": 7
+    "currency": "USD"
   },
   "conversion_rule": {
     "click_window_hours": 720,
@@ -925,7 +909,8 @@ The protocol examples cover representative category types and use the current v0
 ## Design Decisions
 
 - **Requirement Levels (RFC 2119)**: REQUIRED enforces a strict core contract (must have valid values). RECOMMENDED enforces structural consistency across implementations (field should exist and follow the standard shape, even if the value is empty) — this ensures all offer documents share the same structure for parsing and tooling. OPTIONAL fields allow richer modeling without breaking backward compatibility.
-- **`category` consolidation**: Industry type, vertical-specific attributes, and commercial terms are inherently related. Grouping them under `category` reduces top-level field sprawl and makes it clear that pricing and availability are category-dependent.
+- **Category attributes**: `category.type` selects the vertical, while `category.attributes.sub_type` and related fields carry the vertical-specific structure used for ranking and filtering.
+- **Commercial information**: `offer_info.commercial` keeps price information close to title and description while leaving `category` focused on classification and attributes.
 - **`material` as array**: A single offer may need multiple creative assets (logo, banner, video). The array structure handles this naturally.
 - **OPTIONAL for targeting and source**: These are powerful features but not every offer needs them. Keeping them optional prevents the protocol from forcing complexity on simple use cases.
 
@@ -938,9 +923,8 @@ The following table maps core AON Offer fields to their closest [schema.org](htt
 | `offer_info.title` | `Product.name` / `Offer.name` | Direct mapping. |
 | `offer_info.description` | `Product.description` | Direct mapping. |
 | `entity.name` | `Organization.name` / `Brand.name` | Maps to the seller or provider entity. |
-| `category.commercial.price.amount` | `Offer.price` | Direct mapping. |
-| `category.commercial.price.currency` | `Offer.priceCurrency` | ISO 4217. |
-| `category.commercial.availability` | `Offer.availability` | Enumeration values require mapping (e.g., `available` to `InStock`). |
+| `offer_info.commercial.price.amount` | `Offer.price` | Direct mapping. |
+| `offer_info.commercial.price.currency` | `Offer.priceCurrency` | ISO 4217. |
 | `action.payload.target` | `Offer.url` | Maps to the offer landing page URL. |
 | `offer_info.start_at` | `Offer.validFrom` | RFC 3339 (AON) to ISO 8601 (schema.org). |
 | `offer_info.expire_at` | `Offer.validThrough` | RFC 3339 (AON) to ISO 8601 (schema.org). |

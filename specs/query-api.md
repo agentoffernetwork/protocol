@@ -96,6 +96,18 @@ See [`category-taxonomy.md`](category-taxonomy.md) and [`offer-schema.md`](offer
 
 The canonical `offers.query` response does **not** include `query_id`, `trace_id`, `has_more`, or `total` as top-level public response fields. Historical or internal uses must be labeled as such; see [`contract-governance.md`](contract-governance.md).
 
+### Protocol Payload vs Platform Envelope
+
+This document defines the protocol payload: `request_id` + `offers[]`.
+
+The hosted platform API may wrap this payload in a service envelope such as
+`code`, `message`, `data`, and `extra`. In that case, the protocol payload lives
+inside `data`. Do not treat the service envelope as part of the canonical
+AgentOffer Protocol response shape.
+
+For field-level platform API tables, examples, and onboarding guidance, use the
+[AON API Reference](https://docs.agentoffernetwork.com/api/offer-query).
+
 ```json
 {
   "request_id": "019dd200-1234-7890-abcd-ef0123456789",
@@ -147,6 +159,8 @@ For complete request and response payloads, see [`agentoffernetwork/examples`](h
 |------|------|
 | Validate query requests | [`offer-query-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-query-schema-v0.1.json) |
 | Inspect complete examples | [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples) |
+| Read platform API field tables | [AON API Reference](https://docs.agentoffernetwork.com/api/offer-query) |
+| Run a guided first request | [Docs Quick Start](https://docs.agentoffernetwork.com/quickstart/first-api-call) |
 | Understand returned offers | [`offer-schema.md`](offer-schema.md) |
 | Choose categories | [`category-taxonomy.md`](category-taxonomy.md) |
 | Check field lifecycle | [`contract-governance.md`](contract-governance.md) |

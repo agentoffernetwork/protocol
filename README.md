@@ -32,6 +32,19 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 +------------------+     +-----------------+     +-------------------+
 ```
 
+## Current v0.1 Snapshot
+
+| Surface | Current contract |
+|---------|------------------|
+| Agent-facing discovery | `POST /v1/offers/query` with `context`, `intent`, optional `filter`, and optional `pagination` |
+| Returned offers | Canonical response payload is `request_id` + `offers[]` |
+| Offer identity | `offer_id` is the stable inventory Offer; `offer_instance_id` is generated for each served instance |
+| Attribution | Preserve `offers[].offer_instance_id` through click, conversion, and settlement flows |
+| Categories | 11 canonical public categories in [Category Taxonomy](specs/category-taxonomy.md) |
+| Status | `v0.1 Draft`, public beta for the core contract surface |
+
+`v0.1` is implementation-ready for the core Query API, Offer object, schema validation, examples, and postback contracts. Companion drafts such as Agent Identity and Compliance are still evolving.
+
 ## Start Here
 
 | Goal | Read | Use next |
@@ -44,6 +57,18 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 | Propose a protocol change | [RFCs](https://github.com/agentoffernetwork/rfcs) | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 Most integrations start with [`POST /v1/offers/query`](specs/query-api.md): copy the minimal request, send `context` + `intent`, read `request_id` + `offers[]`, and preserve `offers[].offer_instance_id` for attribution.
+
+## Developer Paths
+
+| If you want to... | Start here | Then use |
+|-------------------|------------|----------|
+| Understand the protocol and public positioning | [agentoffernetwork.org](https://agentoffernetwork.org) | This repository for the source specs |
+| Make your first request or use mock SDK mode | [Docs Quick Start](https://docs.agentoffernetwork.com/quickstart) | [API Reference](https://docs.agentoffernetwork.com/api), [SDK Reference](https://docs.agentoffernetwork.com/sdk) |
+| Integrate an AI app with offers | [Query API](specs/query-api.md) | [Schema](https://github.com/agentoffernetwork/schema), [Examples](https://github.com/agentoffernetwork/examples) |
+| Expose partner offers to AON | [OfferProvider API](specs/offer-provider-api.md) | [Partner Integration Guide](https://docs.agentoffernetwork.com/guides/partner-integration) |
+| Propose a protocol change | [RFCs](https://github.com/agentoffernetwork/rfcs) | [Contract Governance](specs/contract-governance.md) |
+
+GitHub is the source for protocol semantics, schemas, examples, and RFCs. The docs site provides guided onboarding, field-level API tables, SDK walkthroughs, and runtime platform notes.
 
 ## Implementation-Ready Specs
 
