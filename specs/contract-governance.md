@@ -36,10 +36,17 @@ Canonical fields:
 
 | Field | Meaning |
 | --- | --- |
+| `AON-Protocol-Version` | HTTP header that pins the AgentOffer Protocol payload contract version, for example `0.1` |
 | `request_id` | Query/request correlation identifier |
 | `offers` | Ranked Offer objects returned by the query |
 | `offers[].offer_id` | Inventory-level stable Offer ID |
 | `offers[].offer_instance_id` | Per-dispatch Offer instance ID |
+
+Canonical agent-facing request constraints:
+
+| Field | Meaning |
+| --- | --- |
+| `constraints.category_types` | Structured category eligibility constraint |
 
 Historical, compatibility, internal, or removed fields:
 
@@ -52,6 +59,15 @@ Historical, compatibility, internal, or removed fields:
 | `uuid` | removed | Use `offer_id` or `offer_instance_id` depending on semantics |
 | `original_offer_id` | removed | Use `offer_id` |
 | `source_offer_id` | removed | Removed from the public contract |
+| `filter` | removed from Query API and OfferProvider API request bodies | Use root `constraints`. |
+| `QueryFilter` | removed from agent-facing Query API | Use `QueryConstraints`. |
+| `filter.status` | removed from Query API and OfferProvider API request bodies | Query API and OfferProvider dispatches return active eligible offers by default. |
+| `filter.bid_models` | removed from agent-facing Query API | Bid model is supply/commercial selection logic, not a public client constraint. |
+| `filter.currency` | removed from agent-facing Query API | Currency constraints are not public in this version. |
+| `filter.min_bid_amount` | removed from agent-facing Query API | Bid constraints are not public in this version. |
+| `filter.max_price_amount` | removed from agent-facing Query API | Price constraints are not public in this version. |
+| `filter.brand` | removed from agent-facing Query API | Brand constraints are not public in this version. |
+| `filter.country` | removed from agent-facing Query API | Country constraints are not public in this version. |
 
 ## Machine-Readable Manifest
 

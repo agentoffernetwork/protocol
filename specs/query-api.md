@@ -1,7 +1,7 @@
 # Offer Query API v0.1
 
 - **Status**: Draft
-- **Last Updated**: 2026-05-09
+- **Last Updated**: 2026-05-15
 - **Source**: `agentoffernetwork/protocol/specs/query-api.md`
 
 Use this API when an agent has user intent and needs ranked commercial offers to recommend, compare, or present.
@@ -14,7 +14,8 @@ Use this API when an agent has user intent and needs ranked commercial offers to
 | Path | `/v1/offers/query` |
 | Auth | `Authorization: Bearer YOUR_API_KEY` |
 | Content-Type | `application/json` |
-| Request | `context` + `intent`, optional `filter` and `pagination` |
+| Protocol-Version | `AON-Protocol-Version: 0.1` recommended. SDKs send it by default. |
+| Request | `context` + `intent`, optional `constraints` and `pagination` |
 | Response | `request_id` + `offers[]` |
 
 ## Minimal Request
@@ -23,6 +24,7 @@ Use this API when an agent has user intent and needs ranked commercial offers to
 curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
+  -H "AON-Protocol-Version: 0.1" \
   -d '{
     "context": { "user_profile": {} },
     "intent": {
@@ -44,7 +46,7 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 | `context.user_profile` | REQUIRED | User profile container. It may be sparse, but the object must be present. |
 | `intent` | REQUIRED | User intent expressed as multimodal content. |
 | `intent.content[]` | REQUIRED | At least one content item. Current `type` values: `input_text`, `input_image`. |
-| `filter` | OPTIONAL | Hard constraints applied before semantic ranking. |
+| `constraints` | OPTIONAL | Deterministic eligibility constraints applied before semantic ranking. |
 | `pagination` | RECOMMENDED | Defaults: `limit=20`, `offset=0`. Maximum `limit=100`. |
 | `request_id` | OPTIONAL | UUIDv7 recommended. Server generates one when omitted. |
 | `timestamp` | OPTIONAL | RFC 3339 timestamp. Server uses current time when omitted. |
@@ -61,11 +63,7 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 | `context.user_profile.language` | string | `en` |
 | `context.user_profile.interests` | string[] | `["travel", "hotels"]` |
 | `intent.content[].text` | string | `Find me a luxury hotel in Tokyo` |
-| `filter.category_types` | string[] | `["travel_hospitality"]` |
-| `filter.bid_models` | string[] | `["cpa", "cps"]` |
-| `filter.status` | string[] | `["active"]` |
-| `filter.currency` | string | `USD` |
-| `filter.max_price_amount` | string | `"300.00"` |
+| `constraints.category_types` | string[] | `["travel_hospitality"]` |
 | `pagination.limit` | integer | `10` |
 | `pagination.offset` | integer | `0` |
 
@@ -74,12 +72,52 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 | Field | Common values |
 |------|---------------|
 | `intent.content[].type` | `input_text`, `input_image` |
-| `filter.category_types` | `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive` |
-| `filter.bid_models` | `cpa`, `cps`, `cpl`, `cpi`, `hybrid` |
-| `filter.status` | `active`, `paused`, `pending`, `rejected`, `expired` |
+| `constraints.category_types` | `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive` |
 | `offer_info.offer_type` | `physical_product`, `digital_goods`, `content`, `online_service`, `offline_service` |
 
-See [`category-taxonomy.md`](category-taxonomy.md) and [`offer-schema.md`](offer-schema.md) for the full category, offer, bid, and status definitions.
+See [`category-taxonomy.md`](category-taxonomy.md) and [`offer-schema.md`](offer-schema.md) for the full category, offer, bid, and lifecycle definitions.
+
+### Constraints Semantics
+
+`constraints` is a small set of deterministic eligibility constraints, not a
+search DSL and not a lifecycle control surface. Use `intent.content[]` for
+semantic matching and ranking signals; use `constraints` only when a result
+would be invalid unless the constraint is satisfied.
+
+The first public `constraints` surface intentionally exposes only
+`constraints.category_types`. Bid model, lifecycle status, currency, price,
+brand, and country constraints are not part of the agent-facing Query API
+contract in this version.
+
+### Protocol Versioning
+
+`/v1/offers/query` identifies the hosted Query API major version. The request
+SHOULD also include `AON-Protocol-Version: 0.1` to pin the AgentOffer Protocol
+payload contract. SDKs send this header by default.
+
+Servers MAY treat an omitted `AON-Protocol-Version` header as the current
+default protocol version and SHOULD echo the resolved version in the response
+header. Unsupported protocol versions SHOULD return a clear client error that
+lists supported versions.
+
+Do not put the protocol version in the JSON request body. The body remains the
+portable protocol payload, while the HTTP header carries transport-level
+contract negotiation.
+
+### Eligibility and Lifecycle Status
+
+The Query API returns active, eligible offers by default. Client requests SHOULD
+NOT include lifecycle status constraints such as `active`, `paused`, `pending`,
+`rejected`, or `expired`.
+
+`offer_info.status` remains part of the Offer Schema for inventory lifecycle
+representation. Lifecycle filtering belongs to supply-side or internal
+selection logic, not the agent-facing Query API public constraints surface.
+
+The legacy root `filter` field is no longer part of the canonical
+Query API request. Provider-facing OfferProvider API payloads also use root
+`constraints` so AON-to-Partner dispatches and agent-facing Query requests share
+the same field name.
 
 ## Response Shape
 
@@ -149,8 +187,7 @@ For complete request and response payloads, see [`agentoffernetwork/examples`](h
 | `401 UNAUTHORIZED` | Missing or invalid bearer token | Use `Authorization: Bearer YOUR_API_KEY`. Never paste real keys into examples or issues. |
 | `403 FORBIDDEN` | Key is valid but not allowed for this endpoint | Confirm the key is active and has Query API access. |
 | `429 RATE_LIMITED` | Too many requests | Add backoff and retry later. |
-| Empty `offers` | No eligible offer matched the hard filters | Loosen `filter`, especially category, country, brand, price, and bid constraints. |
-| Amount filters ignored | Missing `filter.currency` | Send `currency` with `min_bid_amount` or `max_price_amount`. |
+| Empty `offers` | No eligible offer matched the hard constraints | Loosen `constraints.category_types` or rely on `intent.content[]` for semantic matching. |
 | Attribution mismatch | Wrong identifier propagated | Use `offers[].offer_instance_id` for the dispatched instance; use `offer_id` only for inventory identity. |
 
 ## References
@@ -184,11 +221,13 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHOULD", "RECOMMENDED", 
 <details>
 <summary>Design decisions</summary>
 
-- **POST with structured body**: intent, context, filters, and user profile are better expressed as JSON than URL parameters.
+- **POST with structured body**: intent, context, constraints, and user profile are better expressed as JSON than URL parameters.
 - **Multimodal intent**: `intent.content[]` mirrors LLM message formats and can evolve beyond text.
 - **Context separation**: platform, session, and user profile are separate so each layer can evolve independently.
 - **Pseudonymous user identifiers**: `user_pseudo_id` is sufficient for personalization and frequency capping; real user IDs are not required.
-- **Structured filter + semantic intent**: `filter` provides hard constraints while `intent` provides relevance ranking.
+- **Structured constraints + semantic intent**: `constraints` provides hard eligibility constraints while `intent` provides relevance ranking.
+- **Lifecycle status boundary**: agent-facing Query API requests return active eligible offers by default; lifecycle status remains an offer/provider concern, not a public query constraint.
+- **Protocol version header**: `/v1` identifies the hosted API major version; `AON-Protocol-Version` pins the protocol payload contract without adding version fields to JSON bodies.
 - **Offset pagination**: simple default for v0.1; cursor pagination may be introduced later.
 
 </details>
@@ -199,13 +238,15 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHOULD", "RECOMMENDED", 
 | Version | Date | Changes |
 |---------|------|---------|
 | 0.1 | 2026-03-20 | Initial draft. |
-| 0.1 | 2026-03-22 | Added broader compatibility-oriented filters. |
+| 0.1 | 2026-03-22 | Added broader compatibility-oriented narrowing fields. |
 | 0.1 | 2026-03-23 | Added CTA-oriented action semantics to the response example. |
 | 0.1 | 2026-03-24 | Reframed the query result as `offer response { trace_id, offers[] }`, aligned the payload with `offer`, and updated key field names. |
 | 0.1 | 2026-03-25 | Restructured from GET parameters to POST JSON body. Introduced `context`, multimodal `intent.content[]`, requirement levels, and offset-based pagination. |
-| 0.1 | 2026-03-28 | Added `filter` object for structured query constraints and enum extensibility note. |
+| 0.1 | 2026-03-28 | Added a structured query narrowing object and enum extensibility note. |
 | 0.1 | 2026-03-31 | Changed `request_id` and `timestamp` from REQUIRED to OPTIONAL. Server generates defaults when omitted. |
 | 0.1 | 2026-05-05 | Clarified that the response envelope uses `request_id` rather than `trace_id`, removes `has_more` / `total` response metadata, and aligns examples with current offer identity fields. |
 | 0.1 | 2026-05-09 | Reorganized the GitHub reference for developer readability and density. |
+| 0.1 | 2026-05-14 | Removed agent-facing `filter.status`, clarified active eligible offer defaults, and added `AON-Protocol-Version` header guidance. |
+| 0.1 | 2026-05-15 | Renamed agent-facing root `filter` to `constraints` and limited the first public constraints surface to `category_types`. |
 
 </details>

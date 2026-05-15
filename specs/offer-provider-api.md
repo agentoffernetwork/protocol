@@ -40,7 +40,7 @@ routing weight and deep-integration features.
 | Level | Label | Obligation | Summary |
 |-------|-------|-----------|---------|
 | **Level 1** | Baseline compliance | MUST pass to integrate | Endpoint + signed requests + error envelope + test-mode handling + REQUIRED offer fields |
-| **Level 2** | Recommended | SHOULD | Full `filter` support, robust offset/limit handling, test-mode isolation, p95 latency under 2 s |
+| **Level 2** | Recommended | SHOULD | Full supply-side `constraints` support, robust offset/limit handling, test-mode isolation, p95 latency under 2 s |
 | **Level 3** | Enhanced | MAY | `/health`, deep pagination, `X-AON-Request-Id` header echo, multimodal intent handling |
 
 The normative requirement lists for each level are in §12.
@@ -97,11 +97,18 @@ both request and response.
 
 ### 3.3 Versioning
 
-Versioning is carried in the URL path as `/v1/`. Partners embed `/v1/`
-after their Base URL (see §3.2). Backward-incompatible changes (including
-renaming REQUIRED fields, removing enum values, or tightening validation)
-MUST be introduced under a new `/v{N+1}/` path; the old path MUST remain
-functional for the deprecation window AON communicates.
+Versioning is carried by two signals:
+
+- `/v1/` in the Partner endpoint path identifies the OfferProvider API major
+  version. Partners embed `/v1/` after their Base URL (see §3.2).
+- `AON-Protocol-Version: 0.1` identifies the AgentOffer Protocol payload
+  contract AON is dispatching. AON SHOULD send this header on every
+  OfferProvider request, and Partners SHOULD log it for support/debugging.
+
+Backward-incompatible API changes (including renaming REQUIRED fields,
+removing enum values, or tightening validation) MUST be introduced under a
+new `/v{N+1}/` path; the old path MUST remain functional for the deprecation
+window AON communicates.
 
 ## 4. Authentication
 
@@ -117,6 +124,7 @@ at onboarding; AON signs every outbound request; Partner verifies.
 | `X-AON-Timestamp` | Unix epoch seconds (integer, ASCII decimal) | MUST |
 | `X-AON-Nonce` | Unique-per-request random string; UUIDv4 RECOMMENDED | MUST |
 | `X-AON-Signature` | Lowercase hex-encoded HMAC-SHA256 (see §4.2) | MUST |
+| `AON-Protocol-Version` | AgentOffer Protocol payload contract version, for example `0.1` | SHOULD |
 | `X-AON-Test` | `true` when request is a test; see §5 | MAY |
 
 ### 4.2 Signing String
@@ -246,7 +254,7 @@ The requirement levels follow the same three-tier system used in
 | `test_mode` | boolean | OPTIONAL | Mirrors `X-AON-Test`. Header wins on disagreement. |
 | `context` | object | REQUIRED | Platform, session, and user context (§6.2). |
 | `intent` | object | REQUIRED | Multimodal intent description (§6.3). |
-| `filter` | object | OPTIONAL | Hard structured constraints (§6.4). |
+| `constraints` | object | OPTIONAL | Partner-facing supply-side hard constraints (§6.4). Current v0.1 dispatches only expose `category_types`. |
 | `pagination` | object | RECOMMENDED | Paging control (§6.5). |
 
 ### 6.2 `context`
@@ -274,23 +282,23 @@ The requirement levels follow the same three-tier system used in
 | `intent.content[].text` | string | REQUIRED when `type=input_text` | The user utterance. |
 | `intent.content[].image_url` | string (uri) | REQUIRED when `type=input_image` | URL of an image for visual search. |
 
-### 6.4 `filter`
+### 6.4 Supply-Side `constraints`
 
-All fields are OPTIONAL; when provided they act as hard constraints
-applied **before** any semantic ranking Partner performs.
+All fields are OPTIONAL; when provided they act as Partner-facing hard
+constraints applied **before** any semantic ranking Partner performs. This
+`constraints` object uses the same root field name as the agent-facing Query
+API to avoid contract ambiguity. The v0.1 OfferProvider dispatch surface also
+only exposes `category_types`; use `intent.content[]` for semantic matching and
+ranking signals.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `filter.category_types[]` | array<enum> | From `offer_info.category.type`: `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive`. OR-logic within the array. |
-| `filter.bid_models[]` | array<enum> | From `bid.model`: `cps`, `cpa`, `cpl`, `cpi`, `hybrid`. OR-logic. |
-| `filter.status[]` | array<enum> | From offer lifecycle: `active`, `paused`, `pending`, `rejected`, `expired`. OR-logic. |
-| `filter.availability[]` | array<enum> | From `commercial.availability`: `available`, `limited`, `out_of_stock`, `coming_soon`. OR-logic. |
-| `filter.min_bid_amount` | string | Decimal string; requires `currency`. |
-| `filter.max_price_amount` | string | Decimal string; requires `currency`. |
-| `filter.currency` | string | ISO 4217; applies to both `min_bid_amount` and `max_price_amount`. |
-| `filter.brand` | string | Case-insensitive substring match against `entity.name`. |
-| `filter.country` | string | ISO 3166-1 alpha-2. |
-| `filter.tags[]` | array<string> | AND logic across the array. |
+| `constraints.category_types[]` | array<enum> | From `offer_info.category.type`: `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive`. OR-logic within the array. |
+
+Bid model, lifecycle status, availability, price, currency, brand, country, and
+tag constraints are intentionally not part of the v0.1 OfferProvider request
+contract. Public Query API requests and AON-to-Partner OfferProvider dispatches
+return active eligible offers by default.
 
 Partner SHOULD accept unknown enum values gracefully (return empty results
 rather than errors) so that new enum values introduced in a future
@@ -391,16 +399,20 @@ revision MAY add them explicitly.
 
 ## 11. Versioning
 
-- The protocol version is surfaced as the URL segment `/v1/` — Partners
-  own the full URL, so they embed this segment when constructing their
-  Base URL+path.
+- `/v1/` in the URL path identifies the Partner-facing API major version.
+  Partners own the full URL, so they embed this segment when constructing
+  their Base URL+path.
+- `AON-Protocol-Version: 0.1` identifies the AgentOffer Protocol payload
+  contract used by the request body. This header lets AON and Partners
+  distinguish API routing compatibility from payload contract compatibility.
 - Every schema file carries a `$id` suffixed `/v0.1` (the document
-  version) so that clients pin both wire version and semantic version.
+  version) so that clients can pin the semantic schema version used for
+  validation.
 - Backward-compatible additions (new OPTIONAL fields, new enum values,
   new RECOMMENDED headers) MAY land within `/v1/` in a minor semantic
   version (e.g. `v0.2`); clients are expected to ignore unknown fields
   and unknown enum values.
-- Backward-incompatible changes require `/v2/` and a deprecation plan.
+- Backward-incompatible API changes require `/v2/` and a deprecation plan.
 
 ## 12. Design Decisions
 
@@ -408,7 +420,7 @@ The 9 decisions below were PMO-locked before Dev Stage; additional
 entries document design choices surfaced during technical review.
 
 1. **POST + JSON body.** Moving to POST matches `query-api.md` and lets
-   the request carry structured multimodal intent, filters, and user
+   the request carry structured multimodal intent, constraints, and user
    profile — impractical to encode in a URL.
 2. **Envelope `{ request_id, offers }`.** `request_id` echoes the
    request's id so the agent → AON → Partner chain shares one correlation
@@ -443,9 +455,10 @@ entries document design choices surfaced during technical review.
 8. **Offset/limit pagination.** Aligned with `query-api.md` and easy for
    Partners with SQL-style catalogs. A future cursor extension is
    compatible.
-9. **`/v1/` URL path versioning.** Partners own the Base URL, so
-   version-as-path is simpler than header-based versioning for Partner
-   implementers. It also lines up with `query-api.md`.
+9. **Path version + protocol-version header.** Partners own the Base URL,
+   so `/v1/` remains the simple API routing boundary. The
+   `AON-Protocol-Version` header separately pins the payload contract and
+   lines up with `query-api.md`.
 10. **Nonce RECOMMENDED, not REQUIRED.** Very small Partners lack shared
     nonce storage; forcing nonce enforcement raised the implementation
     bar without meaningful security gain beyond the 5-minute timestamp
@@ -467,5 +480,7 @@ entries document design choices surfaced during technical review.
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.1 | 2026-05-14 | Clarifies `/v1/` API path versioning versus `AON-Protocol-Version` payload contract versioning. |
+| 0.1 | 2026-05-15 | Renames OfferProvider request root `filter` to `constraints` and limits v0.1 dispatch constraints to `category_types`. |
 | 0.1 | 2026-05-05 | Clarifies that the success envelope requires `request_id`, does not use `code: SUCCESS`, and does not include pagination metadata such as `has_more` or `total`. |
 | 0.1 | 2026-04-15 | Initial draft. Defines endpoint, HMAC-SHA256 auth with ±5-minute skew and SHOULD-level nonce anti-replay, `OfferQueryRequest` reuse, `{request_id, offers}` success envelope, `ApiResponse` error envelope, offset/limit pagination, Level 1/2/3 conformance, onboarding compliance test matrix, `X-AON-Request-Id` as MAY, and adapter DSL cross-reference. |

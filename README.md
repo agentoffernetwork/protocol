@@ -36,7 +36,7 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 
 | Surface | Current contract |
 |---------|------------------|
-| Agent-facing discovery | `POST /v1/offers/query` with `context`, `intent`, optional `filter`, and optional `pagination` |
+| Agent-facing discovery | `POST /v1/offers/query` with `context`, `intent`, optional `constraints`, and optional `pagination` |
 | Returned offers | Canonical response payload is `request_id` + `offers[]` |
 | Offer identity | `offer_id` is the stable inventory Offer; `offer_instance_id` is generated for each served instance |
 | Attribution | Preserve `offers[].offer_instance_id` through click, conversion, and settlement flows |
