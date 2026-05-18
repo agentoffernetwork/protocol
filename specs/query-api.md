@@ -89,6 +89,16 @@ The first public `constraints` surface intentionally exposes only
 brand, and country constraints are not part of the agent-facing Query API
 contract in this version.
 
+Note: `context.user_profile.country` is a user-profile attribute (not a
+`constraints` entry). It carries the viewer's country for offer geo targeting
+and does not impose a hard constraint on the query result set.
+
+Offer targeting is enforced leniently against the query context: when a
+targeting rule declares a dimension (geo / device_type / os) but the request
+omits the corresponding `user_profile` field, that dimension passes rather
+than excludes the offer. Declaring a targeting dimension on an offer therefore
+only takes effect for requests that actually carry the matching context.
+
 ### Protocol Versioning
 
 `/v1/offers/query` identifies the hosted Query API major version. The request

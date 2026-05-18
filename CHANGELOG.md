@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Added Contract Governance spec covering field lifecycle, source references, public follow rules, stale-field denylist, and compatibility allowlist.
+- Offer targeting `os` dimension (`ios`/`android`/`windows`/`macos`/`linux`) and Query `user_profile.country` (ISO 3166-1 alpha-2) for geo/OS targeting; documented intra-rule AND / inter-rule OR matching semantics in `offer-schema.md` (SVC-CORE-F024, non-breaking).
 
 ## [0.1.0] - 2026-03-28
 
