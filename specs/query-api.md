@@ -61,7 +61,12 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 | `context.session_id` | string | `sess_abc123` |
 | `context.user_profile.user_pseudo_id` | string | `viewer_xyz` |
 | `context.user_profile.language` | string | `en` |
+| `context.user_profile.country` | string | `SG` |
 | `context.user_profile.interests` | string[] | `["travel", "hotels"]` |
+| `context.user_profile.device_info` | object | `{ "device_type": "mobile", "os": "ios" }` |
+| `context.user_profile.device_info.device_type` | string | `mobile` |
+| `context.user_profile.device_info.os` | string | `ios` |
+| `context.user_profile.device_info.os_version` | string | `18.2` |
 | `intent.content[].text` | string | `Find me a luxury hotel in Tokyo` |
 | `constraints.category_types` | string[] | `["travel_hospitality"]` |
 | `pagination.limit` | integer | `10` |
@@ -73,6 +78,8 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 |------|---------------|
 | `intent.content[].type` | `input_text`, `input_image` |
 | `constraints.category_types` | `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive` |
+| `context.user_profile.device_info.device_type` | `desktop`, `mobile`, `tablet`, `smart_tv`, `other` |
+| `context.user_profile.device_info.os` | `ios`, `android`, `windows`, `macos`, `other` |
 | `offer_info.offer_type` | `physical_product`, `digital_goods`, `content`, `online_service`, `offline_service` |
 
 See [`category-taxonomy.md`](category-taxonomy.md) and [`offer-schema.md`](offer-schema.md) for the full category, offer, bid, and lifecycle definitions.
@@ -93,11 +100,76 @@ Note: `context.user_profile.country` is a user-profile attribute (not a
 `constraints` entry). It carries the viewer's country for offer geo targeting
 and does not impose a hard constraint on the query result set.
 
-Offer targeting is enforced leniently against the query context: when a
-targeting rule declares a dimension (geo / device_type / os) but the request
-omits the corresponding `user_profile` field, that dimension passes rather
-than excludes the offer. Declaring a targeting dimension on an offer therefore
-only takes effect for requests that actually carry the matching context.
+`context.user_profile.country` is the platform's best-effort determined country
+for the viewer — it is source-agnostic. When the caller does not provide it,
+the platform fills it via a resolution chain (caller-provided value first, then
+IP-based fallback such as the edge CDN's country header). Consumers should treat
+it as "the country AON determined", not strictly "the country the user typed".
+
+Offer targeting is enforced leniently against optional query context: when a
+targeting rule declares a dimension such as geo but the request omits the
+corresponding `user_profile` field, that dimension passes rather than excludes
+the offer. `device_info.device_type` and `device_info.os` are required in the
+canonical public Query contract; callers that cannot determine device context
+MUST send `device_type: "other"` and `os: "other"`.
+
+### Device, OS, and Country Context
+
+`context.user_profile.device_info` carries REQUIRED viewer context for targeting
+and rendering decisions. It is not a semantic ranking prompt and it is not a
+hard query constraint.
+
+Required fields:
+
+| Field | Level | Notes |
+|-------|-------|-------|
+| `context.user_profile.device_info` | REQUIRED | Every Query request must carry a device context object. |
+| `context.user_profile.device_info.device_type` | REQUIRED | Use `other` when the form factor is unknown. |
+| `context.user_profile.device_info.os` | REQUIRED | Use `other` when the OS is unknown or not in the public enum. |
+| `context.user_profile.device_info.os_version` | OPTIONAL | Free-form string; no public version grammar. |
+
+Canonical public `device_type` values:
+
+| Value | Meaning |
+|-------|---------|
+| `desktop` | Desktop or laptop-class browser/app environment. |
+| `mobile` | Phone-class mobile device. |
+| `tablet` | Tablet-class device. |
+| `smart_tv` | TV or connected-TV environment. |
+| `other` | Known device that does not fit the current public enum. |
+
+Canonical public `os` values:
+
+| Value | Meaning |
+|-------|---------|
+| `ios` | Apple iOS family, including iPadOS for public Query context. |
+| `android` | Android-based phone/tablet devices. |
+| `windows` | Microsoft Windows. |
+| `macos` | Apple macOS. |
+| `other` | Known OS outside the current public enum. |
+
+Clients SHOULD send lower_snake_case canonical values.
+
+Public Query context intentionally does not expose `ipados`, `chromeos`, or
+`linux` as OS enum values:
+
+| Source value | Public Query handling |
+|--------------|-----------------------|
+| iPadOS | Send `os: "ios"` and `device_type: "tablet"` when distinguishable. |
+| ChromeOS | Send `os: "other"` for now. |
+| Linux | Send `os: "other"` for now. |
+| Unknown/headless/server-side | Send `os: "other"` and `device_type: "other"`. |
+
+Services MAY normalize common source aliases such as `iOS` to `ios`, `macOS`
+to `macos`, `Chrome OS` to `other`, and `phone` to `mobile`, but those aliases
+are compatibility inputs and not public canonical values.
+
+`context.user_profile.country` is an OPTIONAL uppercase ISO 3166-1 alpha-2
+country code such as `US`, `SG`, or `JP`. It is a viewer context attribute, not
+`constraints.country`.
+
+`context.user_profile.device_info.os_version` remains an OPTIONAL free-form
+string because OS version formats differ by platform and vendor.
 
 ### Protocol Versioning
 
@@ -143,6 +215,25 @@ the same field name.
 | `offers[].bid` | Payout model and amount/rate information. Follow [`offer-schema.md`](offer-schema.md). |
 
 The canonical `offers.query` response does **not** include `query_id`, `trace_id`, `has_more`, or `total` as top-level public response fields. Historical or internal uses must be labeled as such; see [`contract-governance.md`](contract-governance.md).
+
+### Empty Results and HTTP Status
+
+An empty result is a successful Query API outcome: the request was processed,
+but no active eligible offer matched the intent and context. The canonical
+response is HTTP `200 OK` with an empty `offers` array:
+
+```json
+{
+  "request_id": "019dd200-1234-7890-abcd-ef0123456789",
+  "offers": []
+}
+```
+
+Do not use HTTP `204 No Content` as the canonical empty-offer response for
+`/v1/offers/query`. `204` cannot carry `request_id`, the hosted platform
+envelope, diagnostics, or SDK-visible empty-state metadata. OpenRTB's
+`204 No Content` no-bid convention is an auction transport optimization; AON
+Query empty results are processed recommendation results, not bid refusals.
 
 ### Protocol Payload vs Platform Envelope
 
@@ -258,5 +349,6 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHOULD", "RECOMMENDED", 
 | 0.1 | 2026-05-09 | Reorganized the GitHub reference for developer readability and density. |
 | 0.1 | 2026-05-14 | Removed agent-facing `filter.status`, clarified active eligible offer defaults, and added `AON-Protocol-Version` header guidance. |
 | 0.1 | 2026-05-15 | Renamed agent-facing root `filter` to `constraints` and limited the first public constraints surface to `category_types`. |
+| 0.1 | 2026-05-19 | Added canonical Query device/OS context values, uppercase country format, and clarified empty results use `200 OK` with `offers: []` rather than `204 No Content`. |
 
 </details>
