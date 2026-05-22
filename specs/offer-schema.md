@@ -144,13 +144,13 @@ All current canonical categories use `attributes.sub_type` for finer industry-sp
 | `travel_hospitality` | Hotels, flights, vacation rentals, dining | `hotel`, `flight`, `car_rental`, `vacation_package`, `restaurant`, `attraction` |
 | `education` | Online courses, certification, training | `online_course`, `certification`, `bootcamp`, `language_learning`, `tutoring`, `academic_program` |
 | `financial_service` | Credit cards, loans, insurance, payments | `credit_card`, `insurance`, `loan`, `investment`, `banking`, `payment` |
-| `electronics` | Consumer electronics, smart devices | `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera` |
-| `entertainment` | Games, streaming, AI companions, betting | `game`, `streaming_video`, `ai_companion`, `social_audio`, `sports_betting`, `music_audio`, `live_streaming` |
-| `health_beauty` | Health, beauty, wellness, and care offers | `skincare`, `supplement`, `fitness`, `cosmetics`, `wellness`, `medical_device` |
+| `electronics` | Consumer electronics, smart devices | `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera`, `tablet`, `tv_video`, `computer_accessory` |
+| `entertainment` | Games, streaming, AI companions, betting | `game`, `streaming_video`, `ai_companion`, `social_audio`, `sports_betting`, `music_audio`, `live_streaming`, `event_ticketing`, `books_media` |
+| `health_beauty` | Health, beauty, wellness, and care offers | `skincare`, `supplement`, `fitness`, `cosmetics`, `wellness`, `medical_device`, `haircare`, `personal_care`, `fragrance` |
 | `fashion` | Fashion, apparel, shoes, accessories, and jewelry | `clothing`, `shoes`, `accessories`, `jewelry`, `luxury`, `sportswear` |
-| `food_grocery` | Meal kits, grocery delivery, food, beverage, and snack offers | `meal_kit`, `grocery_delivery`, `specialty_food`, `beverage`, `organic`, `snack` |
-| `home_garden` | Home, decor, appliance, smart home, and garden offers | `furniture`, `appliance`, `decor`, `smart_home`, `garden`, `cleaning` |
-| `automotive` | Automotive, mobility, parts, charging, and ride offers | `car_purchase`, `car_lease`, `insurance`, `parts`, `ev_charging`, `ride_service` |
+| `food_grocery` | Meal kits, grocery delivery, food, beverage, and snack offers | `meal_kit`, `grocery_delivery`, `specialty_food`, `beverage`, `snack` |
+| `home_garden` | Home, decor, appliance, smart home, and garden offers | `furniture`, `appliance`, `decor`, `smart_home`, `garden`, `cleaning`, `kitchen_dining`, `bedding_bath`, `tools_hardware`, `home_improvement` |
+| `automotive` | Automotive, mobility, parts, charging, and ride offers | `car_purchase`, `car_lease`, `insurance`, `parts`, `ev_charging`, `ride_service`, `service_repair`, `tires_wheels`, `motorcycle` |
 
 #### `software_saas` Attributes
 
@@ -446,7 +446,7 @@ Common fields shared across all `electronics` sub_types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Electronics sub-category: `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera`. |
+| `sub_type` | string | REQUIRED | Electronics sub-category: `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera`, `tablet`, `tv_video`, `computer_accessory`. |
 | `brand` | string | REQUIRED | Manufacturer brand. |
 | `model` | string | REQUIRED | Product model name or number. |
 | `condition` | string | REQUIRED | Item condition: `new`, `refurbished`, `used`. |
@@ -516,6 +516,32 @@ Common fields shared across all `electronics` sub_types:
 | `sensor_size` | string | OPTIONAL | Sensor size description. |
 | `megapixels` | number | OPTIONAL | Megapixel count. |
 | `video_resolution` | string | OPTIONAL | Maximum video resolution. |
+
+##### `electronics` → `tablet`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `storage_gb` | integer | REQUIRED | Storage capacity in GB. |
+| `screen_size_inches` | number | OPTIONAL | Screen size in inches. |
+| `connectivity` | string | OPTIONAL | Connectivity standard: `5g`, `4g`, `wifi`. |
+| `os` | string | OPTIONAL | Operating system: `ios`, `android`, `windows`, `other`. |
+
+##### `electronics` → `tv_video`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `display_type` | string | REQUIRED | Display or video device type: `tv`, `projector`, `streaming_device`, `monitor`. |
+| `screen_size_inches` | number | OPTIONAL | Screen size in inches when applicable. |
+| `resolution` | string | OPTIONAL | Maximum supported resolution. |
+| `smart_tv` | boolean | OPTIONAL | Whether smart TV features are included. |
+
+##### `electronics` → `computer_accessory`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `accessory_type` | string | REQUIRED | Accessory type: `keyboard`, `mouse`, `dock`, `monitor`, `storage`, `cable`, `charger`, `other`. |
+| `compatibility` | array | OPTIONAL | Compatible platforms, devices, or standards. |
+| `wireless` | boolean | OPTIONAL | Whether wireless connectivity is supported. |
 
 #### `entertainment` Attributes
 
@@ -611,13 +637,31 @@ All `entertainment` offers MUST include a `sub_type` field that determines the s
 | `vod_replay` | boolean | OPTIONAL | Whether VOD replay is available after live ends. |
 | `streamer_tools` | array | OPTIONAL | Tools provided for streamers. |
 
+##### `entertainment` → `event_ticketing`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `event_type` | string | REQUIRED | Event type: `concert`, `sports`, `theater`, `conference`, `festival`, `other`. |
+| `venue_type` | string | OPTIONAL | Venue or delivery format: `in_person`, `virtual`, `hybrid`. |
+| `ticket_type` | string | OPTIONAL | Ticket type or package. |
+| `event_date` | string | OPTIONAL | Event date when fixed. |
+
+##### `entertainment` → `books_media`
+
+| Field | Type | Level | Description |
+|-------|------|-------|-------------|
+| `media_type` | string | REQUIRED | Media type: `book`, `ebook`, `audiobook`, `comic`, `magazine`, `video`. |
+| `format` | string | OPTIONAL | Format or delivery model. |
+| `genre` | string | OPTIONAL | Content genre. |
+| `creator` | string | OPTIONAL | Author, publisher, studio, or creator name. |
+
 #### `health_beauty` Attributes
 
 All `health_beauty` offers MUST include a `sub_type` field that determines the sub-category. The following fields are shared across all health & beauty sub-types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Health & beauty sub-category discriminator: `skincare`, `supplement`, `fitness`, `cosmetics`, `wellness`, `medical_device`. |
+| `sub_type` | string | REQUIRED | Health & beauty sub-category discriminator: `skincare`, `supplement`, `fitness`, `cosmetics`, `wellness`, `medical_device`, `haircare`, `personal_care`, `fragrance`. |
 | `ingredients_highlight` | array | OPTIONAL | Highlighted ingredients or active components. |
 | `skin_type` | string | OPTIONAL | Intended skin type or consumer profile. |
 | `organic` | boolean | OPTIONAL | Whether the product is organic-certified. |
@@ -639,7 +683,7 @@ All `food_grocery` offers MUST include a `sub_type` field that determines the su
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Food & grocery sub-category discriminator: `meal_kit`, `grocery_delivery`, `specialty_food`, `beverage`, `organic`, `snack`. |
+| `sub_type` | string | REQUIRED | Food & grocery sub-category discriminator: `meal_kit`, `grocery_delivery`, `specialty_food`, `beverage`, `snack`. |
 | `dietary_info` | array | OPTIONAL | Dietary tags such as `vegan`, `gluten_free`, `keto`, `organic`, or `high_protein`. |
 | `shelf_life_days` | integer | OPTIONAL | Shelf life in days. |
 | `serving_size` | string | OPTIONAL | Serving size summary. |
@@ -650,7 +694,7 @@ All `home_garden` offers MUST include a `sub_type` field that determines the sub
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Home & garden sub-category discriminator: `furniture`, `appliance`, `decor`, `smart_home`, `garden`, `cleaning`. |
+| `sub_type` | string | REQUIRED | Home & garden sub-category discriminator: `furniture`, `appliance`, `decor`, `smart_home`, `garden`, `cleaning`, `kitchen_dining`, `bedding_bath`, `tools_hardware`, `home_improvement`. |
 | `dimensions` | string | OPTIONAL | Dimension summary. |
 | `assembly_required` | boolean | OPTIONAL | Whether assembly is required. |
 | `energy_rating` | string | OPTIONAL | Energy efficiency rating. |
@@ -661,7 +705,7 @@ All `automotive` offers MUST include a `sub_type` field that determines the sub-
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Automotive sub-category discriminator: `car_purchase`, `car_lease`, `insurance`, `parts`, `ev_charging`, `ride_service`. |
+| `sub_type` | string | REQUIRED | Automotive sub-category discriminator: `car_purchase`, `car_lease`, `insurance`, `parts`, `ev_charging`, `ride_service`, `service_repair`, `tires_wheels`, `motorcycle`. |
 | `vehicle_type` | string | OPTIONAL | Vehicle class such as `sedan`, `suv`, `truck`, `ev`. |
 | `fuel_type` | string | OPTIONAL | Fuel or powertrain type: `gasoline`, `diesel`, `electric`, `hybrid`. |
 | `warranty_years` | integer | OPTIONAL | Warranty duration in years. |

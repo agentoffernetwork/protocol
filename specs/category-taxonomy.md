@@ -44,7 +44,7 @@ The current public canonical category surface currently contains the following 1
 | `entertainment` | Entertainment | Games, streaming, AI companions, audio, live entertainment |
 | `health_beauty` | Health & Beauty | Skincare, supplements, cosmetics, wellness, fitness, medical-adjacent consumer offers |
 | `fashion` | Fashion | Clothing, shoes, accessories, jewelry, luxury, sportswear |
-| `food_grocery` | Food & Grocery | Meal kits, delivery, specialty food, beverage, organic, snack |
+| `food_grocery` | Food & Grocery | Meal kits, grocery delivery, specialty food, beverages, snacks |
 | `home_garden` | Home & Garden | Furniture, appliances, decor, smart home, garden, cleaning |
 | `automotive` | Automotive | Vehicle offers, leasing, insurance, parts, EV charging, ride services |
 
