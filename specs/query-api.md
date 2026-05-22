@@ -68,6 +68,7 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 | `context.user_profile.device_info.device_type` | string | `mobile` |
 | `context.user_profile.device_info.os` | string | `ios` |
 | `context.user_profile.device_info.os_version` | string | `18.2` |
+| `context.user_profile.device_info.user_agent` | string | `Mozilla/5.0` |
 | `intent.content[].text` | string | `Find me a luxury hotel in Tokyo` |
 | `constraints.category_types` | string[] | `["travel_hospitality"]` |
 | `pagination.limit` | integer | `10` |
@@ -128,6 +129,7 @@ Required fields:
 | `context.user_profile.device_info.device_type` | REQUIRED | Use `other` when the form factor is unknown. |
 | `context.user_profile.device_info.os` | REQUIRED | Use `other` when the OS is unknown or not in the public enum. |
 | `context.user_profile.device_info.os_version` | OPTIONAL | Free-form string; no public version grammar. |
+| `context.user_profile.device_info.user_agent` | OPTIONAL | Raw or normalized user-agent string for diagnostics and compatibility. Do not use as a stable viewer identifier. |
 
 Canonical public `device_type` values:
 
@@ -171,6 +173,12 @@ country code such as `US`, `SG`, or `JP`. It is a viewer context attribute, not
 
 `context.user_profile.device_info.os_version` remains an OPTIONAL free-form
 string because OS version formats differ by platform and vendor.
+
+`context.user_profile.device_info.user_agent` is OPTIONAL. Callers MAY include a
+raw HTTP `User-Agent` value or a platform-normalized equivalent when it helps
+debug rendering or compatibility issues. Services MUST NOT treat it as a stable
+identity key, and implementations SHOULD truncate or ignore unusually long
+values.
 
 ### Protocol Versioning
 
@@ -362,5 +370,6 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHOULD", "RECOMMENDED", 
 | 0.1 | 2026-05-15 | Renamed agent-facing root `filter` to `constraints` and limited the first public constraints surface to `category_types`. |
 | 0.1 | 2026-05-19 | Added canonical Query device/OS context values, uppercase country format, and clarified empty results use `200 OK` with `offers: []` rather than `204 No Content`. |
 | 0.1 | 2026-05-22 | Documented `X-AON-TRACE-ID` as a hosted Query API response header and clarified that trace identifiers are not JSON body fields. |
+| 0.1 | 2026-05-22 | Added OPTIONAL `context.user_profile.device_info.user_agent` for diagnostics and compatibility. |
 
 </details>

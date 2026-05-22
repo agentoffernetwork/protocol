@@ -277,6 +277,7 @@ The requirement levels follow the same three-tier system used in
 | `context.user_profile.device_info.device_type` | string | RECOMMENDED | `desktop`/`mobile`/`tablet`. |
 | `context.user_profile.device_info.os` | string | RECOMMENDED | `macOS`/`iOS`/`Android`/`Windows`/… |
 | `context.user_profile.device_info.os_version` | string | RECOMMENDED | OS version string. |
+| `context.user_profile.device_info.user_agent` | string | OPTIONAL | Raw or normalized user-agent string for diagnostics and compatibility; not a stable viewer identifier. |
 
 ### 6.3 `intent`
 
