@@ -37,7 +37,7 @@ The current public canonical category surface currently contains the following 1
 | Canonical value | Label | Description |
 |-----------------|-------|-------------|
 | `software_saas` | Software & SaaS | SaaS, subscription software, developer tools, AI tools |
-| `travel_hospitality` | Travel & Hospitality | Hotels, flights, car rentals, vacation packages, restaurants, attractions |
+| `travel_hospitality` | Travel & Hospitality | Hotels, flights, car rentals, vacation packages, dining experiences, attractions |
 | `education` | Education & Learning | Courses, certifications, bootcamps, tutoring, academic programs |
 | `financial_service` | Financial Services | Credit cards, insurance, loans, investment, banking, payments |
 | `electronics` | Electronics & Devices | Consumer electronics, smart devices, wearables, gaming hardware |

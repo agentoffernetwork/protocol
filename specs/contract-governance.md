@@ -37,6 +37,7 @@ Canonical fields:
 | Field | Meaning |
 | --- | --- |
 | `AON-Protocol-Version` | HTTP header that pins the AgentOffer Protocol payload contract version, for example `0.1` |
+| `X-AON-TRACE-ID` | Hosted Query API HTTP response header for support diagnostics; not a JSON body field |
 | `request_id` | Query/request correlation identifier |
 | `offers` | Ranked Offer objects returned by the query |
 | `offers[].offer_id` | Inventory-level stable Offer ID |
@@ -54,6 +55,7 @@ Historical, compatibility, internal, or removed fields:
 | --- | --- | --- |
 | `query_id` | historical / removed | Use `request_id` |
 | `trace_id` | internal / compatibility | Internal observability or historical provider envelope only; not `offers.query` public response canonical |
+| `aon_trace_id` | internal / transport header only | AON runtime diagnostic id. Expose to Query callers only as the `X-AON-TRACE-ID` HTTP response header, never as a JSON body field. |
 | `has_more` | historical / compatibility | Not current `offers.query` public response canonical unless runtime OpenAPI reintroduces pagination |
 | `total` | historical / compatibility | Not current `offers.query` public response canonical unless runtime OpenAPI reintroduces pagination |
 | `uuid` | removed | Use `offer_id` or `offer_instance_id` depending on semantics |

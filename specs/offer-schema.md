@@ -141,7 +141,7 @@ All current canonical categories use `attributes.sub_type` for finer industry-sp
 | `category.type` | Description | `sub_type` values |
 |-----------------|-------------|-------------------|
 | `software_saas` | SaaS, subscription software, developer tools | `project_management`, `design`, `development_tools`, `crm`, `analytics`, `communication`, `security`, `ai_tools` |
-| `travel_hospitality` | Hotels, flights, vacation rentals, dining | `hotel`, `flight`, `car_rental`, `vacation_package`, `restaurant`, `attraction` |
+| `travel_hospitality` | Hotels, flights, vacation rentals, dining | `hotel`, `flight`, `car_rental`, `vacation_package`, `dining_experience`, `attraction` |
 | `education` | Online courses, certification, training | `online_course`, `certification`, `bootcamp`, `language_learning`, `tutoring`, `academic_program` |
 | `financial_service` | Credit cards, loans, insurance, payments | `credit_card`, `insurance`, `loan`, `investment`, `banking`, `payment` |
 | `electronics` | Consumer electronics, smart devices | `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera`, `tablet`, `tv_video`, `computer_accessory` |
@@ -237,7 +237,7 @@ Common fields shared across all `travel_hospitality` sub_types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Travel sub-category: `hotel`, `flight`, `car_rental`, `vacation_package`, `restaurant`, `attraction`. |
+| `sub_type` | string | REQUIRED | Travel sub-category: `hotel`, `flight`, `car_rental`, `vacation_package`, `dining_experience`, `attraction`. |
 | `destination` | object | REQUIRED | Destination location with `city` and `country` fields. |
 | `cancellation_policy` | string | OPTIONAL | Cancellation policy summary. |
 
@@ -284,11 +284,11 @@ Common fields shared across all `travel_hospitality` sub_types:
 | `group_size` | integer | OPTIONAL | Maximum group size. |
 | `all_inclusive` | boolean | OPTIONAL | Whether the package is all-inclusive. |
 
-##### `travel_hospitality` → `restaurant`
+##### `travel_hospitality` → `dining_experience`
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `cuisine_type` | string | REQUIRED | Cuisine type. |
+| `cuisine_type` | string | REQUIRED | Cuisine or dining style. |
 | `price_range` | string | REQUIRED | Price range indicator: `$`, `$$`, `$$$`, `$$$$`. |
 | `reservation_required` | boolean | OPTIONAL | Whether reservation is required. |
 | `michelin_stars` | integer | OPTIONAL | Michelin stars (0–3). |
@@ -993,3 +993,4 @@ The following table maps core AON Offer fields to their closest [schema.org](htt
 | 0.1 | 2026-04-23 | PROTO-F013 canonical category expansion: Promoted `health_beauty`, `fashion`, `food_grocery`, `home_garden`, and `automotive` from reserved/future into the canonical public category surface, expanding the category registry from 6 to 11. Added sub_type tables and common attribute definitions for the 5 newly canonical categories. |
 | 0.1 | 2026-04-28 | PROTO-F014a Offer Protocol ID Naming Convergence (v0.1 Draft 内部精化, non-breaking): ① Finalized `offer_id` as the stable inventory-level identifier. ② Added REQUIRED top-level `offer_instance_id` as the per-dispatch unique identifier (UUIDv7 recommended) for click → conversion → settlement attribution; carried at the integration layer as `?aon_tracking_id={offer_instance_id}` URL query param + S2S postback body, aligned with Google Ads `gclid` / Meta `fbclid` / TikTok `ttclid` industry pattern. ③ Removed upstream-source identity from the open `offer_info` contract; adapter-source offers persist upstream ids in internal adapter storage outside the open protocol. ④ Updated all 12 example payloads under `examples/http/`. ⑤ Non-breaking justification: protocol still in v0.1 Draft with no GA consumers. Cross-protocol family alignment continues in PROTO-F014b (events.md / postback.md `tracking_id` → `aon_tracking_id`). |
 | 0.1 | 2026-05-18 | SVC-CORE-F024 Offer 定向投放 (non-breaking): Added optional `targeting[].os` (`ios`/`android`/`windows`/`macos`/`linux`) for OS-level targeting, and optional `user_profile.country` (ISO 3166-1 alpha-2) on the Query request for geo targeting. Documented intra-rule AND / inter-rule OR matching semantics. All new fields optional; existing offers and queries unaffected. |
+| 0.1 | 2026-05-22 | Renamed the `travel_hospitality` sub_type `restaurant` to `dining_experience` to avoid mixing hospitality dining experiences with food/grocery retail or delivery offers. |

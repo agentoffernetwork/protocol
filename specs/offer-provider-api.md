@@ -127,6 +127,11 @@ at onboarding; AON signs every outbound request; Partner verifies.
 | `AON-Protocol-Version` | AgentOffer Protocol payload contract version, for example `0.1` | SHOULD |
 | `X-AON-Test` | `true` when request is a test; see §5 | MAY |
 
+`X-AON-TRACE-ID` is not part of the AON-to-Partner OfferProvider request
+contract. It is a hosted Query API response header for the caller side of the
+agent-facing API. Partners should use the body `request_id` and optional
+`X-AON-Request-Id` mirror for supply-side correlation.
+
 ### 4.2 Signing String
 
 ```text
@@ -472,6 +477,10 @@ entries document design choices surfaced during technical review.
     the body `request_id` lets Partners extract a correlation id
     without parsing the JSON body (useful in front proxies). Values
     MUST be identical; Partner MAY rely on either.
+12a. **`X-AON-TRACE-ID` is query-caller facing only.** AON may expose an
+    internal diagnostic trace id to Query API callers as an HTTP response
+    header. It is not sent to Partners in OfferProvider requests, and Partner
+    success envelopes remain exactly `{request_id, offers}`.
 13. **Apache 2.0 license.** This document inherits the license of the
     Protocol repository (see the `LICENSE` file at the repo root).
 14. **Canonical JSON for signing**: The `SORTED_QUERY_STRING_OR_BODY` term in the signing formula refers to *the exact bytes sent on the wire*, not a re-serialized canonical form computed by the verifier. For `POST application/json`, AON's reference implementation serializes the request body with recursively sorted object keys (lexicographic) before sending and signing, which means the bytes the Partner receives are already canonical — Partners MUST sign the raw received body, not a re-serialized form. For `POST form` / `GET`, both sides independently sort key-value pairs ascending before building the signing string. This convention is what `services/offer-mgmt` implements today and what `PARTNER_CREDENTIALS_DSL.md` describes.
