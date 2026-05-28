@@ -1,161 +1,188 @@
-# Category Taxonomy v0.1
+# AON Taxonomy v1
 
-**Version**: 0.1
+**Version**: AON Taxonomy v1
 **Status**: Draft
-**Last Updated**: 2026-04-23
+**Last Updated**: 2026-05-27
 
 ## Purpose
 
-This document is the **single source of truth** for the AgentOffer Protocol category surface.
+This document is the single source of truth for the AgentOffer Protocol
+category surface.
 
-It defines:
+AON Taxonomy v1 replaces the old v0.1 `category.type` +
+`category.attributes.sub_type` model with stable dot-path `category.id` values.
 
-- the current **canonical public categories**
-- accepted **input-only aliases**
-- **future / later** categories when relevant
-- **invalid / remove** values that must not appear in the public surface
-- the current **public machine-readable contract** boundary
+Public Offer payloads reference a selected taxonomy node:
 
-All human-readable and machine-readable category references in the v0.1 public surface should point here instead of redefining the category registry independently.
+```json
+{
+  "offer_info": {
+    "category": {
+      "id": "hobbies_games_leisure.leisure_gambling.igaming"
+    }
+  }
+}
+```
 
-## Scope Boundary
+## Machine-Readable Source
 
-This document does **not**:
+The public source tree lives in the schema repository:
 
-- define IAB / DSP / SSP taxonomy mappings
-- change the runtime `offer` or `query` field structure
+- `schema/taxonomy/aon-taxonomy-v1.json`
+- `schema/taxonomy/v0.1-to-taxonomy-v1.json`
+- `schema/json-schema/taxonomy-v1.schema.json`
 
-Those follow-up responsibilities belong to later features:
+Source nodes use only:
 
-- `Feature C`: external taxonomy mapping layer
-- `Feature D`: downstream surface convergence
+| Field | Description |
+|-------|-------------|
+| `name` | Human-facing category name |
+| `children` | Child category nodes |
 
-## Canonical Public Categories
+Stable ids are generated from the node path by the taxonomy guard:
 
-The current public canonical category surface currently contains the following 11 values:
+```text
+Hobbies, Games & Leisure > Leisure Gambling > iGaming
+=> hobbies_games_leisure.leisure_gambling.igaming
+```
 
-| Canonical value | Label | Description |
-|-----------------|-------|-------------|
-| `software_saas` | Software & SaaS | SaaS, subscription software, developer tools, AI tools |
-| `travel_hospitality` | Travel & Hospitality | Hotels, flights, car rentals, vacation packages, dining experiences, attractions |
-| `education` | Education & Learning | Courses, certifications, bootcamps, tutoring, academic programs |
-| `financial_service` | Financial Services | Credit cards, insurance, loans, investment, banking, payments |
-| `electronics` | Electronics & Devices | Consumer electronics, smart devices, wearables, gaming hardware |
-| `entertainment` | Entertainment | Games, streaming, AI companions, audio, live entertainment |
-| `health_beauty` | Health & Beauty | Skincare, supplements, cosmetics, wellness, fitness, medical-adjacent consumer offers |
-| `fashion` | Fashion | Clothing, shoes, accessories, jewelry, luxury, sportswear |
-| `food_grocery` | Food & Grocery | Meal kits, grocery delivery, specialty food, beverages, snacks |
-| `home_garden` | Home & Garden | Furniture, appliances, decor, smart home, garden, cleaning |
-| `automotive` | Automotive | Vehicle offers, leasing, insurance, parts, EV charging, ride services |
+The generated id is the only category value Partner-written Offer payloads need
+to carry.
 
-These 11 values are the only values that may currently appear in:
+## Level 1 Canonical IDs
 
-- public protocol docs as canonical categories
-- public examples as canonical categories
-- public machine-readable enums
-- public prompt / action / integration guides as canonical output
+| Source Level 1 | AON display name | AON canonical id |
+|----------------|------------------|------------------|
+| Apparel | Fashion & Apparel | `fashion_apparel` |
+| Arts & Entertainment | Arts & Entertainment | `arts_entertainment` |
+| Autos & Vehicles | Automotive | `automotive` |
+| Beauty & Personal Care | Beauty & Personal Care | `beauty_personal_care` |
+| Business & Industrial | Business & Industrial | `business_industrial` |
+| Computers & Consumer Electronics | Computers & Electronics | `computers_electronics` |
+| Dining & Nightlife | Dining & Nightlife | `dining_nightlife` |
+| Family & Community | Family & Community | `family_community` |
+| Finance | Finance | `finance` |
+| Food & Groceries | Food & Grocery | `food_grocery` |
+| Health | Health | `health` |
+| Hobbies, Games & Leisure | Hobbies, Games & Leisure | `hobbies_games_leisure` |
+| Home & Garden | Home & Garden | `home_garden` |
+| Internet & Telecom | Internet & Telecom | `internet_telecom` |
+| Jobs & Education | Jobs & Education | `jobs_education` |
+| Law & Government | Law & Government | `law_government` |
+| Mobile App Utilities | Mobile Utilities | `mobile_utilities` |
+| News, Books & Publications | News, Books & Publications | `news_books_publications` |
+| Occasions & Gifts | Gifts & Occasions | `gifts_occasions` |
+| Real Estate | Real Estate | `real_estate` |
+| Sports & Fitness | Sports & Fitness | `sports_fitness` |
+| Travel & Tourism | Travel & Tourism | `travel_tourism` |
 
-## Accepted Aliases (Input-Only)
+Slug rules:
 
-The following values may be accepted in parser / prompt / adapter normalization flows, but they are **not canonical public output**:
+1. Remove low-value connector words such as `and` / `&`.
+2. Preserve words that carry business meaning.
+3. Prefer short, stable, readable ids over mechanically generated strings.
+4. Review Level 1 and high-volume Level 2 nodes manually before release.
 
-| Alias | Canonical target | Notes |
-|-------|------------------|-------|
-| `travel` | `travel_hospitality` | Historical shorthand |
-| `hospitality` | `travel_hospitality` | Historical shorthand |
-| `financial_services` | `financial_service` | Pluralized variant |
-| `finance` | `financial_service` | Historical shorthand |
-| `health_wellness` | `health_beauty` | Historical Action naming |
-| `food_beverage` | `food_grocery` | Historical Action naming |
-| `fashion_apparel` | `fashion` | Historical Action naming |
-| `home_living` | `home_garden` | Historical Action naming |
+## Category Depth
 
-Rules:
+| Level | Meaning | Example |
+|-------|---------|---------|
+| Level 1 | Top-level business category | `travel_tourism` |
+| Level 2 | Optional narrower category | `finance.credit_lending` |
+| Level 3+ | Optional detailed category | `computers_electronics.computers.software` |
 
-- aliases may be accepted in input
-- aliases must normalize to canonical output
-- aliases must not appear in public examples or public enums
-- aliases must not be treated as a second public registry
+Partner entry rule:
 
-## Future / Later Categories
+- Level 1 is required.
+- Level 2 and Level 3+ are optional.
+- Search, adapter mapping, system suggestion, or Admin review may fill deeper
+  category ids.
 
-The protocol may still introduce additional categories in later revisions.
+## Sensitive Category Boundary
 
-Those values are not enumerated here until they are promoted into the canonical public surface.
+Sensitive category handling is split from public Offer payload shape.
 
-## Invalid / Remove Values
+| Semantics | Public contract |
+|-----------|-----------------|
+| What the Offer is | `offer_info.category.id` |
+| Geo / language / device / OS applicability | Existing top-level `targeting` |
+| Sensitive review requirement | Internal platform rule derived from `category.id` |
+| Public policy flags | Not part of the first Taxonomy v1 Offer payload |
 
-The following values are not part of the current public category surface and should be removed from public exposure:
+Required AON-owned public taxonomy ids:
 
-| Value | Reason | Allowed role |
-|-------|--------|--------------|
-| `real_estate` | Historical public exposure that does not belong to the current canonical 11 | None in public surface |
-| `general` | Internal fallback bucket used by adapter logic; not a public taxonomy value | Internal fallback only |
+| Category id | Notes |
+|-------------|-------|
+| `arts_entertainment.adult_entertainment` | Public adult category; platform derives internal sensitive review |
+| `hobbies_games_leisure.leisure_gambling.igaming` | Real-money iGaming / online casino / betting category |
 
-## Value Classification Matrix
+## Query and Provider Constraints
 
-| Raw value | Current appearance | Classification | Normalized target | Allowed surface now |
-|-----------|--------------------|----------------|-------------------|---------------------|
-| `software_saas` | schema / docs / SDK / services | canonical | `software_saas` | input + output + docs + examples + public enum |
-| `travel_hospitality` | schema / docs / SDK / services | canonical | `travel_hospitality` | input + output + docs + examples + public enum |
-| `education` | schema / docs / SDK / services | canonical | `education` | input + output + docs + examples + public enum |
-| `financial_service` | schema / docs / SDK / services | canonical | `financial_service` | input + output + docs + examples + public enum |
-| `electronics` | schema / docs / SDK / services | canonical | `electronics` | input + output + docs + examples + public enum |
-| `entertainment` | schema / docs | canonical | `entertainment` | input + output + docs + examples + public enum |
-| `health_beauty` | protocol / schema / examples | canonical | `health_beauty` | input + output + docs + examples + public enum |
-| `fashion` | protocol / schema / examples | canonical | `fashion` | input + output + docs + examples + public enum |
-| `food_grocery` | protocol / schema / examples | canonical | `food_grocery` | input + output + docs + examples + public enum |
-| `home_garden` | protocol / schema / examples | canonical | `home_garden` | input + output + docs + examples + public enum |
-| `automotive` | protocol / schema / examples | canonical | `automotive` | input + output + docs + examples + public enum |
-| `travel` | parser / prompt / Action historical copy | accepted alias | `travel_hospitality` | input-only |
-| `hospitality` | parser / prompt | accepted alias | `travel_hospitality` | input-only |
-| `financial_services` | parser / adapter | accepted alias | `financial_service` | input-only |
-| `finance` | parser / adapter / historical copy | accepted alias | `financial_service` | input-only |
-| `health_wellness` | historical Action enum | accepted alias | `health_beauty` | input-only |
-| `food_beverage` | historical Action enum | accepted alias | `food_grocery` | input-only |
-| `fashion_apparel` | historical Action enum | accepted alias | `fashion` | input-only |
-| `home_living` | historical Action enum | accepted alias | `home_garden` | input-only |
-| `real_estate` | historical Action enum | invalid / remove | none | remove from public surface |
-| `general` | adapter fallback | invalid / internal fallback | none | internal fallback only |
+Query API and OfferProvider API category constraints use `category_ids`:
 
-## Public Machine-Readable Contract Rules
+```json
+{
+  "constraints": {
+    "category_ids": ["hobbies_games_leisure.leisure_gambling"]
+  }
+}
+```
 
-The current public machine-readable contract follows these rules:
+Matching semantics:
 
-1. Public enums currently allow only the 11 canonical category values.
-2. Accepted aliases are input-only normalization helpers, not public enum members.
-3. Invalid / remove values must not appear in public enums, public examples, or public canonical docs.
-4. Internal fallbacks such as `general` must not be reinterpreted as public taxonomy categories.
+- OR logic within the array.
+- Each id matches the selected taxonomy node and its descendants.
+- `category_types` is legacy migration language only and is not the Taxonomy v1
+  public path.
 
-## Relationship to Offer Schema
+## v0.1 Migration
 
-`offer_info.category.type` remains the field that carries the current AON product taxonomy.
+The old 11-value v0.1 category model is retained only for migration:
 
-This document defines:
+- `software_saas`
+- `travel_hospitality`
+- `education`
+- `financial_service`
+- `electronics`
+- `entertainment`
+- `health_beauty`
+- `fashion`
+- `food_grocery`
+- `home_garden`
+- `automotive`
 
-- which values are canonical today
-- which values are input-only aliases
-- which values are future scope when relevant
-- which values are invalid
+Migration targets are machine-readable in:
 
-The structural meaning of `offer_info.category` remains defined in [Offer Schema](./offer-schema.md).
+```text
+schema/taxonomy/v0.1-to-taxonomy-v1.json
+```
 
-## Relationship to External Taxonomies
+When a legacy `category.type + attributes.sub_type` pair cannot map precisely,
+it should map to the closest stable parent node instead of inventing a new
+public id.
 
-IAB / DSP / SSP taxonomies are **not** the same thing as the AON category surface.
+## Drift Guard
 
-For v0.1:
+The schema repository provides a guard:
 
-- AON category taxonomy remains the internal canonical product taxonomy
-- external taxonomies are treated as future adapter targets
-- no external taxonomy mapping structure is defined in this document
+```bash
+node protocol/github-repos/schema/scripts/validate-taxonomy-v1.mjs
+```
 
-## Downstream Consumers
+The guard:
 
-This taxonomy document is the intended upstream reference for:
+1. Generates ids from `name + children`.
+2. Checks id uniqueness.
+3. Verifies required AON-owned ids.
+4. Validates v0.1 migration targets.
+5. Scans examples for `offer_info.category.id` and `category_ids`.
+6. Fails on any id that does not exist in the registry.
 
-- SDK / Skill / Action category convergence
-- service-side parser / adapter normalization rules
-- AON-ORG public documentation alignment
+## External Taxonomies
 
-Downstream follow-up actions are tracked in the monorepo planning and delivery docs, not in this public repository.
+Google/GAM general categories were used as the initial baseline, but AON
+Taxonomy v1 is AON-owned. Future changes to external taxonomies do not
+automatically change the public AgentOffer Protocol.
+
+IAB / DSP / SSP mappings remain future adapter work and are not part of this
+Taxonomy v1 contract.

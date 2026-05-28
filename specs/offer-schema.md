@@ -102,12 +102,11 @@ Design notes:
 
 #### `offer_info.category`
 
-`category` contains the industry vertical classification and the attributes required by that vertical.
+`category` contains the AON Taxonomy v1 category reference for the Offer.
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `offer_info.category.type` | string | REQUIRED | Industry vertical. See [Category Taxonomy](./category-taxonomy.md) for the current canonical public category registry and boundary rules. |
-| `offer_info.category.attributes` | object | REQUIRED | Vertical-specific attributes. Structure varies by `category.type`; `attributes.sub_type` is REQUIRED for all current categories. See `category-attributes.types.ts` for per-type definitions. |
+| `offer_info.category.id` | string | REQUIRED | Stable AON Taxonomy v1 category id. See [Category Taxonomy](./category-taxonomy.md). |
 
 ##### `offer_info.commercial`
 
@@ -121,36 +120,27 @@ Design notes:
 
 Design notes:
 
-- `offer_type` and `category.type` serve different purposes: `offer_type` classifies the **delivery form** (how the offer is fulfilled — physical product, online service, offline service, content), while `category.type` classifies the **industry vertical** (what domain the offer belongs to). An `offline_service` offer type could have a `category.type` of `travel_hospitality` or `education`.
-- `category.attributes` structure is determined by `category.type`. Each vertical defines its own required and optional attribute fields. For `entertainment`, an additional `sub_type` discriminator is used for finer classification.
+- `offer_type` and `category.id` serve different purposes: `offer_type` classifies the **delivery form** (how the offer is fulfilled — physical product, online service, offline service, content), while `category.id` classifies the **industry or service taxonomy node**.
+- Category display labels, parent paths, node depth, and sensitive review defaults are derived from the taxonomy registry. Partner-written Offer payloads do not carry `taxonomy`, `source_path`, `level`, `type`, or `sub_type`.
 - `commercial` stays under `offer_info` so pricing can be read alongside the title, description, and category without changing the category discriminator shape.
 
-### Category Types
+### Category IDs
 
 The current canonical category registry is defined in
 [Category Taxonomy](./category-taxonomy.md).
 
 This schema document does not define a separate public category registry. Instead:
 
-- `category-taxonomy.md` defines which category values are canonical today
+- `category-taxonomy.md` defines the AON Taxonomy v1 registry and id rules
 - this document defines the structure and semantics of `offer_info.category`
-- `category-attributes.types.ts` remains the machine-readable type reference for per-category attributes
+- `category-attributes.types.ts` exposes the `CategoryId` / `OfferCategory` types
 
-All current canonical categories use `attributes.sub_type` for finer industry-specific classification. The sections below describe the attribute contracts for the current canonical category surface.
+Partner entry must select at least a Level 1 category id. Level 2 and Level 3+
+ids are optional and may be supplied by Partner UI, adapter mapping, system
+recommendation, or Admin review.
 
-| `category.type` | Description | `sub_type` values |
-|-----------------|-------------|-------------------|
-| `software_saas` | SaaS, subscription software, developer tools | `project_management`, `design`, `development_tools`, `crm`, `analytics`, `communication`, `security`, `ai_tools` |
-| `travel_hospitality` | Hotels, flights, vacation rentals, dining | `hotel`, `flight`, `car_rental`, `vacation_package`, `dining_experience`, `attraction` |
-| `education` | Online courses, certification, training | `online_course`, `certification`, `bootcamp`, `language_learning`, `tutoring`, `academic_program` |
-| `financial_service` | Credit cards, loans, insurance, payments | `credit_card`, `insurance`, `loan`, `investment`, `banking`, `payment` |
-| `electronics` | Consumer electronics, smart devices | `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera`, `tablet`, `tv_video`, `computer_accessory` |
-| `entertainment` | Games, streaming, AI companions, betting | `game`, `streaming_video`, `ai_companion`, `social_audio`, `sports_betting`, `music_audio`, `live_streaming`, `event_ticketing`, `books_media` |
-| `health_beauty` | Health, beauty, wellness, and care offers | `skincare`, `supplement`, `fitness`, `cosmetics`, `wellness`, `medical_device`, `haircare`, `personal_care`, `fragrance` |
-| `fashion` | Fashion, apparel, shoes, accessories, and jewelry | `clothing`, `shoes`, `accessories`, `jewelry`, `luxury`, `sportswear` |
-| `food_grocery` | Meal kits, grocery delivery, food, beverage, and snack offers | `meal_kit`, `grocery_delivery`, `specialty_food`, `beverage`, `snack` |
-| `home_garden` | Home, decor, appliance, smart home, and garden offers | `furniture`, `appliance`, `decor`, `smart_home`, `garden`, `cleaning`, `kitchen_dining`, `bedding_bath`, `tools_hardware`, `home_improvement` |
-| `automotive` | Automotive, mobility, parts, charging, and ride offers | `car_purchase`, `car_lease`, `insurance`, `parts`, `ev_charging`, `ride_service`, `service_repair`, `tires_wheels`, `motorcycle` |
+Legacy v0.1 `category.type + attributes.sub_type` values are documented only in
+the migration mapping, not as the Taxonomy v1 canonical payload shape.
 
 #### `software_saas` Attributes
 
@@ -826,8 +816,7 @@ Design notes:
 - `version` MUST be a non-empty string.
 - `offer_info.title` MUST be a non-empty string suitable for direct display.
 - `offer_info.offer_type` MUST be a non-empty string that classifies the offer.
-- `offer_info.category.type` MUST be one of the registered category type values.
-- `offer_info.category.attributes` MUST be present and include `sub_type`.
+- `offer_info.category.id` MUST be present and SHOULD reference a registered AON Taxonomy v1 node.
 - `offer_info.description` MUST be a non-empty string suitable for semantic retrieval and end-user display.
 - `entity.id` and `entity.name` are both REQUIRED.
 - `action.type` and `action.payload` are both REQUIRED.
@@ -854,7 +843,7 @@ These fields MAY be omitted entirely. When included, they SHOULD follow the spec
 
 ## Enum Extensibility
 
-All enumeration types defined in this specification (`bid.model`, `category.type`, `offer_info.offer_type`, `offer_info.status`, `conversion_rule.attribution_model`, `conversion_rule.dedup_strategy`, etc.) follow an **open-ended design**. The protocol reserves the right to introduce new enumeration values in future revisions without treating the addition as a breaking change.
+All enumeration types defined in this specification (`bid.model`, `offer_info.offer_type`, `offer_info.status`, `conversion_rule.attribution_model`, `conversion_rule.dedup_strategy`, etc.) follow an **open-ended design**. The protocol reserves the right to introduce new enumeration values in future revisions without treating the addition as a breaking change. Taxonomy values are governed by AON Taxonomy v1 registry ids.
 
 Consumers SHOULD handle unknown enumeration values gracefully — either by ignoring the unrecognized value or passing it through — rather than returning an error or rejecting the entire offer document. This principle enables the protocol to evolve incrementally while maintaining backward compatibility with existing implementations.
 
@@ -869,20 +858,7 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
     "title": "The Manhattan Grand — Deluxe King Room",
     "offer_type": "offline_service",
     "category": {
-      "type": "travel_hospitality",
-      "attributes": {
-        "sub_type": "hotel",
-        "property_type": "hotel",
-        "destination": {
-          "city": "New York",
-          "country": "US"
-        },
-        "star_rating": 5,
-        "amenities": ["Rooftop pool", "Spa & wellness center", "24-hour concierge"],
-        "room_type": "Deluxe King",
-        "breakfast_included": true,
-        "cancellation_policy": "Free cancellation up to 48 hours before check-in"
-      }
+      "id": "travel_tourism.accommodations_hotels"
     },
     "description": "Luxury 5-star hotel in Midtown Manhattan with rooftop pool, full-service spa, and complimentary breakfast.",
     "commercial": {
@@ -942,21 +918,23 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
 
 ## Example Coverage
 
-The protocol examples cover representative category types and use the current v0.1 field names, including `material[].url`, `entity.type`, `bid.amount`, and `conversion_rule`.
+The protocol examples cover representative category ids and use the current
+Taxonomy v1 field names, including `offer_info.category.id`,
+`material[].url`, `entity.type`, `bid.amount`, and `conversion_rule`.
 
-| Category Type | Example File | Notes |
-|--------------|-------------|-------|
-| `software_saas` | `notion-offer.json` | Minimal example (REQUIRED + RECOMMENDED only) |
-| `electronics` | `product-offer.json` | Full offer with all OPTIONAL fields |
-| `education` | `content-offer.json` | Full offer |
-| `travel_hospitality` | `offline-service-offer.json` | Full offer |
-| `financial_service` | `financial-service-offer.json` | Full offer with regulatory attributes |
-| `entertainment` | `entertainment-offer.json` | Full offer with `app_deep_link` action |
+| Category id | Example File | Notes |
+|-------------|-------------|-------|
+| `computers_electronics.computers.software` | `notion-offer.json` | Minimal example (REQUIRED + RECOMMENDED only) |
+| `computers_electronics.consumer_electronics` | `product-offer.json` | Full offer with all OPTIONAL fields |
+| `jobs_education` | `content-offer.json` | Full offer |
+| `travel_tourism` | `offline-service-offer.json` | Full offer |
+| `finance.credit_lending` | `financial-service-offer.json` | Full offer with regulatory attributes |
+| `arts_entertainment` | `entertainment-offer.json` | Full offer with `app_deep_link` action |
 
 ## Design Decisions
 
 - **Requirement Levels (RFC 2119)**: REQUIRED enforces a strict core contract (must have valid values). RECOMMENDED enforces structural consistency across implementations (field should exist and follow the standard shape, even if the value is empty) — this ensures all offer documents share the same structure for parsing and tooling. OPTIONAL fields allow richer modeling without breaking backward compatibility.
-- **Category attributes**: `category.type` selects the vertical, while `category.attributes.sub_type` and related fields carry the vertical-specific structure used for ranking and filtering.
+- **Category id**: `category.id` selects the AON Taxonomy v1 node used for category matching, display-path lookup, migration, and internal review derivation.
 - **Commercial information**: `offer_info.commercial` keeps price information close to title and description while leaving `category` focused on classification and attributes.
 - **`material` as array**: A single offer may need multiple creative assets (logo, banner, video). The array structure handles this naturally.
 - **OPTIONAL for targeting and source**: These are powerful features but not every offer needs them. Keeping them optional prevents the protocol from forcing complexity on simple use cases.

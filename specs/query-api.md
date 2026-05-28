@@ -70,7 +70,7 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 | `context.user_profile.device_info.os_version` | string | `18.2` |
 | `context.user_profile.device_info.user_agent` | string | `Mozilla/5.0` |
 | `intent.content[].text` | string | `Find me a luxury hotel in Tokyo` |
-| `constraints.category_types` | string[] | `["travel_hospitality"]` |
+| `constraints.category_ids` | string[] | `["travel_tourism"]` |
 | `pagination.limit` | integer | `10` |
 | `pagination.offset` | integer | `0` |
 
@@ -79,7 +79,7 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 | Field | Common values |
 |------|---------------|
 | `intent.content[].type` | `input_text`, `input_image` |
-| `constraints.category_types` | `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive` |
+| `constraints.category_ids` | AON Taxonomy v1 ids such as `travel_tourism`, `finance.credit_lending`, `hobbies_games_leisure.leisure_gambling` |
 | `context.user_profile.device_info.device_type` | `desktop`, `mobile`, `tablet`, `smart_tv`, `other` |
 | `context.user_profile.device_info.os` | `ios`, `android`, `windows`, `macos`, `other` |
 | `offer_info.offer_type` | `physical_product`, `digital_goods`, `content`, `online_service`, `offline_service` |
@@ -94,13 +94,14 @@ semantic matching and ranking signals; use `constraints` only when a result
 would be invalid unless the constraint is satisfied.
 
 The first public `constraints` surface intentionally exposes only
-`constraints.category_types`. Bid model, lifecycle status, currency, price,
+`constraints.category_ids`. Bid model, lifecycle status, currency, price,
 brand, and country constraints are not part of the agent-facing Query API
 contract in this version.
 
 Note: `context.user_profile.country` is a user-profile attribute (not a
 `constraints` entry). It carries the viewer's country for offer geo targeting
-and does not impose a hard constraint on the query result set.
+and is used by offer targeting before ranking. It is not a caller-specified
+`constraints.country` search filter.
 
 `context.user_profile.country` is the platform's best-effort determined country
 for the viewer — it is source-agnostic. When the caller does not provide it,
@@ -108,12 +109,14 @@ the platform fills it via a resolution chain (caller-provided value first, then
 IP-based fallback such as the edge CDN's country header). Consumers should treat
 it as "the country AON determined", not strictly "the country the user typed".
 
-Offer targeting is enforced leniently against optional query context: when a
-targeting rule declares a dimension such as geo but the request omits the
-corresponding `user_profile` field, that dimension passes rather than excludes
-the offer. `device_info.device_type` and `device_info.os` are required in the
-canonical public Query contract; callers that cannot determine device context
-MUST send `device_type: "other"` and `os: "other"`.
+Offer country recall is strict. Offers must declare `targeting[].geo.include`
+with either the determined viewer country or `ALL` to be eligible for recall.
+When no viewer country is available, only offers with `geo.include` containing
+`ALL` are eligible. Offers with missing `targeting`, empty targeting, or missing
+`geo.include` are not globally recalled. Non-country dimensions remain tolerant
+of unknown context: `device_info.device_type` and `device_info.os` are required
+in the canonical public Query contract; callers that cannot determine device
+context MUST send `device_type: "other"` and `os: "other"`.
 
 ### Device, OS, and Country Context
 
@@ -278,11 +281,7 @@ For field-level platform API tables, examples, and onboarding guidance, use the
         "title": "The Tokyo Grand Weekend Stay",
         "offer_type": "offline_service",
         "category": {
-          "type": "travel_hospitality",
-          "attributes": {
-            "sub_type": "hotel",
-            "destination": { "city": "Tokyo", "country": "JP" }
-          }
+          "id": "travel_tourism.accommodations_hotels"
         },
         "description": "Luxury hotel stay in central Tokyo with weekend availability."
       },
@@ -307,7 +306,7 @@ For complete request and response payloads, see [`agentoffernetwork/examples`](h
 | `401 UNAUTHORIZED` | Missing or invalid bearer token | Use `Authorization: Bearer YOUR_API_KEY`. Never paste real keys into examples or issues. |
 | `403 FORBIDDEN` | Key is valid but not allowed for this endpoint | Confirm the key is active and has Query API access. |
 | `429 RATE_LIMITED` | Too many requests | Add backoff and retry later. |
-| Empty `offers` | No eligible offer matched the hard constraints | Loosen `constraints.category_types` or rely on `intent.content[]` for semantic matching. |
+| Empty `offers` | No eligible offer matched the hard constraints | Loosen `constraints.category_ids` or rely on `intent.content[]` for semantic matching. |
 | Attribution mismatch | Wrong identifier propagated | Use `offers[].offer_instance_id` for the dispatched instance; use `offer_id` only for inventory identity. |
 
 ## References
@@ -368,6 +367,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHOULD", "RECOMMENDED", 
 | 0.1 | 2026-05-09 | Reorganized the GitHub reference for developer readability and density. |
 | 0.1 | 2026-05-14 | Removed agent-facing `filter.status`, clarified active eligible offer defaults, and added `AON-Protocol-Version` header guidance. |
 | 0.1 | 2026-05-15 | Renamed agent-facing root `filter` to `constraints` and limited the first public constraints surface to `category_types`. |
+| 0.1 | 2026-05-27 | Upgraded category constraints to AON Taxonomy v1 `category_ids` with subtree matching semantics. |
 | 0.1 | 2026-05-19 | Added canonical Query device/OS context values, uppercase country format, and clarified empty results use `200 OK` with `offers: []` rather than `204 No Content`. |
 | 0.1 | 2026-05-22 | Documented `X-AON-TRACE-ID` as a hosted Query API response header and clarified that trace identifiers are not JSON body fields. |
 | 0.1 | 2026-05-22 | Added OPTIONAL `context.user_profile.device_info.user_agent` for diagnostics and compatibility. |

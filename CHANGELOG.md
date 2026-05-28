@@ -8,8 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- AON Taxonomy v1 category registry and migration guidance, replacing the
+  draft v0.1 `category.type + attributes.sub_type` main path with
+  `offer_info.category.id`.
 - Added Contract Governance spec covering field lifecycle, source references, public follow rules, stale-field denylist, and compatibility allowlist.
 - Offer targeting `os` dimension (`ios`/`android`/`windows`/`macos`/`linux`) and Query `user_profile.country` (ISO 3166-1 alpha-2) for geo/OS targeting; documented intra-rule AND / inter-rule OR matching semantics in `offer-schema.md` (SVC-CORE-F024, non-breaking).
+
+### Changed
+
+- Query API and OfferProvider category constraints now use
+  `constraints.category_ids` with AON Taxonomy v1 subtree matching semantics.
 
 ## [0.1.0] - 2026-03-28
 

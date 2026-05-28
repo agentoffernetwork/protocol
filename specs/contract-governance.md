@@ -47,7 +47,7 @@ Canonical agent-facing request constraints:
 
 | Field | Meaning |
 | --- | --- |
-| `constraints.category_types` | Structured category eligibility constraint |
+| `constraints.category_ids` | Structured AON Taxonomy v1 eligibility constraint |
 
 Historical, compatibility, internal, or removed fields:
 
@@ -63,6 +63,7 @@ Historical, compatibility, internal, or removed fields:
 | `source_offer_id` | removed | Removed from the public contract |
 | `filter` | removed from Query API and OfferProvider API request bodies | Use root `constraints`. |
 | `QueryFilter` | removed from agent-facing Query API | Use `QueryConstraints`. |
+| `constraints.category_types` | removed from Taxonomy v1 Query and OfferProvider request bodies | Use `constraints.category_ids`. |
 | `filter.status` | removed from Query API and OfferProvider API request bodies | Query API and OfferProvider dispatches return active eligible offers by default. |
 | `filter.bid_models` | removed from agent-facing Query API | Bid model is supply/commercial selection logic, not a public client constraint. |
 | `filter.currency` | removed from agent-facing Query API | Currency constraints are not public in this version. |
@@ -87,6 +88,7 @@ Two manifest keys are especially important for downstream checks:
 | --- | --- |
 | `stale_field_denylist` | Fields that must not appear in active public integration paths without an allowed context |
 | `compatibility_allowlist` | Historical, migration, compatibility, or internal contexts where otherwise stale field names may appear |
+| `taxonomy_registry` | AON Taxonomy v1 source tree, migration mapping, and drift guard source refs |
 
 ## Release Checklist
 
@@ -99,3 +101,4 @@ Before publishing public protocol surfaces:
 5. Review `compatibility_allowlist` context.
 6. Confirm public GitHub protocol/schema/examples are aligned.
 7. Register downstream follow-up work for known remaining drift.
+8. Run the AON Taxonomy v1 drift guard when taxonomy ids or examples change.

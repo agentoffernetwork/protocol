@@ -259,7 +259,7 @@ The requirement levels follow the same three-tier system used in
 | `test_mode` | boolean | OPTIONAL | Mirrors `X-AON-Test`. Header wins on disagreement. |
 | `context` | object | REQUIRED | Platform, session, and user context (§6.2). |
 | `intent` | object | REQUIRED | Multimodal intent description (§6.3). |
-| `constraints` | object | OPTIONAL | Partner-facing supply-side hard constraints (§6.4). Current v0.1 dispatches only expose `category_types`. |
+| `constraints` | object | OPTIONAL | Partner-facing supply-side hard constraints (§6.4). Category constraints use AON Taxonomy v1 `category_ids`. |
 | `pagination` | object | RECOMMENDED | Paging control (§6.5). |
 
 ### 6.2 `context`
@@ -294,12 +294,12 @@ All fields are OPTIONAL; when provided they act as Partner-facing hard
 constraints applied **before** any semantic ranking Partner performs. This
 `constraints` object uses the same root field name as the agent-facing Query
 API to avoid contract ambiguity. The v0.1 OfferProvider dispatch surface also
-only exposes `category_types`; use `intent.content[]` for semantic matching and
+uses `category_ids`; use `intent.content[]` for semantic matching and
 ranking signals.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `constraints.category_types[]` | array<enum> | From `offer_info.category.type`: `software_saas`, `travel_hospitality`, `education`, `financial_service`, `electronics`, `entertainment`, `health_beauty`, `fashion`, `food_grocery`, `home_garden`, `automotive`. OR-logic within the array. |
+| `constraints.category_ids[]` | array<string> | AON Taxonomy v1 ids. OR-logic within the array; each id matches the selected node and descendants. |
 
 Bid model, lifecycle status, availability, price, currency, brand, country, and
 tag constraints are intentionally not part of the v0.1 OfferProvider request
@@ -347,7 +347,7 @@ every REQUIRED field listed in `offer-schema.md` §"Top-Level Shape":
 `offer_id`, `offer_instance_id`, `version`, `offer_info` (with nested
 REQUIREDs), `entity`, `action`, and `bid`. Partners SHOULD populate
 RECOMMENDED fields such as
-`material`, `category.attributes`, and `category.commercial` when the
+`material` and `offer_info.commercial` when the
 data is available; routing quality depends on completeness.
 
 ## 9. Error Codes
@@ -492,5 +492,6 @@ entries document design choices surfaced during technical review.
 |---------|------|---------|
 | 0.1 | 2026-05-14 | Clarifies `/v1/` API path versioning versus `AON-Protocol-Version` payload contract versioning. |
 | 0.1 | 2026-05-15 | Renames OfferProvider request root `filter` to `constraints` and limits v0.1 dispatch constraints to `category_types`. |
+| 0.1 | 2026-05-27 | Upgrades category dispatch constraints to AON Taxonomy v1 `category_ids`. |
 | 0.1 | 2026-05-05 | Clarifies that the success envelope requires `request_id`, does not use `code: SUCCESS`, and does not include pagination metadata such as `has_more` or `total`. |
 | 0.1 | 2026-04-15 | Initial draft. Defines endpoint, HMAC-SHA256 auth with ±5-minute skew and SHOULD-level nonce anti-replay, `OfferQueryRequest` reuse, `{request_id, offers}` success envelope, `ApiResponse` error envelope, offset/limit pagination, Level 1/2/3 conformance, onboarding compliance test matrix, `X-AON-Request-Id` as MAY, and adapter DSL cross-reference. |
