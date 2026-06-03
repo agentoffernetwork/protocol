@@ -27,7 +27,14 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
   -H "Content-Type: application/json" \
   -H "AON-Protocol-Version: 0.1" \
   -d '{
-    "context": { "user_profile": {} },
+    "context": {
+      "user_profile": {
+        "device_info": {
+          "device_type": "other",
+          "os": "other"
+        }
+      }
+    },
     "intent": {
       "content": [
         {
@@ -44,7 +51,7 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 | Field | Level | Notes |
 |------|-------|-------|
 | `context` | REQUIRED | Requesting platform, session, and user context. |
-| `context.user_profile` | REQUIRED | User profile container. It may be sparse, but the object must be present. |
+| `context.user_profile` | REQUIRED | User profile container. It may be sparse, but `device_info.device_type` and `device_info.os` must be present; use `other` when unknown. |
 | `intent` | REQUIRED | User intent expressed as multimodal content. |
 | `intent.content[]` | REQUIRED | At least one content item. Current `type` values: `input_text`, `input_image`. |
 | `constraints` | OPTIONAL | Deterministic eligibility constraints applied before semantic ranking. |
@@ -79,7 +86,7 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 | Field | Common values |
 |------|---------------|
 | `intent.content[].type` | `input_text`, `input_image` |
-| `constraints.category_ids` | AON Taxonomy v1 ids such as `travel_tourism`, `finance.credit_lending`, `hobbies_games_leisure.leisure_gambling` |
+| `constraints.category_ids` | AON Taxonomy v1 ids such as `travel_tourism`, `finance.credit_lending`, `others`, `arts_entertainment.igaming` |
 | `context.user_profile.device_info.device_type` | `desktop`, `mobile`, `tablet`, `smart_tv`, `other` |
 | `context.user_profile.device_info.os` | `ios`, `android`, `windows`, `macos`, `other` |
 | `offer_info.offer_type` | `physical_product`, `digital_goods`, `content`, `online_service`, `offline_service` |
@@ -371,5 +378,6 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHOULD", "RECOMMENDED", 
 | 0.1 | 2026-05-19 | Added canonical Query device/OS context values, uppercase country format, and clarified empty results use `200 OK` with `offers: []` rather than `204 No Content`. |
 | 0.1 | 2026-05-22 | Documented `X-AON-TRACE-ID` as a hosted Query API response header and clarified that trace identifiers are not JSON body fields. |
 | 0.1 | 2026-05-22 | Added OPTIONAL `context.user_profile.device_info.user_agent` for diagnostics and compatibility. |
+| 0.1 | 2026-06-03 | Aligned examples and field guidance with Taxonomy v1 `constraints.category_ids`, required `context.user_profile.device_info`, and current category examples. |
 
 </details>

@@ -91,7 +91,7 @@ Design notes:
 |------|------|-------|-------------|
 | `offer_info.title` | string | REQUIRED | Display-ready title. |
 | `offer_info.offer_type` | string | REQUIRED | Offer classification such as `physical_product`, `content`, `online_service`, or `offline_service`. |
-| `offer_info.category` | object | REQUIRED | Industry category and vertical-specific attributes. |
+| `offer_info.category` | object | REQUIRED | Industry category reference using AON Taxonomy v1. |
 | `offer_info.description` | string | REQUIRED | Core semantic description used by agents and clients. |
 | `offer_info.commercial` | object | RECOMMENDED | Pricing information, such as consumer-facing price. |
 | `offer_info.start_at` | string | OPTIONAL | RFC 3339 timestamp indicating when the offer becomes active. |
@@ -106,7 +106,7 @@ Design notes:
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `offer_info.category.id` | string | REQUIRED | Stable AON Taxonomy v1 category id. See [Category Taxonomy](./category-taxonomy.md). |
+| `offer_info.category.id` | string | REQUIRED | Stable AON Taxonomy v1 category id. `others` is a standard Level 1 id for offers whose best available taxonomy classification is the fallback category. See [Category Taxonomy](./category-taxonomy.md). |
 
 ##### `offer_info.commercial`
 
@@ -139,16 +139,24 @@ Partner entry must select at least a Level 1 category id. Level 2 and Level 3+
 ids are optional and may be supplied by Partner UI, adapter mapping, system
 recommendation, or Admin review.
 
-Legacy v0.1 `category.type + attributes.sub_type` values are documented only in
-the migration mapping, not as the Taxonomy v1 canonical payload shape.
+Legacy v0.1 `category.type + attributes.sub_type` values are migration-only and
+are not part of the Taxonomy v1 canonical payload shape.
+
+### Legacy v0.1 Category Attribute Notes
+
+The following legacy attribute notes are retained only to help maintainers map
+older v0.1 payloads into AON Taxonomy v1 ids. They are **non-normative** for new
+integrations. New Partner-written Offer payloads MUST NOT send these legacy
+`sub_type` fields under `offer_info.category`; use only
+`offer_info.category.id`.
 
 #### `software_saas` Attributes
 
-Common fields shared across all `software_saas` sub_types:
+Legacy fields previously associated with `software_saas` sub_types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Software sub-category: `project_management`, `design`, `development_tools`, `crm`, `analytics`, `communication`, `security`, `ai_tools`. |
+| `sub_type` | string | LEGACY | Software sub-category: `project_management`, `design`, `development_tools`, `crm`, `analytics`, `communication`, `security`, `ai_tools`. |
 | `plan_type` | string | REQUIRED | Subscription or pricing model: `free_trial`, `freemium`, `paid`, `open_source`. |
 | `platform` | array | REQUIRED | Supported platforms: `web`, `desktop`, `mobile`, `api`. |
 | `trial_days` | integer | OPTIONAL | Free trial duration in days. |
@@ -223,11 +231,11 @@ Common fields shared across all `software_saas` sub_types:
 
 #### `travel_hospitality` Attributes
 
-Common fields shared across all `travel_hospitality` sub_types:
+Legacy fields previously associated with `travel_hospitality` sub_types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Travel sub-category: `hotel`, `flight`, `car_rental`, `vacation_package`, `dining_experience`, `attraction`. |
+| `sub_type` | string | LEGACY | Travel sub-category: `hotel`, `flight`, `car_rental`, `vacation_package`, `dining_experience`, `attraction`. |
 | `destination` | object | REQUIRED | Destination location with `city` and `country` fields. |
 | `cancellation_policy` | string | OPTIONAL | Cancellation policy summary. |
 
@@ -295,11 +303,11 @@ Common fields shared across all `travel_hospitality` sub_types:
 
 #### `education` Attributes
 
-Common fields shared across all `education` sub_types:
+Legacy fields previously associated with `education` sub_types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Education sub-category: `online_course`, `certification`, `bootcamp`, `language_learning`, `tutoring`, `academic_program`. |
+| `sub_type` | string | LEGACY | Education sub-category: `online_course`, `certification`, `bootcamp`, `language_learning`, `tutoring`, `academic_program`. |
 | `subject` | string | REQUIRED | Subject or topic area. |
 | `level` | string | REQUIRED | Target learner level: `beginner`, `intermediate`, `advanced`, `professional`. |
 | `language` | string | OPTIONAL | Language of instruction. |
@@ -364,11 +372,11 @@ Common fields shared across all `education` sub_types:
 
 #### `financial_service` Attributes
 
-Common fields shared across all `financial_service` sub_types:
+Legacy fields previously associated with `financial_service` sub_types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Financial sub-category: `credit_card`, `insurance`, `loan`, `investment`, `banking`, `payment`. |
+| `sub_type` | string | LEGACY | Financial sub-category: `credit_card`, `insurance`, `loan`, `investment`, `banking`, `payment`. |
 | `provider_license` | string | REQUIRED | Regulatory license or registration identifier. |
 
 ##### `financial_service` → `credit_card`
@@ -432,11 +440,11 @@ Common fields shared across all `financial_service` sub_types:
 
 #### `electronics` Attributes
 
-Common fields shared across all `electronics` sub_types:
+Legacy fields previously associated with `electronics` sub_types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Electronics sub-category: `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera`, `tablet`, `tv_video`, `computer_accessory`. |
+| `sub_type` | string | LEGACY | Electronics sub-category: `smartphone`, `laptop`, `audio`, `wearable`, `gaming_hardware`, `smart_home`, `camera`, `tablet`, `tv_video`, `computer_accessory`. |
 | `brand` | string | REQUIRED | Manufacturer brand. |
 | `model` | string | REQUIRED | Product model name or number. |
 | `condition` | string | REQUIRED | Item condition: `new`, `refurbished`, `used`. |
@@ -535,11 +543,11 @@ Common fields shared across all `electronics` sub_types:
 
 #### `entertainment` Attributes
 
-All `entertainment` offers MUST include a `sub_type` field that determines the sub-category. The following fields are shared across all entertainment sub-types:
+Legacy fields previously associated with `entertainment` sub-types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Entertainment sub-category discriminator. |
+| `sub_type` | string | LEGACY | Entertainment sub-category discriminator. |
 | `supported_devices` | array | OPTIONAL | Supported platforms or devices. |
 | `age_rating` | string | OPTIONAL | Age restriction or content rating. |
 | `languages` | array | OPTIONAL | Supported languages. |
@@ -647,55 +655,55 @@ All `entertainment` offers MUST include a `sub_type` field that determines the s
 
 #### `health_beauty` Attributes
 
-All `health_beauty` offers MUST include a `sub_type` field that determines the sub-category. The following fields are shared across all health & beauty sub-types:
+Legacy fields previously associated with `health_beauty` sub-types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Health & beauty sub-category discriminator: `skincare`, `supplement`, `fitness`, `cosmetics`, `wellness`, `medical_device`, `haircare`, `personal_care`, `fragrance`. |
+| `sub_type` | string | LEGACY | Health & beauty sub-category discriminator: `skincare`, `supplement`, `fitness`, `cosmetics`, `wellness`, `medical_device`, `haircare`, `personal_care`, `fragrance`. |
 | `ingredients_highlight` | array | OPTIONAL | Highlighted ingredients or active components. |
 | `skin_type` | string | OPTIONAL | Intended skin type or consumer profile. |
 | `organic` | boolean | OPTIONAL | Whether the product is organic-certified. |
 
 #### `fashion` Attributes
 
-All `fashion` offers MUST include a `sub_type` field that determines the sub-category. The following fields are shared across all fashion sub-types:
+Legacy fields previously associated with `fashion` sub-types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Fashion sub-category discriminator: `clothing`, `shoes`, `accessories`, `jewelry`, `luxury`, `sportswear`. |
+| `sub_type` | string | LEGACY | Fashion sub-category discriminator: `clothing`, `shoes`, `accessories`, `jewelry`, `luxury`, `sportswear`. |
 | `gender` | string | OPTIONAL | Intended gender segment: `unisex`, `male`, `female`. |
 | `size_range` | string | OPTIONAL | Size coverage summary. |
 | `material` | string | OPTIONAL | Primary material. |
 
 #### `food_grocery` Attributes
 
-All `food_grocery` offers MUST include a `sub_type` field that determines the sub-category. The following fields are shared across all food & grocery sub-types:
+Legacy fields previously associated with `food_grocery` sub-types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Food & grocery sub-category discriminator: `meal_kit`, `grocery_delivery`, `specialty_food`, `beverage`, `snack`. |
+| `sub_type` | string | LEGACY | Food & grocery sub-category discriminator: `meal_kit`, `grocery_delivery`, `specialty_food`, `beverage`, `snack`. |
 | `dietary_info` | array | OPTIONAL | Dietary tags such as `vegan`, `gluten_free`, `keto`, `organic`, or `high_protein`. |
 | `shelf_life_days` | integer | OPTIONAL | Shelf life in days. |
 | `serving_size` | string | OPTIONAL | Serving size summary. |
 
 #### `home_garden` Attributes
 
-All `home_garden` offers MUST include a `sub_type` field that determines the sub-category. The following fields are shared across all home & garden sub-types:
+Legacy fields previously associated with `home_garden` sub-types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Home & garden sub-category discriminator: `furniture`, `appliance`, `decor`, `smart_home`, `garden`, `cleaning`, `kitchen_dining`, `bedding_bath`, `tools_hardware`, `home_improvement`. |
+| `sub_type` | string | LEGACY | Home & garden sub-category discriminator: `furniture`, `appliance`, `decor`, `smart_home`, `garden`, `cleaning`, `kitchen_dining`, `bedding_bath`, `tools_hardware`, `home_improvement`. |
 | `dimensions` | string | OPTIONAL | Dimension summary. |
 | `assembly_required` | boolean | OPTIONAL | Whether assembly is required. |
 | `energy_rating` | string | OPTIONAL | Energy efficiency rating. |
 
 #### `automotive` Attributes
 
-All `automotive` offers MUST include a `sub_type` field that determines the sub-category. The following fields are shared across all automotive sub-types:
+Legacy fields previously associated with `automotive` sub-types:
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `sub_type` | string | REQUIRED | Automotive sub-category discriminator: `car_purchase`, `car_lease`, `insurance`, `parts`, `ev_charging`, `ride_service`, `service_repair`, `tires_wheels`, `motorcycle`. |
+| `sub_type` | string | LEGACY | Automotive sub-category discriminator: `car_purchase`, `car_lease`, `insurance`, `parts`, `ev_charging`, `ride_service`, `service_repair`, `tires_wheels`, `motorcycle`. |
 | `vehicle_type` | string | OPTIONAL | Vehicle class such as `sedan`, `suv`, `truck`, `ev`. |
 | `fuel_type` | string | OPTIONAL | Fuel or powertrain type: `gasoline`, `diesel`, `electric`, `hybrid`. |
 | `warranty_years` | integer | OPTIONAL | Warranty duration in years. |
@@ -779,9 +787,10 @@ A targeting rule matches a user when **every** dimension it declares is satisfie
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `bid.model` | string | REQUIRED | Bid model: `cpa` (cost per action), `cps` (cost per sale, percentage-based), `cpl` (cost per lead), `cpi` (cost per install), `hybrid` (base amount plus percentage). |
+| `bid.model` | string | REQUIRED | Bid model: `cpa` (cost per action), `cps` (cost per sale, percentage-based), `hybrid` (base amount plus percentage). WS-002: `cpl`/`cpi` removed — represent lead/install as `cpa` + `bid.model_subtype` (`Submission`/`Install`). |
 | `bid.amount` | string | REQUIRED | Determined bid amount, decimal string. |
 | `bid.currency` | string | REQUIRED | ISO 4217 currency code for the bid amount. |
+| `bid.model_subtype` | string | OPTIONAL | CPA Type — subtype of the CPA bid model (free-form token `^[A-Za-z0-9_-]{1,16}$`). Only valid when `model` is `cpa`. Common: `Registration`, `Submission`, `Transaction`, `Retention`, `Install`; partners may define custom values. |
 
 Design notes:
 

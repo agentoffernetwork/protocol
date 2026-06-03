@@ -234,12 +234,15 @@ repeated test requests cause production side-effects.
 
 ## 6. Request Body
 
-The request body reuses the canonical `OfferQueryRequest` shape defined
-in [`offer-query-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-query-schema-v0.1.json);
-the OfferProvider-specific JSON Schema
-([`offer-provider-request-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-provider-request-v0.1.json))
-matches that shape 1-to-1 so that the same request can be validated on
-either side of the wire.
+The request body follows the same `context` + `intent` + optional `constraints`
+and `pagination` model as the agent-facing Query API, but it is validated by the
+OfferProvider-specific JSON Schema
+([`offer-provider-request-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-provider-request-v0.1.json)).
+
+Do not validate AON-to-Partner dispatches with the agent-facing
+`offer-query-schema-v0.1.json` directly. The supply-side schema adds dispatch
+requirements such as `request_id` and may carry Partner-facing correlation
+fields that are not part of the public agent request.
 
 The requirement levels follow the same three-tier system used in
 `query-api.md`:
@@ -299,7 +302,7 @@ ranking signals.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `constraints.category_ids[]` | array<string> | AON Taxonomy v1 ids. OR-logic within the array; each id matches the selected node and descendants. |
+| `constraints.category_ids[]` | array<string> | AON Taxonomy v1 ids, including Level 1 id `others`. OR-logic within the array; each id matches the selected node and descendants. |
 
 Bid model, lifecycle status, availability, price, currency, brand, country, and
 tag constraints are intentionally not part of the v0.1 OfferProvider request
@@ -493,5 +496,6 @@ entries document design choices surfaced during technical review.
 | 0.1 | 2026-05-14 | Clarifies `/v1/` API path versioning versus `AON-Protocol-Version` payload contract versioning. |
 | 0.1 | 2026-05-15 | Renames OfferProvider request root `filter` to `constraints` and limits v0.1 dispatch constraints to `category_types`. |
 | 0.1 | 2026-05-27 | Upgrades category dispatch constraints to AON Taxonomy v1 `category_ids`. |
+| 0.1 | 2026-06-03 | Clarifies that OfferProvider requests follow the same Query request model but are validated by the provider request schema, not the public Query schema. |
 | 0.1 | 2026-05-05 | Clarifies that the success envelope requires `request_id`, does not use `code: SUCCESS`, and does not include pagination metadata such as `has_more` or `total`. |
 | 0.1 | 2026-04-15 | Initial draft. Defines endpoint, HMAC-SHA256 auth with ±5-minute skew and SHOULD-level nonce anti-replay, `OfferQueryRequest` reuse, `{request_id, offers}` success envelope, `ApiResponse` error envelope, offset/limit pagination, Level 1/2/3 conformance, onboarding compliance test matrix, `X-AON-Request-Id` as MAY, and adapter DSL cross-reference. |

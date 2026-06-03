@@ -13,11 +13,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `offer_info.category.id`.
 - Added Contract Governance spec covering field lifecycle, source references, public follow rules, stale-field denylist, and compatibility allowlist.
 - Offer targeting `os` dimension (`ios`/`android`/`windows`/`macos`/`linux`) and Query `user_profile.country` (ISO 3166-1 alpha-2) for geo/OS targeting; documented intra-rule AND / inter-rule OR matching semantics in `offer-schema.md` (SVC-CORE-F024, non-breaking).
+- `bid.model_subtype` (CPA Type): optional free-form token (`^[A-Za-z0-9_-]{1,16}$`) qualifying the CPA bid model; common values Registration / Submission / Transaction / Retention / Install; partners may define custom values (WS-002).
 
 ### Changed
 
 - Query API and OfferProvider category constraints now use
   `constraints.category_ids` with AON Taxonomy v1 subtree matching semantics.
+- Narrowed `bid.model` enum to `cpa` / `cps` / `hybrid` (WS-002).
+
+### Removed
+
+- `bid.model` values `cpl` (cost per lead) and `cpi` (cost per install); represent lead/install as `cpa` + `model_subtype` (`Submission` / `Install`) instead. Adapters (Impact/MobPower) and stored offers are migrated losslessly (WS-002).
 
 ## [0.1.0] - 2026-03-28
 

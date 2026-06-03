@@ -2,7 +2,7 @@
 
 **Version**: AON Taxonomy v1
 **Status**: Draft
-**Last Updated**: 2026-05-27
+**Last Updated**: 2026-06-03
 
 ## Purpose
 
@@ -18,7 +18,7 @@ Public Offer payloads reference a selected taxonomy node:
 {
   "offer_info": {
     "category": {
-      "id": "hobbies_games_leisure.leisure_gambling.igaming"
+      "id": "arts_entertainment.igaming"
     }
   }
 }
@@ -42,8 +42,8 @@ Source nodes use only:
 Stable ids are generated from the node path by the taxonomy guard:
 
 ```text
-Hobbies, Games & Leisure > Leisure Gambling > iGaming
-=> hobbies_games_leisure.leisure_gambling.igaming
+Arts & Entertainment > iGaming
+=> arts_entertainment.igaming
 ```
 
 The generated id is the only category value Partner-written Offer payloads need
@@ -60,6 +60,7 @@ to carry.
 | Business & Industrial | Business & Industrial | `business_industrial` |
 | Computers & Consumer Electronics | Computers & Electronics | `computers_electronics` |
 | Dining & Nightlife | Dining & Nightlife | `dining_nightlife` |
+| E-commerce & Marketplace | E-commerce & Marketplace | `e_commerce_marketplace` |
 | Family & Community | Family & Community | `family_community` |
 | Finance | Finance | `finance` |
 | Food & Groceries | Food & Grocery | `food_grocery` |
@@ -72,6 +73,7 @@ to carry.
 | Mobile App Utilities | Mobile Utilities | `mobile_utilities` |
 | News, Books & Publications | News, Books & Publications | `news_books_publications` |
 | Occasions & Gifts | Gifts & Occasions | `gifts_occasions` |
+| Others | Others | `others` |
 | Real Estate | Real Estate | `real_estate` |
 | Sports & Fitness | Sports & Fitness | `sports_fitness` |
 | Travel & Tourism | Travel & Tourism | `travel_tourism` |
@@ -98,6 +100,30 @@ Partner entry rule:
 - Search, adapter mapping, system suggestion, or Admin review may fill deeper
   category ids.
 
+## E-commerce & Marketplace Disambiguation
+
+The `e_commerce_marketplace` chain categorizes offers that describe the
+**marketplace / platform entity itself** — the shopping channel — not the
+individual products listed on it.
+
+| Offer subject | AON canonical id |
+|---------------|------------------|
+| Comprehensive e-commerce platform (e.g. Amazon, JD) | `e_commerce_marketplace.comprehensive_e_commerce_platform` |
+| B2C marketplace (e.g. Temu, Shein) | `e_commerce_marketplace.comprehensive_e_commerce_platform.b2c_marketplace` |
+| Generic / unspecified e-commerce marketplace | `e_commerce_marketplace` |
+
+Specific **products** sold on these platforms must still be categorized under
+their own product vertical, including that vertical's existing online-shopping
+child (for example `Food & Groceries > Online Grocery Shopping`), not under
+`e_commerce_marketplace`. This keeps the platform/channel axis separate from the
+product-vertical axis and prevents dual-classification ambiguity.
+
+## Short Drama Scope
+
+Short Drama (`arts_entertainment.short_drama`) covers vertical / mobile-first
+serialized micro-dramas, distinct from long-form Movies & Films and broadcast
+TV & Video.
+
 ## Sensitive Category Boundary
 
 Sensitive category handling is split from public Offer payload shape.
@@ -114,7 +140,7 @@ Required AON-owned public taxonomy ids:
 | Category id | Notes |
 |-------------|-------|
 | `arts_entertainment.adult_entertainment` | Public adult category; platform derives internal sensitive review |
-| `hobbies_games_leisure.leisure_gambling.igaming` | Real-money iGaming / online casino / betting category |
+| `arts_entertainment.igaming` | Real-money iGaming / online casino / betting category |
 
 ## Query and Provider Constraints
 
@@ -123,7 +149,7 @@ Query API and OfferProvider API category constraints use `category_ids`:
 ```json
 {
   "constraints": {
-    "category_ids": ["hobbies_games_leisure.leisure_gambling"]
+    "category_ids": ["arts_entertainment.igaming"]
   }
 }
 ```
@@ -132,6 +158,9 @@ Matching semantics:
 
 - OR logic within the array.
 - Each id matches the selected taxonomy node and its descendants.
+- `others` is a standard Level 1 id with no child categories in this version,
+  so `category_ids=["others"]` currently matches only stored id `others`.
+- Category ids are case-sensitive; use lowercase canonical ids such as `others`.
 - `category_types` is legacy migration language only and is not the Taxonomy v1
   public path.
 
