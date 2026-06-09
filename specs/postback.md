@@ -271,7 +271,7 @@ HMAC test vectors: [`examples/http/postback/agent/signature-verification.md`](ht
 | Field | Value |
 |-------|-------|
 | URL | `POST {aon_base_url}/v1/postback` |
-| Production `aon_base_url` | `https://api.agentoffernetwork.com` |
+| Production `aon_base_url` | `https://api.aon.pro` |
 | Content-Type | `application/json` |
 
 ### 5.2 Request Method & Headers

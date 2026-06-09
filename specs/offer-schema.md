@@ -20,7 +20,7 @@ Most developers only need the top-level object first:
 |------|------------|
 | Validate an offer payload | [`offer-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-schema-v0.1.json) |
 | Inspect copyable offer examples | [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples/tree/main/http) |
-| See field-level API UI | [AON API Reference](https://docs.agentoffernetwork.com/api/offer-query) |
+| See field-level API UI | [AON API Reference](https://docs.aon.pro/api/offer-query) |
 | Choose category values | [Category Taxonomy](./category-taxonomy.md) |
 
 ### Conformance Keywords
@@ -764,13 +764,30 @@ For an `app_deep_link` action flow:
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `targeting[].geo.include` | array | OPTIONAL | Regions or markets explicitly included. |
-| `targeting[].geo.exclude` | array | OPTIONAL | Regions or markets explicitly excluded. |
+| `targeting[].geo.include` | array | OPTIONAL | Included locations. Canonical entries are `{ "location_id": "<id>" }` objects using AON Location Registry v1; legacy uppercase country strings remain migration-compatible. Do not mix legacy strings and structured entries in the same array. |
+| `targeting[].geo.exclude` | array | OPTIONAL | Excluded locations. Uses the same entry shape as `geo.include`; exclude wins over include. |
+| `targeting[].eligibility.min_age` | integer | OPTIONAL | Minimum verified viewer age required for this rule. The Query request sends non-PII age threshold claims in `context.user_profile.verified_age_over`; it does not send date of birth or exact age. |
 | `targeting[].language` | string | OPTIONAL | Preferred or required language context. |
 | `targeting[].device_type` | array | OPTIONAL | Target device types such as `mobile`, `desktop`, `tablet`. |
 | `targeting[].os` | array | OPTIONAL | Target operating systems: `ios`, `android`, `windows`, `macos`, `linux`. |
 
 A targeting rule matches a user when **every** dimension it declares is satisfied (intra-rule AND); an offer is surfaced when **any** of its targeting rules match (inter-rule OR). A dimension a rule omits is treated as unconstrained.
+
+Canonical location targeting uses `location_id` values from AON Location
+Registry v1, sourced from Google Ads Geo Target Criteria IDs. The first release
+supports three AON levels: `COUNTRY`, `REGION`, and `CITY`. A viewer matches
+an included location when the viewer's `context.user_profile.location_ids`
+contains that exact location or one of its ancestors. For example, a San
+Francisco viewer can match San Francisco city, California as a region-level
+location, or United
+States country rules. Unknown or unsupported location IDs fail closed. Legacy
+country string entries map to country-level `location_id` values during
+migration.
+
+`REGION` is AON's normalized public level for a first-level geographic region
+under a country, such as a state, province, prefecture, region, or equivalent.
+The original Google `target_type` is preserved separately in the location
+registry.
 
 ### Source (OPTIONAL)
 
@@ -906,7 +923,7 @@ Consumers SHOULD handle unknown enumeration values gracefully — either by igno
   },
   "targeting": [
     {
-      "geo": { "include": ["US", "GB", "CA"] },
+      "geo": { "include": [{ "location_id": "2840" }, { "location_id": "2826" }] },
       "language": "en",
       "device_type": ["mobile", "desktop", "tablet"]
     }

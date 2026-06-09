@@ -41,6 +41,8 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 | Offer identity | `offer_id` is the stable inventory Offer; `offer_instance_id` is generated for each served instance |
 | Attribution | Preserve `offers[].offer_instance_id` through click, conversion, and settlement flows |
 | Categories | AON Taxonomy v1 ids in [Category Taxonomy](specs/category-taxonomy.md); current registry includes 24 Level 1 categories and deeper child ids |
+| Location targeting | `targeting[].geo.include/exclude` use AON Location Registry v1 `location_id` values for COUNTRY, REGION, and CITY; legacy country strings remain migration-compatible |
+| Age eligibility | `targeting[].eligibility.min_age` pairs with Query `context.user_profile.verified_age_over[]`; do not send DOB or exact age |
 | Status | `v0.1 Draft`, public beta for the core contract surface |
 
 `v0.1` is implementation-ready for the core Query API, Offer object, schema validation, examples, and postback contracts. Companion drafts such as Agent Identity and Compliance are still evolving.
@@ -52,6 +54,7 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 | Query offers from an agent or app | [Query API](specs/query-api.md) | [Examples](https://github.com/agentoffernetwork/examples), [Schema](https://github.com/agentoffernetwork/schema) |
 | Understand returned `offers[]` | [Offer Schema](specs/offer-schema.md) | [Offer examples](https://github.com/agentoffernetwork/examples) |
 | Choose categories | [Category Taxonomy](specs/category-taxonomy.md) | [Offer Schema category field](specs/offer-schema.md#offer_infocategory) |
+| Apply location or age eligibility | [Offer Schema targeting](specs/offer-schema.md#targeting-optional) + [Query API context](specs/query-api.md#device-os-location-and-age-context) | [Location registry](https://github.com/agentoffernetwork/schema/blob/main/locations/aon-location-registry-v1.json) |
 | Track clicks and conversions | [Events](specs/events.md) | [Postback](specs/postback.md) |
 | Check field lifecycle | [Contract Governance](specs/contract-governance.md) | [RFCs](https://github.com/agentoffernetwork/rfcs) |
 | Propose a protocol change | [RFCs](https://github.com/agentoffernetwork/rfcs) | [CONTRIBUTING.md](CONTRIBUTING.md) |
@@ -63,9 +66,9 @@ Most integrations start with [`POST /v1/offers/query`](specs/query-api.md): copy
 | If you want to... | Start here | Then use |
 |-------------------|------------|----------|
 | Understand the protocol and public positioning | [agentoffernetwork.org](https://agentoffernetwork.org) | This repository for the source specs |
-| Make your first request or use mock SDK mode | [Docs Quick Start](https://docs.agentoffernetwork.com/quickstart) | [API Reference](https://docs.agentoffernetwork.com/api), [SDK Reference](https://docs.agentoffernetwork.com/sdk) |
+| Make your first request or use mock SDK mode | [Docs Quick Start](https://docs.aon.pro/quickstart) | [API Reference](https://docs.aon.pro/api), [SDK Reference](https://docs.aon.pro/sdk) |
 | Integrate an AI app with offers | [Query API](specs/query-api.md) | [Schema](https://github.com/agentoffernetwork/schema), [Examples](https://github.com/agentoffernetwork/examples) |
-| Expose partner offers to AON | [OfferProvider API](specs/offer-provider-api.md) | [Partner Integration Guide](https://docs.agentoffernetwork.com/guides/partner-integration) |
+| Expose partner offers to AON | [OfferProvider API](specs/offer-provider-api.md) | [Partner Integration Guide](https://docs.aon.pro/guides/partner-integration) |
 | Propose a protocol change | [RFCs](https://github.com/agentoffernetwork/rfcs) | [Contract Governance](specs/contract-governance.md) |
 
 GitHub is the source for protocol semantics, schemas, examples, and RFCs. The docs site provides guided onboarding, field-level API tables, SDK walkthroughs, and runtime platform notes.
@@ -96,7 +99,7 @@ These specs are published as **v0.1 Draft**. The implementation-ready core is in
 | Repository | Role |
 |------------|------|
 | [`agentoffernetwork/protocol`](https://github.com/agentoffernetwork/protocol) | Human-readable protocol source |
-| [`agentoffernetwork/schema`](https://github.com/agentoffernetwork/schema) | JSON Schema, TypeScript types, and validation guidance |
+| [`agentoffernetwork/schema`](https://github.com/agentoffernetwork/schema) | JSON Schema, TypeScript types, AON Taxonomy data, and AON Location Registry data |
 | [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples) | Canonical request/response payloads |
 | [`agentoffernetwork/rfcs`](https://github.com/agentoffernetwork/rfcs) | Required path for semantic contract changes |
 
@@ -121,7 +124,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed routing guidelines.
 ## Community
 
 - **Website:** [https://agentoffernetwork.org](https://agentoffernetwork.org)
-- **Email:** [info@agentoffernetwork.com](mailto:info@agentoffernetwork.com)
+- **Email:** [info@aon.pro](mailto:info@aon.pro)
 - **Security:** [SECURITY.md](SECURITY.md)
 
 ## License

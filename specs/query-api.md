@@ -22,7 +22,7 @@ Use this API when an agent has user intent and needs ranked commercial offers to
 ## Minimal Request
 
 ```bash
-curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
+curl -s -X POST "https://api.aon.pro/v1/offers/query" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -H "AON-Protocol-Version: 0.1" \
@@ -69,7 +69,9 @@ curl -s -X POST "https://api.agentoffernetwork.com/v1/offers/query" \
 | `context.session_id` | string | `sess_abc123` |
 | `context.user_profile.user_pseudo_id` | string | `viewer_xyz` |
 | `context.user_profile.language` | string | `en` |
-| `context.user_profile.country` | string | `SG` |
+| `context.user_profile.country` | string | `US` |
+| `context.user_profile.location_ids` | string[] | `["1014221", "21137", "2840"]` |
+| `context.user_profile.verified_age_over` | integer[] | `[18]` |
 | `context.user_profile.interests` | string[] | `["travel", "hotels"]` |
 | `context.user_profile.device_info` | object | `{ "device_type": "mobile", "os": "ios" }` |
 | `context.user_profile.device_info.device_type` | string | `mobile` |
@@ -102,30 +104,46 @@ would be invalid unless the constraint is satisfied.
 
 The first public `constraints` surface intentionally exposes only
 `constraints.category_ids`. Bid model, lifecycle status, currency, price,
-brand, and country constraints are not part of the agent-facing Query API
+brand, and location/country constraints are not part of the agent-facing Query API
 contract in this version.
 
-Note: `context.user_profile.country` is a user-profile attribute (not a
-`constraints` entry). It carries the viewer's country for offer geo targeting
-and is used by offer targeting before ranking. It is not a caller-specified
-`constraints.country` search filter.
+Note: `context.user_profile.location_ids` and legacy
+`context.user_profile.country` are user-profile attributes (not `constraints`
+entries). They carry the viewer's resolved location for offer geo targeting and
+are used before ranking. They are not caller-specified location search filters.
 
-`context.user_profile.country` is the platform's best-effort determined country
-for the viewer — it is source-agnostic. When the caller does not provide it,
-the platform fills it via a resolution chain (caller-provided value first, then
-IP-based fallback such as the edge CDN's country header). Consumers should treat
-it as "the country AON determined", not strictly "the country the user typed".
+`context.user_profile.location_ids` contains AON Location Registry v1 location
+IDs, sourced from Google Ads Geo Target Criteria IDs. Callers SHOULD send the
+most specific known location first, followed by broader known ancestors, for
+example San Francisco city, California as a region-level location, then United States country:
+`["1014221", "21137", "2840"]`. The first registry release supports
+`COUNTRY`, `REGION`, and `CITY` levels.
 
-Offer country recall is strict. Offers must declare `targeting[].geo.include`
-with either the determined viewer country or `ALL` to be eligible for recall.
-When no viewer country is available, only offers with `geo.include` containing
-`ALL` are eligible. Offers with missing `targeting`, empty targeting, or missing
-`geo.include` are not globally recalled. Non-country dimensions remain tolerant
-of unknown context: `device_info.device_type` and `device_info.os` are required
-in the canonical public Query contract; callers that cannot determine device
-context MUST send `device_type: "other"` and `os: "other"`.
+`REGION` is AON's normalized public level for a first-level geographic region
+under a country, such as a state, province, prefecture, region, or equivalent.
+The original Google `target_type` is preserved separately in the location
+registry.
 
-### Device, OS, and Country Context
+Location recall is strict and fail-closed. Offers with structured
+`targeting[].geo.include` match when at least one included `location_id` is in
+the viewer's self-or-ancestor `location_ids`; `geo.exclude` wins over include.
+Unknown location IDs fail closed. Missing `targeting`, empty targeting, omitted
+`geo`, omitted `geo.include`, or empty `geo.include` mean the location dimension
+is unconstrained by this contract; they do not create a caller-facing location
+search filter. When `geo.exclude` is present, the platform must be able to
+resolve viewer location to prove the viewer is not excluded. Legacy
+`context.user_profile.country` remains migration-compatible and maps to the
+country-level registry location when structured `location_ids` are absent.
+Non-location dimensions remain tolerant of unknown context:
+`device_info.device_type` and `device_info.os` are required in the canonical
+public Query contract; callers that cannot determine device context MUST send
+`device_type: "other"` and `os: "other"`.
+
+`context.user_profile.verified_age_over` carries non-PII verified threshold
+claims such as `[18]`. It is used to satisfy `targeting[].eligibility.min_age`;
+the Query API does not accept date of birth or exact age.
+
+### Device, OS, Location, and Age Context
 
 `context.user_profile.device_info` carries REQUIRED viewer context for targeting
 and rendering decisions. It is not a semantic ranking prompt and it is not a
@@ -178,8 +196,16 @@ to `macos`, `Chrome OS` to `other`, and `phone` to `mobile`, but those aliases
 are compatibility inputs and not public canonical values.
 
 `context.user_profile.country` is an OPTIONAL uppercase ISO 3166-1 alpha-2
-country code such as `US`, `SG`, or `JP`. It is a viewer context attribute, not
-`constraints.country`.
+country code such as `US`, `SG`, or `JP`. It is a legacy viewer context
+attribute, not `constraints.country`.
+
+`context.user_profile.location_ids` is an OPTIONAL array of numeric-string AON
+Location Registry v1 IDs, such as `["1014221", "21137", "2840"]`. It is the
+canonical location targeting input.
+
+`context.user_profile.verified_age_over` is an OPTIONAL array of integer
+thresholds from 13 through 120, such as `[18]`. It communicates verified
+eligibility thresholds only, not exact age.
 
 `context.user_profile.device_info.os_version` remains an OPTIONAL free-form
 string because OS version formats differ by platform and vendor.
@@ -274,7 +300,7 @@ inside `data`. Do not treat the service envelope as part of the canonical
 AgentOffer Protocol response shape.
 
 For field-level platform API tables, examples, and onboarding guidance, use the
-[AON API Reference](https://docs.agentoffernetwork.com/api/offer-query).
+[AON API Reference](https://docs.aon.pro/api/offer-query).
 
 ```json
 {
@@ -322,8 +348,8 @@ For complete request and response payloads, see [`agentoffernetwork/examples`](h
 |------|------|
 | Validate query requests | [`offer-query-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-query-schema-v0.1.json) |
 | Inspect complete examples | [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples) |
-| Read platform API field tables | [AON API Reference](https://docs.agentoffernetwork.com/api/offer-query) |
-| Run a guided first request | [Docs Quick Start](https://docs.agentoffernetwork.com/quickstart/first-api-call) |
+| Read platform API field tables | [AON API Reference](https://docs.aon.pro/api/offer-query) |
+| Run a guided first request | [Docs Quick Start](https://docs.aon.pro/quickstart/first-api-call) |
 | Understand returned offers | [`offer-schema.md`](offer-schema.md) |
 | Choose categories | [`category-taxonomy.md`](category-taxonomy.md) |
 | Check field lifecycle | [`contract-governance.md`](contract-governance.md) |
@@ -379,5 +405,6 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHOULD", "RECOMMENDED", 
 | 0.1 | 2026-05-22 | Documented `X-AON-TRACE-ID` as a hosted Query API response header and clarified that trace identifiers are not JSON body fields. |
 | 0.1 | 2026-05-22 | Added OPTIONAL `context.user_profile.device_info.user_agent` for diagnostics and compatibility. |
 | 0.1 | 2026-06-03 | Aligned examples and field guidance with Taxonomy v1 `constraints.category_ids`, required `context.user_profile.device_info`, and current category examples. |
+| 0.1 | 2026-06-09 | Added canonical location targeting via AON Location Registry v1 `location_id` values and non-PII age threshold targeting via `verified_age_over` / `eligibility.min_age`. |
 
 </details>
