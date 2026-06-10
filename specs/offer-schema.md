@@ -93,6 +93,7 @@ Design notes:
 | `offer_info.offer_type` | string | REQUIRED | Offer classification such as `physical_product`, `content`, `online_service`, or `offline_service`. |
 | `offer_info.category` | object | REQUIRED | Industry category reference using AON Taxonomy v1. |
 | `offer_info.description` | string | REQUIRED | Core semantic description used by agents and clients. |
+| `offer_info.tags` | array<string> | OPTIONAL | Partner-supplied content matching hints. |
 | `offer_info.commercial` | object | RECOMMENDED | Pricing information, such as consumer-facing price. |
 | `offer_info.start_at` | string | OPTIONAL | RFC 3339 timestamp indicating when the offer becomes active. |
 | `offer_info.expire_at` | string | OPTIONAL | RFC 3339 timestamp indicating when the offer should no longer be surfaced. |
@@ -123,6 +124,7 @@ Design notes:
 - `offer_type` and `category.id` serve different purposes: `offer_type` classifies the **delivery form** (how the offer is fulfilled — physical product, online service, offline service, content), while `category.id` classifies the **industry or service taxonomy node**.
 - Category display labels, parent paths, node depth, and sensitive review defaults are derived from the taxonomy registry. Partner-written Offer payloads do not carry `taxonomy`, `source_path`, `level`, `type`, or `sub_type`.
 - `commercial` stays under `offer_info` so pricing can be read alongside the title, description, and category without changing the category discriminator shape.
+- `offer_info.tags` is an optional set of partner-supplied content matching hints. It MUST NOT replace `offer_info.category.id`, targeting rules, query filters, compliance policy, or guaranteed end-user display. Consumers MAY use it as an additional semantic signal when present.
 
 ### Category IDs
 
@@ -864,6 +866,7 @@ These fields SHOULD be present in the offer object and MUST follow the standard 
 These fields MAY be omitted entirely. When included, they SHOULD follow the specified format:
 
 - `offer_info.start_at` and `offer_info.expire_at`, when present, MUST be valid RFC 3339 timestamps.
+- `offer_info.tags`, when present, MUST be an array of unique non-empty strings, with at most 50 items and each item no longer than 80 characters.
 - `entity.website`, when present, SHOULD be a valid URI.
 - `source`, when present, SHOULD include at least one of `postback_url_template` or `tracking_url_template`.
 - `conversion_rule.minimum_amount`, when present, MUST be a decimal string.
@@ -975,6 +978,7 @@ The following table maps core AON Offer fields to their closest [schema.org](htt
 |-----------|----------------------|-------|
 | `offer_info.title` | `Product.name` / `Offer.name` | Direct mapping. |
 | `offer_info.description` | `Product.description` | Direct mapping. |
+| `offer_info.tags` | `Product.keywords` | Optional semantic keyword hints. |
 | `entity.name` | `Organization.name` / `Brand.name` | Maps to the seller or provider entity. |
 | `offer_info.commercial.price.amount` | `Offer.price` | Direct mapping. |
 | `offer_info.commercial.price.currency` | `Offer.priceCurrency` | ISO 4217. |
@@ -1000,3 +1004,4 @@ The following table maps core AON Offer fields to their closest [schema.org](htt
 | 0.1 | 2026-04-28 | PROTO-F014a Offer Protocol ID Naming Convergence (v0.1 Draft 内部精化, non-breaking): ① Finalized `offer_id` as the stable inventory-level identifier. ② Added REQUIRED top-level `offer_instance_id` as the per-dispatch unique identifier (UUIDv7 recommended) for click → conversion → settlement attribution; carried at the integration layer as `?aon_tracking_id={offer_instance_id}` URL query param + S2S postback body, aligned with Google Ads `gclid` / Meta `fbclid` / TikTok `ttclid` industry pattern. ③ Removed upstream-source identity from the open `offer_info` contract; adapter-source offers persist upstream ids in internal adapter storage outside the open protocol. ④ Updated all 12 example payloads under `examples/http/`. ⑤ Non-breaking justification: protocol still in v0.1 Draft with no GA consumers. Cross-protocol family alignment continues in PROTO-F014b (events.md / postback.md `tracking_id` → `aon_tracking_id`). |
 | 0.1 | 2026-05-18 | SVC-CORE-F024 Offer 定向投放 (non-breaking): Added optional `targeting[].os` (`ios`/`android`/`windows`/`macos`/`linux`) for OS-level targeting, and optional `user_profile.country` (ISO 3166-1 alpha-2) on the Query request for geo targeting. Documented intra-rule AND / inter-rule OR matching semantics. All new fields optional; existing offers and queries unaffected. |
 | 0.1 | 2026-05-22 | Renamed the `travel_hospitality` sub_type `restaurant` to `dining_experience` to avoid mixing hospitality dining experiences with food/grocery retail or delivery offers. |
+| 0.1 | 2026-06-10 | PROTO-F260610062919 Offer Info Tags (non-breaking): Added optional `offer_info.tags` for partner-supplied content matching hints. The field is not a taxonomy replacement, query filter, targeting rule, compliance policy, or guaranteed display contract. |

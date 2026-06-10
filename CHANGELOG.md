@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Non-PII age threshold targeting via Query
   `context.user_profile.verified_age_over` and Offer
   `targeting[].eligibility.min_age`.
+- Optional `offer_info.tags` for partner-supplied content matching hints on
+  returned Offer payloads.
 
 ### Changed
 
