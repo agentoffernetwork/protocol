@@ -777,7 +777,9 @@ Canonical location targeting uses `location_id` values from AON Location
 Registry v1, sourced from Google Ads Geo Target Criteria IDs. The first release
 supports three AON levels: `COUNTRY`, `REGION`, and `CITY`. A viewer matches
 an included location when the viewer's `context.user_profile.location_ids`
-contains that exact location or one of its ancestors. For example, a San
+contains that exact location or one of its ancestors. Ancestor chains are
+derived from the registry's `parent_location_id` links; the registry does not
+publish a separate ancestor cache. For example, a San
 Francisco viewer can match San Francisco city, California as a region-level
 location, or United
 States country rules. Unknown or unsupported location IDs fail closed. Legacy

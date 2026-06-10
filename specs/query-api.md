@@ -117,7 +117,9 @@ IDs, sourced from Google Ads Geo Target Criteria IDs. Callers SHOULD send the
 most specific known location first, followed by broader known ancestors, for
 example San Francisco city, California as a region-level location, then United States country:
 `["1014221", "21137", "2840"]`. The first registry release supports
-`COUNTRY`, `REGION`, and `CITY` levels.
+`COUNTRY`, `REGION`, and `CITY` levels. Ancestor chains are derived from the
+registry's `parent_location_id` links; the public registry does not publish a
+separate ancestor cache.
 
 `REGION` is AON's normalized public level for a first-level geographic region
 under a country, such as a state, province, prefecture, region, or equivalent.

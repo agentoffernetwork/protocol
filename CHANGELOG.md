@@ -29,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Geo targeting semantics now use self-or-ancestor `location_ids`, fail closed
   on unknown locations, and make `geo.exclude` override `geo.include`; legacy
   country strings remain migration-compatible.
+- AON Location Registry v1 exposes `parent_location_id` as the hierarchy source
+  and no longer publishes a separate ancestor cache.
 
 ### Removed
 
