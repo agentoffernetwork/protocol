@@ -36,12 +36,12 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 
 | Surface | Current contract |
 |---------|------------------|
-| Agent-facing discovery | `POST /v1/offers/query` with `context`, `intent`, optional `constraints`, and optional `pagination` |
+| Agent-facing discovery | `POST /v1/offers/query` with `context`, `intent`, optional `placement_id`, optional `constraints`, and optional `pagination` |
 | Returned offers | Canonical response payload is `request_id` + `offers[]` |
 | Offer identity | `offer_id` is the stable inventory Offer; `offer_instance_id` is generated for each served instance |
 | Attribution | Preserve `offers[].offer_instance_id` through click, conversion, and settlement flows |
 | Categories | AON Taxonomy v1 ids in [Category Taxonomy](specs/category-taxonomy.md); current registry includes 24 Level 1 categories and deeper child ids |
-| Location targeting | `targeting[].geo.include/exclude` use AON Location Registry v1 `location_id` values for COUNTRY, REGION, and CITY; legacy country strings remain migration-compatible |
+| Location targeting | `targeting[].geo.include/exclude` use AON Location Registry v1 `location_id` values for COUNTRY, REGION, and CITY; Location Search/Resolve API defines lookup for text, ISO 3166-2, CLDR, Cloudflare, and Google Cloud signals; legacy country strings remain migration-compatible |
 | Age eligibility | `targeting[].eligibility.min_age` pairs with Query `context.user_profile.verified_age_over[]`; do not send DOB or exact age |
 | Status | `v0.1 Draft`, public beta for the core contract surface |
 
@@ -54,12 +54,12 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 | Query offers from an agent or app | [Query API](specs/query-api.md) | [Examples](https://github.com/agentoffernetwork/examples), [Schema](https://github.com/agentoffernetwork/schema) |
 | Understand returned `offers[]` | [Offer Schema](specs/offer-schema.md) | [Offer examples](https://github.com/agentoffernetwork/examples) |
 | Choose categories | [Category Taxonomy](specs/category-taxonomy.md) | [Offer Schema category field](specs/offer-schema.md#offer_infocategory) |
-| Apply location or age eligibility | [Offer Schema targeting](specs/offer-schema.md#targeting-optional) + [Query API context](specs/query-api.md#device-os-location-and-age-context) | [Location registry](https://github.com/agentoffernetwork/schema/blob/main/locations/aon-location-registry-v1.json) |
+| Apply location or age eligibility | [Offer Schema targeting](specs/offer-schema.md#targeting-optional) + [Query API context](specs/query-api.md#device-os-location-and-age-context) | [Location Search API](specs/location-search-api.md), [Location registry](https://github.com/agentoffernetwork/schema/blob/main/locations/aon-location-registry-v1.json) |
 | Track clicks and conversions | [Events](specs/events.md) | [Postback](specs/postback.md) |
 | Check field lifecycle | [Contract Governance](specs/contract-governance.md) | [RFCs](https://github.com/agentoffernetwork/rfcs) |
 | Propose a protocol change | [RFCs](https://github.com/agentoffernetwork/rfcs) | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
-Most integrations start with [`POST /v1/offers/query`](specs/query-api.md): copy the minimal request, send `context` + `intent`, read `request_id` + `offers[]`, and preserve `offers[].offer_instance_id` for attribution.
+Most integrations start with [`POST /v1/offers/query`](specs/query-api.md): copy the minimal request, send `context` + `intent`, optionally include a top-level `placement_id` when your platform has a placement context, read `request_id` + `offers[]`, and preserve `offers[].offer_instance_id` for attribution.
 
 ## Developer Paths
 
@@ -79,6 +79,7 @@ GitHub is the source for protocol semantics, schemas, examples, and RFCs. The do
 |---------------|---------|
 | [Query API](specs/query-api.md) | Offer discovery API for agents and SDKs |
 | [Offer Schema](specs/offer-schema.md) | Canonical offer object with category, action, entity, bid, and attribution fields |
+| [Location Search API](specs/location-search-api.md) | Lookup contract and migration guidance for AON Location Registry ids |
 | [Category Taxonomy](specs/category-taxonomy.md) | Current public category registry and alias boundary |
 | [Events](specs/events.md) | Click and conversion event definitions |
 | [OfferProvider API](specs/offer-provider-api.md) | Partner-facing offer supply API |

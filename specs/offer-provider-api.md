@@ -302,7 +302,7 @@ ranking signals.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `constraints.category_ids[]` | array<string> | AON Taxonomy v1 ids, including Level 1 id `others`. OR-logic within the array; each id matches the selected node and descendants. |
+| `constraints.category_ids[]` | array<string> | AON Taxonomy v1 ids, including Level 1 id `others`. OR-logic within the array; each id matches the selected node and descendants. AON-owned consumers match an offer's primary or secondary category. |
 
 Bid model, lifecycle status, availability, price, currency, brand, country, and
 tag constraints are intentionally not part of the v0.1 OfferProvider request

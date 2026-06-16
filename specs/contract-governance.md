@@ -49,6 +49,25 @@ Canonical agent-facing request constraints:
 | --- | --- |
 | `constraints.category_ids` | Structured AON Taxonomy v1 eligibility constraint |
 
+Canonical agent-facing request body fields are tracked separately from
+response-oriented `canonical_fields` in the manifest. The `request_fields`
+group is an additive manifest key under `contracts[].contract_id ==
+"offers.query"` and keeps the root request body shape reviewable without
+overloading response field lifecycle records. This addition is backward
+compatible with `aon-contract-governance/v0.1`; consumers that do not understand
+the key may ignore it.
+
+| Field | Context |
+| --- | --- |
+| `request_id` | `request-body.optional` |
+| `timestamp` | `request-body.optional` |
+| `test_mode` | `request-body.optional` |
+| `placement_id` | `request-body.optional` |
+| `context` | `request-body.required` |
+| `intent` | `request-body.required` |
+| `constraints` | `request-body.optional` |
+| `pagination` | `request-body.optional` |
+
 Historical, compatibility, internal, or removed fields:
 
 | Field | Status | Handling |
@@ -89,6 +108,7 @@ Two manifest keys are especially important for downstream checks:
 | `stale_field_denylist` | Fields that must not appear in active public integration paths without an allowed context |
 | `compatibility_allowlist` | Historical, migration, compatibility, or internal contexts where otherwise stale field names may appear |
 | `taxonomy_registry` | AON Taxonomy v1 source tree, migration mapping, and drift guard source refs |
+| `request_fields` | Additive `offers.query` request-body field group. Each entry has `path`, `context`, and `description`; lifecycle is implied by this group. |
 
 ## Release Checklist
 
@@ -102,3 +122,4 @@ Before publishing public protocol surfaces:
 6. Confirm public GitHub protocol/schema/examples are aligned.
 7. Register downstream follow-up work for known remaining drift.
 8. Run the AON Taxonomy v1 drift guard when taxonomy ids or examples change.
+9. When Query request-body fields change, update the `request_fields` manifest group as one coherent set rather than adding an isolated field.

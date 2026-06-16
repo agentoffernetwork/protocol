@@ -22,6 +22,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `targeting[].eligibility.min_age`.
 - Optional `offer_info.tags` for partner-supplied content matching hints on
   returned Offer payloads.
+- Optional `offer_info.secondary_category_ids` for auxiliary AON Taxonomy v1
+  ids on returned Offer payloads. These ids participate in AON-owned category
+  matching and safety filtering while `offer_info.category.id` remains the
+  primary category.
+- AON Taxonomy v1 node
+  `finance.investing.crypto_and_digital_assets` for crypto trading, digital
+  asset investment, and related finance offers.
+- Location Search API protocol contract for resolving AON Location Registry v1
+  ids by name, country, level, subdivision code, external code resolve, and
+  exact `location_id` lookup.
 
 ### Changed
 

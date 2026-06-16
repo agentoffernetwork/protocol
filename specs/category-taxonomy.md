@@ -141,6 +141,7 @@ Required AON-owned public taxonomy ids:
 |-------------|-------|
 | `arts_entertainment.adult_entertainment` | Public adult category; platform derives internal sensitive review |
 | `arts_entertainment.igaming` | Real-money iGaming / online casino / betting category |
+| `finance.investing.crypto_and_digital_assets` | Crypto trading, digital asset investment, and related services under Finance > Investing |
 
 ## Query and Provider Constraints
 
@@ -158,6 +159,8 @@ Matching semantics:
 
 - OR logic within the array.
 - Each id matches the selected taxonomy node and its descendants.
+- Matching checks an offer's primary `offer_info.category.id` and any optional
+  `offer_info.secondary_category_ids` using the same subtree semantics.
 - `others` is a standard Level 1 id with no child categories in this version,
   so `category_ids=["others"]` currently matches only stored id `others`.
 - Category ids are case-sensitive; use lowercase canonical ids such as `others`.
@@ -204,7 +207,8 @@ The guard:
 2. Checks id uniqueness.
 3. Verifies required AON-owned ids.
 4. Validates v0.1 migration targets.
-5. Scans examples for `offer_info.category.id` and `category_ids`.
+5. Scans examples for `offer_info.category.id`, `offer_info.secondary_category_ids`,
+   and `category_ids`.
 6. Fails on any id that does not exist in the registry.
 
 ## External Taxonomies

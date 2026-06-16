@@ -91,7 +91,8 @@ Design notes:
 |------|------|-------|-------------|
 | `offer_info.title` | string | REQUIRED | Display-ready title. |
 | `offer_info.offer_type` | string | REQUIRED | Offer classification such as `physical_product`, `content`, `online_service`, or `offline_service`. |
-| `offer_info.category` | object | REQUIRED | Industry category reference using AON Taxonomy v1. |
+| `offer_info.category` | object | REQUIRED | Primary category reference using AON Taxonomy v1. |
+| `offer_info.secondary_category_ids` | array<string> | OPTIONAL | Auxiliary AON Taxonomy v1 category ids for offers with additional taxonomy meanings beyond the primary category. |
 | `offer_info.description` | string | REQUIRED | Core semantic description used by agents and clients. |
 | `offer_info.tags` | array<string> | OPTIONAL | Partner-supplied content matching hints. |
 | `offer_info.commercial` | object | RECOMMENDED | Pricing information, such as consumer-facing price. |
@@ -103,11 +104,23 @@ Design notes:
 
 #### `offer_info.category`
 
-`category` contains the AON Taxonomy v1 category reference for the Offer.
+`category` contains the primary AON Taxonomy v1 category reference for the Offer.
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
 | `offer_info.category.id` | string | REQUIRED | Stable AON Taxonomy v1 category id. `others` is a standard Level 1 id for offers whose best available taxonomy classification is the fallback category. See [Category Taxonomy](./category-taxonomy.md). |
+
+#### `offer_info.secondary_category_ids`
+
+`secondary_category_ids` is an optional array of auxiliary AON Taxonomy v1 ids.
+Use it when an offer has additional standard category meanings that should help
+matching or filtering, but do not replace the primary category. For example, an
+app may keep a primary app/software category while also declaring
+`finance.investing.crypto_and_digital_assets` as a secondary category.
+
+`constraints.category_ids` matches the primary category or secondary category
+ids using the same subtree semantics. `offer_info.tags` remains partner-supplied
+semantic hints only and must not be treated as deterministic category ids.
 
 ##### `offer_info.commercial`
 
@@ -121,7 +134,8 @@ Design notes:
 
 Design notes:
 
-- `offer_type` and `category.id` serve different purposes: `offer_type` classifies the **delivery form** (how the offer is fulfilled — physical product, online service, offline service, content), while `category.id` classifies the **industry or service taxonomy node**.
+- `offer_type` and `category.id` serve different purposes: `offer_type` classifies the **delivery form** (how the offer is fulfilled — physical product, online service, offline service, content), while `category.id` classifies the **primary industry or service taxonomy node**.
+- `offer_info.secondary_category_ids` carries auxiliary taxonomy ids. It participates in AON-owned category matching and safety filtering, but it does not make `offer_info.category` an array and does not replace the primary category.
 - Category display labels, parent paths, node depth, and sensitive review defaults are derived from the taxonomy registry. Partner-written Offer payloads do not carry `taxonomy`, `source_path`, `level`, `type`, or `sub_type`.
 - `commercial` stays under `offer_info` so pricing can be read alongside the title, description, and category without changing the category discriminator shape.
 - `offer_info.tags` is an optional set of partner-supplied content matching hints. It MUST NOT replace `offer_info.category.id`, targeting rules, query filters, compliance policy, or guaranteed end-user display. Consumers MAY use it as an additional semantic signal when present.
@@ -777,8 +791,14 @@ A targeting rule matches a user when **every** dimension it declares is satisfie
 
 Canonical location targeting uses `location_id` values from AON Location
 Registry v1, sourced from Google Ads Geo Target Criteria IDs. The first release
-supports three AON levels: `COUNTRY`, `REGION`, and `CITY`. A viewer matches
-an included location when the viewer's `context.user_profile.location_ids`
+supports three AON levels: `COUNTRY`, `REGION`, and `CITY`. Use the
+[Location Search API](location-search-api.md) protocol contract or the static
+registry when a partner portal needs to help operators select ids or resolve
+ISO 3166-2, CLDR, Cloudflare, or Google Cloud location signals. External codes
+are lookup aliases only; `targeting[].geo.include/exclude` MUST store AON
+`location_id` entries, not `US-CA`, `USCA`, `cf-region-code`, or
+`client_region_subdivision`. A viewer matches an included location when the
+viewer's `context.user_profile.location_ids`
 contains that exact location or one of its ancestors. Ancestor chains are
 derived from the registry's `parent_location_id` links; the registry does not
 publish a separate ancestor cache. For example, a San

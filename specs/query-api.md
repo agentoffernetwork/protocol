@@ -1,7 +1,7 @@
 # Offer Query API v0.1
 
 - **Status**: Draft
-- **Last Updated**: 2026-05-15
+- **Last Updated**: 2026-06-12
 - **Source**: `agentoffernetwork/protocol/specs/query-api.md`
 
 Use this API when an agent has user intent and needs ranked commercial offers to recommend, compare, or present.
@@ -15,7 +15,7 @@ Use this API when an agent has user intent and needs ranked commercial offers to
 | Auth | `Authorization: Bearer YOUR_API_KEY` |
 | Content-Type | `application/json` |
 | Protocol-Version | `AON-Protocol-Version: 0.1` recommended. SDKs send it by default. |
-| Request | `context` + `intent`, optional `constraints` and `pagination` |
+| Request | `context` + `intent`, optional `placement_id`, `constraints`, and `pagination` |
 | Response | `request_id` + `offers[]` |
 | Response Header | `X-AON-TRACE-ID` for diagnostics; not part of the JSON payload. |
 
@@ -59,6 +59,7 @@ curl -s -X POST "https://api.aon.pro/v1/offers/query" \
 | `request_id` | OPTIONAL | UUIDv7 recommended. Server generates one when omitted. |
 | `timestamp` | OPTIONAL | RFC 3339 timestamp. Server uses current time when omitted. |
 | `test_mode` | OPTIONAL | `true` marks the request as a test and should avoid real billing/tracking effects. |
+| `placement_id` | OPTIONAL | Top-level request body field for platform-defined placement routing. It is not a URL query parameter and must not be nested under `constraints`. |
 
 ### Common Request Fields
 
@@ -80,6 +81,7 @@ curl -s -X POST "https://api.aon.pro/v1/offers/query" \
 | `context.user_profile.device_info.user_agent` | string | `Mozilla/5.0` |
 | `intent.content[].text` | string | `Find me a luxury hotel in Tokyo` |
 | `constraints.category_ids` | string[] | `["travel_tourism"]` |
+| `placement_id` | string | `plc_A1b2C3d4E5f6G7h8` |
 | `pagination.limit` | integer | `10` |
 | `pagination.offset` | integer | `0` |
 
@@ -94,6 +96,35 @@ curl -s -X POST "https://api.aon.pro/v1/offers/query" \
 | `offer_info.offer_type` | `physical_product`, `digital_goods`, `content`, `online_service`, `offline_service` |
 
 See [`category-taxonomy.md`](category-taxonomy.md) and [`offer-schema.md`](offer-schema.md) for the full category, offer, bid, and lifecycle definitions.
+
+Category constraints match an offer's primary or secondary category. In other
+words, `constraints.category_ids[]` is evaluated against
+`offer_info.category.id` and optional `offer_info.secondary_category_ids[]`,
+with the same exact-or-descendant subtree semantics.
+
+### Placement Routing
+
+`placement_id` is an OPTIONAL top-level request body field. It identifies a
+platform-defined placement, ad slot, or inventory context that the hosted API
+may use before ranking. It is a provider-neutral bounded opaque string in the
+protocol schema: the public contract does not require a specific prefix or
+embedded meaning. Hosted AON placement IDs such as `plc_A1b2C3d4E5f6G7h8` are
+platform examples, not a protocol grammar.
+
+Canonical examples may include a demonstrative `placement_id`; replace it with
+a placement configured for your app, or omit the field entirely for network-wide
+query behavior.
+
+<!-- AON-PLACEMENT-MIGRATION: retained only as an explicit anti-pattern example. -->
+Do not send placement as `/v1/offers?placement_id=...` and do not put it under
+`constraints`. `constraints` remains a deterministic eligibility filter group;
+placement routing belongs to the request envelope around the query.
+
+Unknown, inactive, malformed, unauthorized, or unsupported placement handling is
+platform-defined. Hosted platform APIs may surface those cases through their
+service envelope error semantics, for example a non-`SUCCESS` `code` such as
+`INVALID_PLACEMENT`, without adding envelope fields to the canonical protocol
+payload.
 
 ### Constraints Semantics
 
@@ -115,11 +146,19 @@ are used before ranking. They are not caller-specified location search filters.
 `context.user_profile.location_ids` contains AON Location Registry v1 location
 IDs, sourced from Google Ads Geo Target Criteria IDs. Callers SHOULD send the
 most specific known location first, followed by broader known ancestors, for
-example San Francisco city, California as a region-level location, then United States country:
+example San Francisco city, California as a region-level location, then United States country.
+Use the [Location Search API](location-search-api.md) protocol contract or the
+static registry helper when an integration needs to resolve human-readable
+locations, ISO 3166-2 subdivision codes, Cloudflare visitor location headers,
+or Google Cloud location headers into ids:
 `["1014221", "21137", "2840"]`. The first registry release supports
 `COUNTRY`, `REGION`, and `CITY` levels. Ancestor chains are derived from the
 registry's `parent_location_id` links; the public registry does not publish a
 separate ancestor cache.
+
+External codes such as `US-CA`, `USCA`, `cf-region-code`, and
+`client_region_subdivision` are lookup inputs only. They MUST NOT be sent in
+`context.user_profile.location_ids`.
 
 `REGION` is AON's normalized public level for a first-level geographic region
 under a country, such as a state, province, prefecture, region, or equivalent.
