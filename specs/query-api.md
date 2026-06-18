@@ -93,7 +93,7 @@ curl -s -X POST "https://api.aon.pro/v1/offers/query" \
 | `constraints.category_ids` | AON Taxonomy v1 ids such as `travel_tourism`, `finance.credit_lending`, `others`, `arts_entertainment.igaming` |
 | `context.user_profile.device_info.device_type` | `desktop`, `mobile`, `tablet`, `smart_tv`, `other` |
 | `context.user_profile.device_info.os` | `ios`, `android`, `windows`, `macos`, `other` |
-| `offer_info.offer_type` | `physical_product`, `digital_goods`, `content`, `online_service`, `offline_service` |
+| `offer_info.offer_type` | OPTIONAL fulfillment hint: `physical_product`, `digital_goods`, `content`, `online_service`, `offline_service` |
 
 See [`category-taxonomy.md`](category-taxonomy.md) and [`offer-schema.md`](offer-schema.md) for the full category, offer, bid, and lifecycle definitions.
 

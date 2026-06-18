@@ -54,6 +54,7 @@ The protocol classifies fields into three requirement levels to balance standard
 | `bid` | object | REQUIRED | Affiliate bid and payout information associated with the offer. |
 | `conversion_rule` | object | RECOMMENDED | Rules for valid conversion events and attribution logic. |
 | `source` | object | OPTIONAL | Offer source and tracking configuration. |
+| `extra` | object | OPTIONAL | Offer-level open extension metadata. This is `offer.extra`, distinct from API response envelope `extra`. |
 
 ## Object Model
 
@@ -90,7 +91,7 @@ Design notes:
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
 | `offer_info.title` | string | REQUIRED | Display-ready title. |
-| `offer_info.offer_type` | string | REQUIRED | Offer classification such as `physical_product`, `content`, `online_service`, or `offline_service`. |
+| `offer_info.offer_type` | string | OPTIONAL | Fulfillment hint such as `physical_product`, `digital_goods`, `content`, `online_service`, or `offline_service`. |
 | `offer_info.category` | object | REQUIRED | Primary category reference using AON Taxonomy v1. |
 | `offer_info.secondary_category_ids` | array<string> | OPTIONAL | Auxiliary AON Taxonomy v1 category ids for offers with additional taxonomy meanings beyond the primary category. |
 | `offer_info.description` | string | REQUIRED | Core semantic description used by agents and clients. |
@@ -134,7 +135,7 @@ semantic hints only and must not be treated as deterministic category ids.
 
 Design notes:
 
-- `offer_type` and `category.id` serve different purposes: `offer_type` classifies the **delivery form** (how the offer is fulfilled — physical product, online service, offline service, content), while `category.id` classifies the **primary industry or service taxonomy node**.
+- `offer_type` and `category.id` serve different purposes: optional `offer_type` describes the **delivery form** when supplied (how the offer is fulfilled — physical product, digital goods, online service, offline service, content), while `category.id` classifies the **primary industry or service taxonomy node**.
 - `offer_info.secondary_category_ids` carries auxiliary taxonomy ids. It participates in AON-owned category matching and safety filtering, but it does not make `offer_info.category` an array and does not replace the primary category.
 - Category display labels, parent paths, node depth, and sensitive review defaults are derived from the taxonomy registry. Partner-written Offer payloads do not carry `taxonomy`, `source_path`, `level`, `type`, or `sub_type`.
 - `commercial` stays under `offer_info` so pricing can be read alongside the title, description, and category without changing the category discriminator shape.
@@ -735,16 +736,27 @@ Legacy fields previously associated with `automotive` sub-types:
 | `entity.type` | string | OPTIONAL | Entity classification: `business`, `individual`, or `institution`. |
 | `entity.description` | string | OPTIONAL | Short description of the entity. |
 | `entity.website` | string | OPTIONAL | Canonical website for the entity. |
+| `entity.logo` | object | OPTIONAL | Canonical merchant/entity logo for identity display. Distinct from `material[]` creative assets. |
+
+#### `entity.logo`
+
+| Field | Type | Level | Description |
+|------|------|-------|-------------|
+| `entity.logo.url` | string | REQUIRED | Stable public HTTP(S) URL of the entity logo image. |
+| `entity.logo.alt_text` | string | OPTIONAL | Accessible text for the logo. Consumers may fall back to `entity.name` when absent. |
 
 ### Action
 
-`action` describes how the offer is executed. `action.type` expresses the execution mechanism.
+`action` describes how the offer is executed. `action.type` expresses the execution mechanism; `action.destination_types` describes the target shape for UI/display hints.
+
+`action.destination_types` is not a list of click URLs, fallback URLs, or destinations to try in order. It does not express priority, and `action.payload.target` remains the executable target used by the action/tracking flow.
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
 | `action.type` | string | REQUIRED | Executable action type: `web_redirect` or `app_deep_link`. |
 | `action.name` | string | RECOMMENDED | Short user-facing action name (CTA text). |
 | `action.description` | string | OPTIONAL | Explanation of the action intent or destination. |
+| `action.destination_types` | array | OPTIONAL | Target shape hints for UI/display. Items: `website`, `app_store`, `google_play`, `apk`, `agent`, `others`. When present, the array MUST be non-empty and unique; order does not express priority. |
 | `action.payload` | object | REQUIRED | Action-specific payload. Structure depends on `action.type`. |
 
 #### `action.payload`
@@ -865,7 +877,6 @@ Design notes:
 - `offer_instance_id` MUST be a non-empty string. UUIDv7 format is recommended.
 - `version` MUST be a non-empty string.
 - `offer_info.title` MUST be a non-empty string suitable for direct display.
-- `offer_info.offer_type` MUST be a non-empty string that classifies the offer.
 - `offer_info.category.id` MUST be present and SHOULD reference a registered AON Taxonomy v1 node.
 - `offer_info.description` MUST be a non-empty string suitable for semantic retrieval and end-user display.
 - `entity.id` and `entity.name` are both REQUIRED.
@@ -885,9 +896,13 @@ These fields SHOULD be present in the offer object and MUST follow the standard 
 
 These fields MAY be omitted entirely. When included, they SHOULD follow the specified format:
 
+- `offer_info.offer_type`, when present, MUST be one of the public fulfillment values: `physical_product`, `digital_goods`, `content`, `online_service`, or `offline_service`. It MUST NOT be `null`, an empty string, `unknown`, or an arbitrary non-enum value. If the source offer did not provide a fulfillment form, omit the field in public protocol JSON.
 - `offer_info.start_at` and `offer_info.expire_at`, when present, MUST be valid RFC 3339 timestamps.
 - `offer_info.tags`, when present, MUST be an array of unique non-empty strings, with at most 50 items and each item no longer than 80 characters.
 - `entity.website`, when present, SHOULD be a valid URI.
+- `entity.logo`, when present, MUST be an object with a valid HTTP(S) `url`. `entity.logo` is the canonical merchant/entity identity logo and MUST NOT be inferred from `material[]` or stored in `offer.extra`.
+- `action.destination_types`, when present, MUST be a non-empty array of unique values from `website`, `app_store`, `google_play`, `apk`, `agent`, and `others`. It is display metadata only; it MUST NOT replace `action.type` or `action.payload.target`.
+- `offer.extra`, when present, MUST be a JSON object. Its internal keys are not standardized in v0.1, and values MAY be any valid JSON value. In Query API responses this appears as `data.offers[].extra`; it is not the response envelope `extra`.
 - `source`, when present, SHOULD include at least one of `postback_url_template` or `tracking_url_template`.
 - `conversion_rule.minimum_amount`, when present, MUST be a decimal string.
 - `conversion_rule.dedup_strategy`, when present, MUST be one of `first`, `all`, or `highest`.
@@ -896,7 +911,7 @@ These fields MAY be omitted entirely. When included, they SHOULD follow the spec
 
 All enumeration types defined in this specification (`bid.model`, `offer_info.offer_type`, `offer_info.status`, `conversion_rule.attribution_model`, `conversion_rule.dedup_strategy`, etc.) follow an **open-ended design**. The protocol reserves the right to introduce new enumeration values in future revisions without treating the addition as a breaking change. Taxonomy values are governed by AON Taxonomy v1 registry ids.
 
-Consumers SHOULD handle unknown enumeration values gracefully — either by ignoring the unrecognized value or passing it through — rather than returning an error or rejecting the entire offer document. This principle enables the protocol to evolve incrementally while maintaining backward compatibility with existing implementations.
+Consumers SHOULD handle future enumeration values gracefully once they are introduced by the public schema. The storage-only sentinel `unknown` used by some AON internal flat columns is not a public `offer_info.offer_type` value and MUST NOT be emitted in protocol JSON.
 
 ## Example
 
@@ -1025,3 +1040,5 @@ The following table maps core AON Offer fields to their closest [schema.org](htt
 | 0.1 | 2026-05-18 | SVC-CORE-F024 Offer 定向投放 (non-breaking): Added optional `targeting[].os` (`ios`/`android`/`windows`/`macos`/`linux`) for OS-level targeting, and optional `user_profile.country` (ISO 3166-1 alpha-2) on the Query request for geo targeting. Documented intra-rule AND / inter-rule OR matching semantics. All new fields optional; existing offers and queries unaffected. |
 | 0.1 | 2026-05-22 | Renamed the `travel_hospitality` sub_type `restaurant` to `dining_experience` to avoid mixing hospitality dining experiences with food/grocery retail or delivery offers. |
 | 0.1 | 2026-06-10 | PROTO-F260610062919 Offer Info Tags (non-breaking): Added optional `offer_info.tags` for partner-supplied content matching hints. The field is not a taxonomy replacement, query filter, targeting rule, compliance policy, or guaranteed display contract. |
+| 0.1 | 2026-06-17 | PROTO-F260617101638 Offer Destination Metadata (non-breaking): Added optional `action.destination_types` as non-empty unique target-shape hints and optional top-level `offer.extra` as open JSON object metadata. `action.type` remains the execution mechanism, and `action.payload.target` remains the executable tracking target. |
+| 0.1 | 2026-06-17 | PROTO-F260617101638 Offer Entity Logo (non-breaking): Added optional `entity.logo` with required stable public `url` and optional `alt_text` for merchant/entity identity display. `material[]` remains offer creative assets and is not the canonical merchant logo. |
