@@ -161,6 +161,9 @@ Matching semantics:
 - Each id matches the selected taxonomy node and its descendants.
 - Matching checks an offer's primary `offer_info.category.id` and any optional
   `offer_info.secondary_category_ids` using the same subtree semantics.
+- Secondary ids are auxiliary cross-branch classifications. They must not repeat
+  the primary category and must not be an ancestor or descendant of the primary
+  category or another secondary id.
 - `others` is a standard Level 1 id with no child categories in this version,
   so `category_ids=["others"]` currently matches only stored id `others`.
 - Category ids are case-sensitive; use lowercase canonical ids such as `others`.

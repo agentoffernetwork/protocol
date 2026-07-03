@@ -42,6 +42,7 @@ AgentOffer v0.1 defines two core event types:
 |------|------|----------|-------------|
 | `event_type` | string | Yes | Fixed value: `"click"`. |
 | `aon_tracking_id` | string | Yes | Unique identifier of the tracking link instance. |
+| `click_id` | string | No | AON-generated per-click event identifier. Exposed to landing URLs through `{CLICK_ID}` or the `aon_click_id` fallback query parameter. |
 | `offer_id` | string | Yes | Identifier of the recommended offer. |
 | `agent_id` | string | Yes | Identifier of the agent that issued the recommendation. |
 | `session_id` | string | No | Optional session or conversation correlation identifier. |
@@ -59,6 +60,7 @@ AgentOffer v0.1 defines two core event types:
 {
   "event_type": "click",
   "aon_tracking_id": "trk_01_click_abc",
+  "click_id": "aci_019e30f2-1b35-7b58-b47d-2cc086ace710",
   "offer_id": "ao_01HX2B3C4D5E6F7G8H9J0KABCD",
   "agent_id": "agt_assistant_123",
   "session_id": "sess_chat_456",
@@ -74,7 +76,9 @@ AgentOffer v0.1 defines two core event types:
 | Field | Type | Required | Description |
 |------|------|----------|-------------|
 | `event_type` | string | Yes | Fixed value: `"conversion"`. |
-| `aon_tracking_id` | string | Yes | Tracking identifier previously associated with a click event. |
+| `aon_tracking_id` | string | Yes | Dispatch-level tracking identifier previously associated with a click event. Kept as the legacy fallback attribution key. |
+| `click_id` | string | No | Canonical AON-generated `aci_...` per-click event identifier when conversion attribution is click-level. |
+| `aon_click_id` | string | No | AON-owned fallback field carrying the same `aci_...` value as `click_id` when the landing URL used the `aon_click_id` query parameter. |
 | `offer_id` | string | Yes | Identifier of the converted offer. |
 | `agent_id` | string | Yes | Identifier of the agent that drove the conversion. |
 | `order_id` | string | Yes | Advertiser-side order or action identifier. |
@@ -91,6 +95,7 @@ AgentOffer v0.1 defines two core event types:
 {
   "event_type": "conversion",
   "aon_tracking_id": "trk_01_click_abc",
+  "click_id": "aci_019e30f2-1b35-7b58-b47d-2cc086ace710",
   "offer_id": "ao_01HX2B3C4D5E6F7G8H9J0KABCD",
   "agent_id": "agt_assistant_123",
   "order_id": "ord_987654",
@@ -155,7 +160,7 @@ Emitted when an Offer is temporarily paused by the advertiser.
 - Event payloads are intentionally flat in v0.1 so they are easy to emit from multiple systems without schema translation overhead.
 - `session_id` is optional because not every surface has stable conversation state, but it is valuable when agents need recommendation traceability.
 - `bid_amount` lives on the conversion event so downstream settlement systems can consume a single normalized record.
-- `aon_tracking_id` is the shared join key across click and conversion flows in v0.1.
+- `aon_tracking_id` is the dispatch-level join key across click and conversion flows in v0.1. `click_id` / `aon_click_id` identify a specific click event and take precedence when present; `aon_tracking_id` remains the fallback for legacy integrations.
 - `offer_id` examples use the same `ao_{ulid}` shape as the reference Offer Schema so event records can be joined to canonical offer documents without translation.
 - `sub_id_1` through `sub_id_5` follow the numbered naming convention used by industry affiliate networks (e.g., Impact, CJ Affiliate) to maximize data import compatibility. Five sub-IDs is the protocol ceiling; extending beyond five requires a protocol revision.
 - `conversion_type` is a separate field from `event_type` for backward compatibility. `event_type` remains `"conversion"` for all conversion events, while `conversion_type` provides the fine-grained classification (sale, lead, install, etc.). This avoids breaking consumers that switch on `event_type`.
@@ -170,3 +175,4 @@ Emitted when an Offer is temporarily paused by the advertiser.
 | 0.1 | 2026-03-20 | Clarified mapping to settlement fields from the reference Offer Schema and aligned `offer_id` examples with the canonical ID format. |
 | 0.1 | 2026-03-28 | PROTO-F004 revision: added Conformance Keywords section; added `sub_id_1`–`sub_id_5` to Click Event; added `conversion_type` and `sub_id_1`–`sub_id_5` to Conversion Event; added Postback Notification chapter; added Offer Lifecycle Events (P2) chapter; updated Design Decisions with sub-ID naming rationale, conversion_type separation rationale, POST-only postback design, and enum extensibility policy; removed placeholder status and forward-looking language. |
 | 0.1 | 2026-04-17 | PROTO-F010: Consolidated Postback Notification section into dedicated `postback.md`; replaced detailed content with overview and pointer. Lifecycle Events note updated to reference `postback.md`. |
+| 0.1 | 2026-06-30 | Added click-level attribution fields: `click_id` as the canonical per-click event ID and `aon_click_id` as the landing URL fallback field. Clarified that `aon_tracking_id` remains the dispatch-level fallback key. |

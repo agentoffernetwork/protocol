@@ -44,7 +44,7 @@ The protocol classifies fields into three requirement levels to balance standard
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
 | `offer_id` | string | REQUIRED | Stable inventory-level offer identifier. UUIDv7 is recommended. Same value across multiple query responses for the same offer. |
-| `offer_instance_id` | string | REQUIRED | Per-dispatch unique identifier. UUIDv7 is recommended. Generated fresh for each query response and used as the primary key for click → conversion → settlement attribution. Carried at the integration layer as `?aon_tracking_id={offer_instance_id}` (URL query param + S2S postback). |
+| `offer_instance_id` | string | REQUIRED | Per-dispatch unique identifier. UUIDv7 is recommended. Generated fresh for each query response and used as the dispatch-level fallback key for click → conversion → settlement attribution. Carried at the integration layer as `?aon_tracking_id={offer_instance_id}` (URL query param + S2S postback). Per-click attribution uses the click-level `{CLICK_ID}` / `aon_click_id` value generated at redirect time. |
 | `version` | string | REQUIRED | Offer document version. Indicates which schema revision the offer instance conforms to. Current value: `"1.0"`. |
 | `offer_info` | object | REQUIRED | Core descriptive, categorical, and commercial information for the offer. |
 | `entity` | object | REQUIRED | Business entity the offer belongs to. |
@@ -76,12 +76,16 @@ Design notes:
   each query response). It is the same value carried at the integration
   layer as the `aon_tracking_id` URL query parameter on landing-page
   redirects (`?aon_tracking_id={offer_instance_id}`) and as the
-  `aon_tracking_id` field in S2S postback bodies. The `aon_tracking_id`
-  pattern aligns with industry conventions like Google Ads `gclid`, Meta
-  `fbclid`, TikTok `ttclid`, and Microsoft `msclkid`. AON keeps the
-  protocol-side field name neutral (`offer_instance_id`) for protocol
-  openness, while expressing the brand prefix only at the integration
-  layer (URL/S2S contracts).
+  `aon_tracking_id` field in S2S postback bodies. It remains the
+  dispatch-level fallback key for legacy integrations. Actual click-level
+  attribution uses a distinct per-click ID generated at redirect time and
+  exposed either through the canonical `{CLICK_ID}` landing URL macro or
+  the AON-owned `aon_click_id` fallback query parameter. The
+  `aon_tracking_id` / `aon_click_id` pattern aligns with industry
+  conventions like Google Ads `gclid`, Meta `fbclid`, TikTok `ttclid`, and
+  Microsoft `msclkid`. AON keeps the protocol-side field name neutral
+  (`offer_instance_id`) for protocol openness, while expressing the brand
+  prefix only at the integration layer (URL/S2S contracts).
 - `version` enables forward compatibility when the schema evolves.
 
 ### Offer Information
@@ -115,7 +119,10 @@ Design notes:
 
 `secondary_category_ids` is an optional array of auxiliary AON Taxonomy v1 ids.
 Use it when an offer has additional standard category meanings that should help
-matching or filtering, but do not replace the primary category. For example, an
+matching or filtering, but do not replace the primary category. Each secondary
+id MUST be from a different taxonomy branch than `offer_info.category.id` and
+the other secondary ids: do not repeat the primary category, and do not list an
+ancestor or descendant of the primary or another secondary id. For example, an
 app may keep a primary app/software category while also declaring
 `finance.investing.crypto_and_digital_assets` as a secondary category.
 
@@ -136,7 +143,7 @@ semantic hints only and must not be treated as deterministic category ids.
 Design notes:
 
 - `offer_type` and `category.id` serve different purposes: optional `offer_type` describes the **delivery form** when supplied (how the offer is fulfilled — physical product, digital goods, online service, offline service, content), while `category.id` classifies the **primary industry or service taxonomy node**.
-- `offer_info.secondary_category_ids` carries auxiliary taxonomy ids. It participates in AON-owned category matching and safety filtering, but it does not make `offer_info.category` an array and does not replace the primary category.
+- `offer_info.secondary_category_ids` carries auxiliary taxonomy ids. It participates in AON-owned category matching and safety filtering, but it does not make `offer_info.category` an array and does not replace the primary category. Secondary ids must be cross-branch; parent/child combinations belong in the more specific primary category instead.
 - Category display labels, parent paths, node depth, and sensitive review defaults are derived from the taxonomy registry. Partner-written Offer payloads do not carry `taxonomy`, `source_path`, `level`, `type`, or `sub_type`.
 - `commercial` stays under `offer_info` so pricing can be read alongside the title, description, and category without changing the category discriminator shape.
 - `offer_info.tags` is an optional set of partner-supplied content matching hints. It MUST NOT replace `offer_info.category.id`, targeting rules, query filters, compliance policy, or guaranteed end-user display. Consumers MAY use it as an additional semantic signal when present.
@@ -747,17 +754,58 @@ Legacy fields previously associated with `automotive` sub-types:
 
 ### Action
 
-`action` describes how the offer is executed. `action.type` expresses the execution mechanism; `action.destination_types` describes the target shape for UI/display hints.
+`action` describes how the offer is executed. `action.type` expresses the execution mechanism; `action.destination_types` describes the target shape for UI/display hints; `action.consumer_action` describes the main end-user action semantic for display fallback and consumer-owned analytics.
 
 `action.destination_types` is not a list of click URLs, fallback URLs, or destinations to try in order. It does not express priority, and `action.payload.target` remains the executable target used by the action/tracking flow.
+
+`action.name` remains advertiser-supplied CTA text and MUST NOT be treated as a machine-readable enum. Consumer UI SHOULD display `action.name` when present; when absent, consumers MAY map known `action.consumer_action` values to local default CTA labels, then fall back to a generic CTA. Missing or future-unknown `consumer_action` values MUST NOT hide the CTA or interrupt clicks; `action.payload.target` and the AON tracking URL remain the executable click targets.
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
 | `action.type` | string | REQUIRED | Executable action type: `web_redirect` or `app_deep_link`. |
 | `action.name` | string | RECOMMENDED | Short user-facing action name (CTA text). |
+| `action.consumer_action` | string | RECOMMENDED | Main end-user action semantic for display fallback and consumer-owned analytics. Values: `learn_more`, `watch`, `play`, `listen`, `install`, `download`, `registration`, `sign_up`, `subscribe`, `purchase`, `apply`, `submission`, `start_trial`, `read`, `book`, `claim`, `redeem`, `contact`. |
 | `action.description` | string | OPTIONAL | Explanation of the action intent or destination. |
 | `action.destination_types` | array | OPTIONAL | Target shape hints for UI/display. Items: `website`, `app_store`, `google_play`, `apk`, `agent`, `others`. When present, the array MUST be non-empty and unique; order does not express priority. |
 | `action.payload` | object | REQUIRED | Action-specific payload. Structure depends on `action.type`. |
+
+#### `action.consumer_action`
+
+`action.consumer_action` is the offer's main end-user action semantic. It is intended for CTA fallback, UI grouping, and consumer-owned analytics dimensions. It is not the execution mechanism, target shape, click URL, conversion result, or billing rule.
+
+Choose the most specific action the offer card asks the user to take. Do not infer it only from `offer_info.category.id`, `action.destination_types`, or `conversion_rule.accepted_types`.
+
+| Value | Meaning | Typical CTA fallback |
+|-------|---------|----------------------|
+| `learn_more` | Learn more about the offer without a more specific immediate action. | Learn more |
+| `watch` | Watch video, short-drama, livestream, or visual playback content. | Watch |
+| `play` | Play a game or interactive entertainment experience. | Play |
+| `listen` | Listen to audio content. | Listen |
+| `install` | Install an app, extension, or software package. | Install |
+| `download` | Download a file, package, whitepaper, or asset. | Download |
+| `registration` | Create an account, open an account, join a service, create a profile, or enter a waitlist. | Register |
+| `sign_up` | Legacy/deprecated alias for registration. It remains valid for compatibility with existing payloads, but new producers SHOULD use `registration`. | Sign up |
+| `subscribe` | Subscribe to a recurring service or plan. | Subscribe |
+| `purchase` | Buy, order, or pay for a product or one-time digital good. | Buy |
+| `apply` | Apply for credit, lending, insurance, eligibility, or review. | Apply |
+| `submission` | Submit a form, lead, application materials, quote request, or information packet. | Submit |
+| `start_trial` | Start a free or paid trial period for a product or service. | Start trial |
+| `read` | Read an article, report, whitepaper, ebook, or other text content. | Read |
+| `book` | Book or reserve a hotel, restaurant, appointment, or seat. | Book |
+| `claim` | Claim a benefit, promotion, coupon, or reward. | Claim |
+| `redeem` | Redeem a code, points balance, gift card, or already-claimed benefit. | Redeem |
+| `contact` | Contact sales, support, merchant, or service provider. | Contact |
+
+Producer payloads for the current protocol version MUST only use the values above. Unknown strings, empty strings, null, non-string values, case mismatches, and whitespace-padded values are invalid in the public JSON Schema. Consumers reading responses SHOULD preserve future non-empty strings for forward compatibility and still use the CTA precedence described above.
+
+Choice rules:
+
+- Use `registration` for account creation, account opening, joining a service, profile creation, or waitlist entry. `sign_up` is a legacy/deprecated alias and SHOULD only be preserved for existing payload compatibility.
+- Use `submission` when the user submits a form, lead, application materials, quote request, or information packet. Use `apply` when the CTA is about starting an application or eligibility flow rather than the submission event itself.
+- Use `start_trial` when the CTA starts a trial experience. Use `subscribe` for recurring plan commitment, and use `claim` for claiming a benefit, promotion, coupon, or reward.
+- Use `read` for text content consumption. Use `download` for file/package transfer, `learn_more` for generic discovery, and `watch`/`listen` for video or audio.
+
+`consumer_action` MUST NOT modify `events.md`, Click Event, Conversion Event, Postback payloads, or standard event schemas. If a C-end experience records analytics with this value, it is a consumer-owned analytics dimension and does not affect attribution or settlement.
 
 #### `action.payload`
 
@@ -832,7 +880,14 @@ registry.
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
 | `source.postback_url_template` | string | OPTIONAL | Agent-side conversion callback URL template. Supports variable substitution (e.g., `{aon_tracking_id}`, `{offer_id}`). See [`postback.md` S4.1 Registration and S4.5 URL Template Variables](./postback.md#41-registration) for the template variable definitions and substitution rules. |
-| `source.tracking_url_template` | string | OPTIONAL | Tracking link generation template. Used to construct click-tracking URLs with embedded parameters. |
+| `source.tracking_url_template` | string | OPTIONAL | Partner landing or tracking URL template. Supports exact `{CLICK_ID}` as the canonical per-click macro and `{AON_TRACKING_ID}` / legacy `{aon_tracking_id}` as dispatch-level macros. If `{CLICK_ID}` is omitted, AON appends or normalizes `aon_click_id=<click_id>` without overwriting a Partner-owned bare `click_id` parameter. |
+
+`{CLICK_ID}` is resolved only after AON accepts a user-initiated click and
+persists the click event. The exposed value is the AON-generated `aci_...`
+public click id string and is suitable for later S2S conversion postbacks as
+`click_id` or `aon_click_id`. If no dispatch-level macro is present, AON also appends
+`aon_tracking_id=<offer_instance_id>` so legacy postbacks can still attribute
+without click-level data.
 
 ### Bid (REQUIRED)
 
@@ -859,7 +914,7 @@ Design notes:
 | `conversion_rule.click_window_hours` | integer | RECOMMENDED | Click attribution window in hours. Conversions occurring within this window after a click event are eligible for attribution. Default: `720` (30 days). |
 | `conversion_rule.view_window_hours` | integer | OPTIONAL | View-through attribution window in hours. Default: `0` (view-through attribution not supported). |
 | `conversion_rule.attribution_model` | string | RECOMMENDED | Attribution method: `last_click` (default, credit goes to the last click before conversion), `first_click` (credit goes to the first click). `linear` is reserved for future use and MUST NOT be used in v0.1. |
-| `conversion_rule.accepted_types` | array | RECOMMENDED | Accepted conversion types for this offer, e.g., `["sale", "lead"]`. Values reference the `conversion_type` enumeration defined in the Events spec. |
+| `conversion_rule.accepted_types` | array | RECOMMENDED | Accepted conversion result types for this offer, e.g., `["sale", "lead"]`. Values reference the `conversion_type` enumeration defined in the Events spec. |
 | `conversion_rule.dedup_strategy` | string | OPTIONAL | Deduplication strategy for multiple conversions from the same user: `first` (only the first conversion counts, default), `all` (every conversion counts), `highest` (only the highest-value conversion counts). |
 | `conversion_rule.minimum_amount` | string | OPTIONAL | Minimum conversion amount (decimal string). Conversions below this threshold do not qualify for bid. |
 
@@ -902,6 +957,7 @@ These fields MAY be omitted entirely. When included, they SHOULD follow the spec
 - `entity.website`, when present, SHOULD be a valid URI.
 - `entity.logo`, when present, MUST be an object with a valid HTTP(S) `url`. `entity.logo` is the canonical merchant/entity identity logo and MUST NOT be inferred from `material[]` or stored in `offer.extra`.
 - `action.destination_types`, when present, MUST be a non-empty array of unique values from `website`, `app_store`, `google_play`, `apk`, `agent`, and `others`. It is display metadata only; it MUST NOT replace `action.type` or `action.payload.target`.
+- `action.consumer_action`, when present, MUST be one of `learn_more`, `watch`, `play`, `listen`, `install`, `download`, `registration`, `sign_up`, `subscribe`, `purchase`, `apply`, `submission`, `start_trial`, `read`, `book`, `claim`, `redeem`, and `contact`. It is display/analytics metadata only; it MUST NOT replace `action.name`, `action.type`, `action.payload.target`, or `conversion_rule.accepted_types`. `sign_up` is a legacy/deprecated alias retained for compatibility; new producers SHOULD use `registration`.
 - `offer.extra`, when present, MUST be a JSON object. Its internal keys are not standardized in v0.1, and values MAY be any valid JSON value. In Query API responses this appears as `data.offers[].extra`; it is not the response envelope `extra`.
 - `source`, when present, SHOULD include at least one of `postback_url_template` or `tracking_url_template`.
 - `conversion_rule.minimum_amount`, when present, MUST be a decimal string.
@@ -1037,8 +1093,11 @@ The following table maps core AON Offer fields to their closest [schema.org](htt
 | 0.1 | 2026-03-28 | PROTO-F004 industry alignment enhancement: Upgraded `bid` and `conversion_rule` from OPTIONAL to RECOMMENDED. Enhanced `bid` with 12 fields (model/amount/currency/rate/tier/cap/payout_delay_days/validation_window_days) and model-to-required-fields matrix (cpa/cps/cpl/cpi/hybrid). Enhanced `conversion_rule` with 6 fields (click_window_hours/view_window_hours/attribution_model/accepted_types/dedup_strategy/minimum_amount) and industry-standard defaults. Added `source` object for postback and tracking URL templates. Added Enum Extensibility section. Added schema.org Compatibility appendix. Updated inline example with enhanced bid and conversion_rule. |
 | 0.1 | 2026-04-23 | PROTO-F013 canonical category expansion: Promoted `health_beauty`, `fashion`, `food_grocery`, `home_garden`, and `automotive` from reserved/future into the canonical public category surface, expanding the category registry from 6 to 11. Added sub_type tables and common attribute definitions for the 5 newly canonical categories. |
 | 0.1 | 2026-04-28 | PROTO-F014a Offer Protocol ID Naming Convergence (v0.1 Draft 内部精化, non-breaking): ① Finalized `offer_id` as the stable inventory-level identifier. ② Added REQUIRED top-level `offer_instance_id` as the per-dispatch unique identifier (UUIDv7 recommended) for click → conversion → settlement attribution; carried at the integration layer as `?aon_tracking_id={offer_instance_id}` URL query param + S2S postback body, aligned with Google Ads `gclid` / Meta `fbclid` / TikTok `ttclid` industry pattern. ③ Removed upstream-source identity from the open `offer_info` contract; adapter-source offers persist upstream ids in internal adapter storage outside the open protocol. ④ Updated all 12 example payloads under `examples/http/`. ⑤ Non-breaking justification: protocol still in v0.1 Draft with no GA consumers. Cross-protocol family alignment continues in PROTO-F014b (events.md / postback.md `tracking_id` → `aon_tracking_id`). |
+| 0.1 | 2026-06-30 | Added click-level tracking macro guidance: `{CLICK_ID}` is the canonical per-click macro, `aon_click_id` is the no-macro fallback query parameter, and `aon_tracking_id` remains the dispatch-level fallback key for legacy attribution. |
 | 0.1 | 2026-05-18 | SVC-CORE-F024 Offer 定向投放 (non-breaking): Added optional `targeting[].os` (`ios`/`android`/`windows`/`macos`/`linux`) for OS-level targeting, and optional `user_profile.country` (ISO 3166-1 alpha-2) on the Query request for geo targeting. Documented intra-rule AND / inter-rule OR matching semantics. All new fields optional; existing offers and queries unaffected. |
 | 0.1 | 2026-05-22 | Renamed the `travel_hospitality` sub_type `restaurant` to `dining_experience` to avoid mixing hospitality dining experiences with food/grocery retail or delivery offers. |
 | 0.1 | 2026-06-10 | PROTO-F260610062919 Offer Info Tags (non-breaking): Added optional `offer_info.tags` for partner-supplied content matching hints. The field is not a taxonomy replacement, query filter, targeting rule, compliance policy, or guaranteed display contract. |
 | 0.1 | 2026-06-17 | PROTO-F260617101638 Offer Destination Metadata (non-breaking): Added optional `action.destination_types` as non-empty unique target-shape hints and optional top-level `offer.extra` as open JSON object metadata. `action.type` remains the execution mechanism, and `action.payload.target` remains the executable tracking target. |
 | 0.1 | 2026-06-17 | PROTO-F260617101638 Offer Entity Logo (non-breaking): Added optional `entity.logo` with required stable public `url` and optional `alt_text` for merchant/entity identity display. `material[]` remains offer creative assets and is not the canonical merchant logo. |
+| 0.1 | 2026-07-01 | PROTO-F260701071320 Offer Consumer Action Semantics (non-breaking): Added optional-but-RECOMMENDED `action.consumer_action` as the main end-user action semantic for CTA fallback and consumer-owned analytics. `action.name` remains free CTA text; Events/Postback schemas are unchanged. |
+| 0.1 | 2026-07-02 | PROTO-F260702090355 Consumer Action Enum Expansion (non-breaking): Added `registration`, `submission`, `start_trial`, and `read`; retained `sign_up` as a legacy/deprecated alias for compatibility. |

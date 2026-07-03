@@ -25,13 +25,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Optional `offer_info.secondary_category_ids` for auxiliary AON Taxonomy v1
   ids on returned Offer payloads. These ids participate in AON-owned category
   matching and safety filtering while `offer_info.category.id` remains the
-  primary category.
+  primary category; secondary ids must be from different taxonomy branches than
+  the primary category and each other.
 - AON Taxonomy v1 node
   `finance.investing.crypto_and_digital_assets` for crypto trading, digital
   asset investment, and related finance offers.
 - Location Search API protocol contract for resolving AON Location Registry v1
   ids by name, country, level, subdivision code, external code resolve, and
   exact `location_id` lookup.
+- `action.consumer_action` values `registration`, `submission`,
+  `start_trial`, and `read`; `sign_up` remains valid as a legacy/deprecated
+  alias for existing payload compatibility.
 
 ### Changed
 
