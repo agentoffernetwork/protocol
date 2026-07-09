@@ -46,6 +46,7 @@ The protocol classifies fields into three requirement levels to balance standard
 | `offer_id` | string | REQUIRED | Stable inventory-level offer identifier. UUIDv7 is recommended. Same value across multiple query responses for the same offer. |
 | `offer_instance_id` | string | REQUIRED | Per-dispatch unique identifier. UUIDv7 is recommended. Generated fresh for each query response and used as the dispatch-level fallback key for click → conversion → settlement attribution. Carried at the integration layer as `?aon_tracking_id={offer_instance_id}` (URL query param + S2S postback). Per-click attribution uses the click-level `{CLICK_ID}` / `aon_click_id` value generated at redirect time. |
 | `version` | string | REQUIRED | Offer document version. Indicates which schema revision the offer instance conforms to. Current value: `"1.0"`. |
+| `content_language` | string | OPTIONAL | BCP 47 language tag for the user-facing content in this Offer payload, such as title, description, and action copy. |
 | `offer_info` | object | REQUIRED | Core descriptive, categorical, and commercial information for the offer. |
 | `entity` | object | REQUIRED | Business entity the offer belongs to. |
 | `action` | object | REQUIRED | Primary executable action exposed by the offer. |
@@ -65,6 +66,7 @@ The protocol classifies fields into three requirement levels to balance standard
 | `offer_id` | string | REQUIRED | Stable inventory-level offer identifier. UUIDv7 is recommended. Same `offer_id` across multiple query responses for the same offer. |
 | `offer_instance_id` | string | REQUIRED | Per-dispatch unique identifier. UUIDv7 is recommended. Generated fresh for each query response (each "serve"). Primary key for click → conversion → settlement attribution. |
 | `version` | string | REQUIRED | Offer document version. Indicates which schema revision the offer instance conforms to. Current value: `"1.0"`. |
+| `content_language` | string | OPTIONAL | BCP 47 language tag for the user-facing content in this Offer payload. |
 
 Design notes:
 
@@ -87,6 +89,12 @@ Design notes:
   (`offer_instance_id`) for protocol openness, while expressing the brand
   prefix only at the integration layer (URL/S2S contracts).
 - `version` enables forward compatibility when the schema evolves.
+- `content_language` describes the language of offer content supplied in this
+  payload, such as `offer_info.title`, `offer_info.description`, `action.name`,
+  and other display copy. It does not change targeting, eligibility, ranking,
+  attribution, events, or postback semantics. Use `targeting[].language` for
+  offer eligibility constraints, and use `context.user_profile.language` in the
+  Query request to describe the end user's language context.
 
 ### Offer Information
 
@@ -764,7 +772,7 @@ Legacy fields previously associated with `automotive` sub-types:
 |------|------|-------|-------------|
 | `action.type` | string | REQUIRED | Executable action type: `web_redirect` or `app_deep_link`. |
 | `action.name` | string | RECOMMENDED | Short user-facing action name (CTA text). |
-| `action.consumer_action` | string | RECOMMENDED | Main end-user action semantic for display fallback and consumer-owned analytics. Values: `learn_more`, `watch`, `play`, `listen`, `install`, `download`, `registration`, `sign_up`, `subscribe`, `purchase`, `apply`, `submission`, `start_trial`, `read`, `book`, `claim`, `redeem`, `contact`. |
+| `action.consumer_action` | string | RECOMMENDED | Main end-user action semantic for display fallback and consumer-owned analytics. Values: `learn_more`, `watch`, `play`, `listen`, `install`, `download`, `registration`, `sign_up`, `subscribe`, `purchase`, `pay`, `order`, `apply`, `submission`, `start_trial`, `read`, `book`, `claim`, `redeem`, `contact`. |
 | `action.description` | string | OPTIONAL | Explanation of the action intent or destination. |
 | `action.destination_types` | array | OPTIONAL | Target shape hints for UI/display. Items: `website`, `app_store`, `google_play`, `apk`, `agent`, `others`. When present, the array MUST be non-empty and unique; order does not express priority. |
 | `action.payload` | object | REQUIRED | Action-specific payload. Structure depends on `action.type`. |
@@ -786,7 +794,9 @@ Choose the most specific action the offer card asks the user to take. Do not inf
 | `registration` | Create an account, open an account, join a service, create a profile, or enter a waitlist. | Register |
 | `sign_up` | Legacy/deprecated alias for registration. It remains valid for compatibility with existing payloads, but new producers SHOULD use `registration`. | Sign up |
 | `subscribe` | Subscribe to a recurring service or plan. | Subscribe |
-| `purchase` | Buy, order, or pay for a product or one-time digital good. | Buy |
+| `purchase` | Buy a product, service, or one-time digital good. Use `pay` for bill/payment flows and `order` for placing a goods or service delivery order. | Buy |
+| `pay` | Pay a bill, repay a loan, top up a balance, or complete a payment without necessarily placing a new order. | Pay |
+| `order` | Place a goods, service, grocery, food delivery, ride, or other fulfillment order. Use `book` for reservations and appointments. | Order |
 | `apply` | Apply for credit, lending, insurance, eligibility, or review. | Apply |
 | `submission` | Submit a form, lead, application materials, quote request, or information packet. | Submit |
 | `start_trial` | Start a free or paid trial period for a product or service. | Start trial |
@@ -801,6 +811,7 @@ Producer payloads for the current protocol version MUST only use the values abov
 Choice rules:
 
 - Use `registration` for account creation, account opening, joining a service, profile creation, or waitlist entry. `sign_up` is a legacy/deprecated alias and SHOULD only be preserved for existing payload compatibility.
+- Use `purchase` for buying a product, service, or one-time digital good. Use `pay` for bill payment, repayment, top-up, or balance-payment flows. Use `order` for goods, service, delivery, ride, or other fulfillment orders. Use `book` for reservations or appointments, and use `submission` for form, lead, quote request, or information-packet submissions.
 - Use `submission` when the user submits a form, lead, application materials, quote request, or information packet. Use `apply` when the CTA is about starting an application or eligibility flow rather than the submission event itself.
 - Use `start_trial` when the CTA starts a trial experience. Use `subscribe` for recurring plan commitment, and use `claim` for claiming a benefit, promotion, coupon, or reward.
 - Use `read` for text content consumption. Use `download` for file/package transfer, `learn_more` for generic discovery, and `watch`/`listen` for video or audio.
@@ -843,7 +854,7 @@ For an `app_deep_link` action flow:
 | `targeting[].geo.include` | array | OPTIONAL | Included locations. Canonical entries are `{ "location_id": "<id>" }` objects using AON Location Registry v1; legacy uppercase country strings remain migration-compatible. Do not mix legacy strings and structured entries in the same array. |
 | `targeting[].geo.exclude` | array | OPTIONAL | Excluded locations. Uses the same entry shape as `geo.include`; exclude wins over include. |
 | `targeting[].eligibility.min_age` | integer | OPTIONAL | Minimum verified viewer age required for this rule. The Query request sends non-PII age threshold claims in `context.user_profile.verified_age_over`; it does not send date of birth or exact age. |
-| `targeting[].language` | string | OPTIONAL | Preferred or required language context. |
+| `targeting[].language` | string | OPTIONAL | Preferred or required BCP 47 language context for this targeting rule. This is a targeting constraint and does not describe the returned offer content language. |
 | `targeting[].device_type` | array | OPTIONAL | Target device types such as `mobile`, `desktop`, `tablet`. |
 | `targeting[].os` | array | OPTIONAL | Target operating systems: `ios`, `android`, `windows`, `macos`, `linux`. |
 
@@ -957,7 +968,7 @@ These fields MAY be omitted entirely. When included, they SHOULD follow the spec
 - `entity.website`, when present, SHOULD be a valid URI.
 - `entity.logo`, when present, MUST be an object with a valid HTTP(S) `url`. `entity.logo` is the canonical merchant/entity identity logo and MUST NOT be inferred from `material[]` or stored in `offer.extra`.
 - `action.destination_types`, when present, MUST be a non-empty array of unique values from `website`, `app_store`, `google_play`, `apk`, `agent`, and `others`. It is display metadata only; it MUST NOT replace `action.type` or `action.payload.target`.
-- `action.consumer_action`, when present, MUST be one of `learn_more`, `watch`, `play`, `listen`, `install`, `download`, `registration`, `sign_up`, `subscribe`, `purchase`, `apply`, `submission`, `start_trial`, `read`, `book`, `claim`, `redeem`, and `contact`. It is display/analytics metadata only; it MUST NOT replace `action.name`, `action.type`, `action.payload.target`, or `conversion_rule.accepted_types`. `sign_up` is a legacy/deprecated alias retained for compatibility; new producers SHOULD use `registration`.
+- `action.consumer_action`, when present, MUST be one of `learn_more`, `watch`, `play`, `listen`, `install`, `download`, `registration`, `sign_up`, `subscribe`, `purchase`, `pay`, `order`, `apply`, `submission`, `start_trial`, `read`, `book`, `claim`, `redeem`, and `contact`. It is display/analytics metadata only; it MUST NOT replace `action.name`, `action.type`, `action.payload.target`, or `conversion_rule.accepted_types`. `sign_up` is a legacy/deprecated alias retained for compatibility; new producers SHOULD use `registration`.
 - `offer.extra`, when present, MUST be a JSON object. Its internal keys are not standardized in v0.1, and values MAY be any valid JSON value. In Query API responses this appears as `data.offers[].extra`; it is not the response envelope `extra`.
 - `source`, when present, SHOULD include at least one of `postback_url_template` or `tracking_url_template`.
 - `conversion_rule.minimum_amount`, when present, MUST be a decimal string.
@@ -1100,4 +1111,6 @@ The following table maps core AON Offer fields to their closest [schema.org](htt
 | 0.1 | 2026-06-17 | PROTO-F260617101638 Offer Destination Metadata (non-breaking): Added optional `action.destination_types` as non-empty unique target-shape hints and optional top-level `offer.extra` as open JSON object metadata. `action.type` remains the execution mechanism, and `action.payload.target` remains the executable tracking target. |
 | 0.1 | 2026-06-17 | PROTO-F260617101638 Offer Entity Logo (non-breaking): Added optional `entity.logo` with required stable public `url` and optional `alt_text` for merchant/entity identity display. `material[]` remains offer creative assets and is not the canonical merchant logo. |
 | 0.1 | 2026-07-01 | PROTO-F260701071320 Offer Consumer Action Semantics (non-breaking): Added optional-but-RECOMMENDED `action.consumer_action` as the main end-user action semantic for CTA fallback and consumer-owned analytics. `action.name` remains free CTA text; Events/Postback schemas are unchanged. |
+| 0.1 | 2026-07-06 | PROTO-F260706032502 Offer Content Language (non-breaking): Added optional top-level `content_language` as BCP 47 metadata for user-facing offer copy. It does not change `targeting[].language`, `context.user_profile.language`, events, postbacks, eligibility, or attribution. |
 | 0.1 | 2026-07-02 | PROTO-F260702090355 Consumer Action Enum Expansion (non-breaking): Added `registration`, `submission`, `start_trial`, and `read`; retained `sign_up` as a legacy/deprecated alias for compatibility. |
+| 0.1 | 2026-07-08 | PROTO-F260708083130 Consumer Action Pay / Order (non-breaking): Added `pay` and `order`; narrowed producer guidance for `purchase` to buy semantics while preserving existing payload compatibility. |

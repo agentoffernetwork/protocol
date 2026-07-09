@@ -36,6 +36,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `action.consumer_action` values `registration`, `submission`,
   `start_trial`, and `read`; `sign_up` remains valid as a legacy/deprecated
   alias for existing payload compatibility.
+- `action.consumer_action` values `pay` and `order`; producer guidance now
+  distinguishes buy (`purchase`), payment (`pay`), and fulfillment order
+  (`order`) semantics.
 
 ### Changed
 

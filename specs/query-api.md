@@ -69,7 +69,7 @@ curl -s -X POST "https://api.aon.pro/v1/offers/query" \
 | `context.platform.channel` | string | `api`, `sdk`, `plugin`, `skill` |
 | `context.session_id` | string | `sess_abc123` |
 | `context.user_profile.user_pseudo_id` | string | `viewer_xyz` |
-| `context.user_profile.language` | string | `en` |
+| `context.user_profile.language` | string | `en` (BCP 47 user language context) |
 | `context.user_profile.country` | string | `US` |
 | `context.user_profile.location_ids` | string[] | `["1014221", "21137", "2840"]` |
 | `context.user_profile.verified_age_over` | integer[] | `[18]` |

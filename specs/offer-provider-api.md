@@ -275,7 +275,7 @@ The requirement levels follow the same three-tier system used in
 | `context.session_id` | string | RECOMMENDED | Groups related queries. |
 | `context.conversation_id` | string \| number | OPTIONAL | Thread identifier within a session. |
 | `context.user_profile.user_pseudo_id` | string | RECOMMENDED | Pseudonymous viewer id. |
-| `context.user_profile.language` | string | RECOMMENDED | ISO 639-1. |
+| `context.user_profile.language` | string | RECOMMENDED | BCP 47 language tag for the end user. |
 | `context.user_profile.interests[]` | array<string> | RECOMMENDED | MAY be empty. |
 | `context.user_profile.device_info.device_type` | string | RECOMMENDED | `desktop`/`mobile`/`tablet`. |
 | `context.user_profile.device_info.os` | string | RECOMMENDED | `macOS`/`iOS`/`Android`/`Windows`/… |
