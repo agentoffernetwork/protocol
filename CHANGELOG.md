@@ -1,5 +1,20 @@
 # Changelog
 
+## Offer v0.2 card display fields (2026-07-15)
+
+- Added optional v0.2 card display fields: `offer_info.rating`,
+  `offer_info.properties[]`, `offer_info.commercial.price.unit`,
+  `offer_info.commercial.fulfillment_note`, and `material[].alt_text`.
+- Clarified `offer_info.recommendation_reason` as user-readable copy that
+  consumers may display.
+- Documented `properties[].display_pattern` token grammar, localization
+  preservation rules, consumer fallback behavior, and recommended property
+  types.
+
+## Formal v0.2 conversion goals (2026-07-10)
+
+- Published the stable Offer v0.2 conversion-goal contract and header matrices.
+
 All notable changes to the AgentOffer Protocol specification will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).

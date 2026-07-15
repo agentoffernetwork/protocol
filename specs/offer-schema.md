@@ -1,4 +1,4 @@
-# Offer Schema v0.1
+# Offer Schema v0.1 and v0.2
 
 **Version**: 0.1
 **Status**: Draft
@@ -6,7 +6,14 @@
 
 ## Introduction
 
-This document defines the protocol-facing `offer` object for AgentOffer Protocol v0.1.
+This document defines the protocol-facing `offer` object for AgentOffer Protocol v0.1. The stable v0.2 contract is defined independently in [`offer-schema-v0.2.md`](./offer-schema-v0.2.md).
+
+## Version navigation
+
+v0.1 remains the active compatibility contract. v0.2 is the stable canonical
+source with runtime support gated by SVC-PLATFORM WS-15-S4. Use
+`AON-Protocol-Version` to select the complete payload contract; an omitted
+header resolves to v0.1 and `/v1/` remains the HTTP shell.
 
 Most developers only need the top-level object first:
 
@@ -22,6 +29,10 @@ Most developers only need the top-level object first:
 | Inspect copyable offer examples | [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples/tree/main/http) |
 | See field-level API UI | [AON API Reference](https://docs.aon.pro/api/offer-query) |
 | Choose category values | [Category Taxonomy](./category-taxonomy.md) |
+
+### Conversion Goals v0.2 Draft Pointer
+
+Active v0.1 keeps top-level `bid` REQUIRED. The non-GA multi-goal draft is defined separately in [`conversion-goals-v0.2-draft.md`](./conversion-goals-v0.2-draft.md) as an additive draft overlay; it does not make active v0.1 `bid` optional and does not add `goals[]` to `offer-schema-v0.1.json`.
 
 ### Conformance Keywords
 

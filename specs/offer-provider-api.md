@@ -97,6 +97,23 @@ both request and response.
 
 ### 3.3 Versioning
 
+#### Complete payload contract matrix (v0.2)
+
+Partner dispatch continues to use `POST /v1/offers/query`; the protocol header
+selects the complete Offer payload inside the unchanged envelope.
+
+| Dispatch header | Capability | Result |
+|---|---|---|
+| omitted | any | v0.1 compatibility interpretation |
+| `0.1` | any | v0.1 envelope and offers |
+| `0.2` | not declared | do not dispatch / unsupported |
+| `0.2` | both sides explicitly support | unchanged envelope with all v0.2 offers |
+| unknown | any | unsupported |
+
+Omitted means v0.1. Unsupported and unknown versions MUST NOT downgrade.
+`/v1/` remains the API major boundary for method, path, auth, and envelope;
+header-selectable payload revisions do not require a new path major.
+
 Versioning is carried by two signals:
 
 - `/v1/` in the Partner endpoint path identifies the OfferProvider API major

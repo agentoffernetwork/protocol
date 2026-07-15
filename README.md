@@ -49,6 +49,15 @@ AI agents are becoming the primary interface for purchase decisions, but agent d
 
 ## Start Here
 
+### Stable v0.2 contract
+
+The canonical v0.2 Offer contract is
+[`specs/offer-schema-v0.2.md`](specs/offer-schema-v0.2.md). It adds formal
+conversion goals and optional card display fields such as rating, structured
+properties, price unit, fulfillment note, and material alt text. v0.1 remains
+the active compatibility contract. Select the complete payload with
+`AON-Protocol-Version`; hosted v0.2 support is gated by SVC-PLATFORM WS-15-S4.
+
 | Goal | Read | Use next |
 |------|------|----------|
 | Query offers from an agent or app | [Query API](specs/query-api.md) | [Examples](https://github.com/agentoffernetwork/examples), [Schema](https://github.com/agentoffernetwork/schema) |
@@ -79,6 +88,7 @@ GitHub is the source for protocol semantics, schemas, examples, and RFCs. The do
 |---------------|---------|
 | [Query API](specs/query-api.md) | Offer discovery API for agents and SDKs |
 | [Offer Schema](specs/offer-schema.md) | Canonical offer object with category, action, entity, bid, and attribution fields |
+| [Offer Schema v0.2](specs/offer-schema-v0.2.md) | Formal Offer v0.2 contract with conversion goals and card display fields |
 | [Location Search API](specs/location-search-api.md) | Lookup contract and migration guidance for AON Location Registry ids |
 | [Category Taxonomy](specs/category-taxonomy.md) | Current public category registry and alias boundary |
 | [Events](specs/events.md) | Click and conversion event definitions |

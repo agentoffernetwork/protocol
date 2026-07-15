@@ -259,6 +259,23 @@ values.
 
 ### Protocol Versioning
 
+#### Complete payload contract matrix (v0.2)
+
+`POST /v1/offers/query` remains the HTTP shell. `AON-Protocol-Version` selects
+the complete payload without changing method, path, authentication, or
+envelope.
+
+| Request header | Before S4 | After S4 | Success response header |
+|---|---|---|---|
+| omitted | v0.1 | v0.1 | `AON-Protocol-Version: 0.1` |
+| `0.1` | v0.1 | v0.1 | `AON-Protocol-Version: 0.1` |
+| `0.2` | unsupported | v0.2 | `AON-Protocol-Version: 0.2` |
+| unknown | unsupported | unsupported | none |
+
+Unsupported and unknown versions MUST fail without silent fallback. Stable
+contract status does not imply hosted runtime support; v0.2 is gated by
+SVC-PLATFORM WS-15-S4.
+
 `/v1/offers/query` identifies the hosted Query API major version. The request
 SHOULD also include `AON-Protocol-Version: 0.1` to pin the AgentOffer Protocol
 payload contract. SDKs send this header by default.
