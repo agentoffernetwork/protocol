@@ -1,5 +1,18 @@
 # Changelog
 
+## Protocol v0.2 canonical contract baseline (2026-07-27)
+
+- Made v0.2 the current normative source contract for Query, OfferProvider,
+  Offer, and both Postback directions while keeping runtime support explicitly
+  `not_available`.
+- Added Query and Provider request/response schemas that share one request core
+  and canonical Offer reference.
+- Standardized required Goal/Postback `event_name`, removed public `bid`,
+  `conversion_rule.accepted_types`, `conversion_type`, and `bid_amount`.
+- Froze CPS `0..100` string grammar, taxonomy and targeting decisions, and a
+  manifest-driven structural/downstream vector baseline.
+- Marked v0.1 as historical for new integration guidance.
+
 ## Offer v0.2 card display fields (2026-07-15)
 
 - Added optional v0.2 card display fields: `offer_info.rating`,
@@ -19,7 +32,10 @@ All notable changes to the AgentOffer Protocol specification will be documented 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## Historical v0.1 development log (formerly Unreleased)
+
+> Historical v0.1 line — not current Protocol v0.2 integration guidance. The
+> current v0.2 contract is the dated canonical-baseline section above.
 
 ### Added
 

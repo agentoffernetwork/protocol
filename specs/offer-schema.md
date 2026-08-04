@@ -1,19 +1,27 @@
-# Offer Schema v0.1 and v0.2
+# Offer Schema v0.1 — Historical Snapshot
 
 **Version**: 0.1
-**Status**: Draft
-**Last Updated**: 2026-03-28
+**Status**: Historical — not current integration guidance
+**Last Updated**: 2026-07-27
+
+> **Historical snapshot: Protocol v0.1 — not current integration guidance.**
+> The current normative contract is
+> [`offer-schema-v0.2.md`](./offer-schema-v0.2.md). Omitted or explicit `0.2`
+> selects v0.2; explicit `0.1` and unknown versions fail closed.
 
 ## Introduction
 
-This document defines the protocol-facing `offer` object for AgentOffer Protocol v0.1. The stable v0.2 contract is defined independently in [`offer-schema-v0.2.md`](./offer-schema-v0.2.md).
+This document preserves the retired protocol-facing `offer` object for
+AgentOffer Protocol v0.1. It exists only for archaeology and migration review.
+The stable current contract is defined independently in
+[`offer-schema-v0.2.md`](./offer-schema-v0.2.md).
 
 ## Version navigation
 
-v0.1 remains the active compatibility contract. v0.2 is the stable canonical
-source with runtime support gated by SVC-PLATFORM WS-15-S4. Use
-`AON-Protocol-Version` to select the complete payload contract; an omitted
-header resolves to v0.1 and `/v1/` remains the HTTP shell.
+v0.2 is the stable canonical source. Runtime support is separately gated by
+SVC-PLATFORM BL-034. This v0.1 snapshot does not define current header defaults
+or runtime availability. `/v1/` remains the HTTP shell and is not a version
+selector.
 
 Most developers only need the top-level object first:
 
@@ -25,14 +33,17 @@ Most developers only need the top-level object first:
 
 | Need | Start here |
 |------|------------|
-| Validate an offer payload | [`offer-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-schema-v0.1.json) |
+| Validate a historical v0.1 offer payload | [`offer-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-schema-v0.1.json) |
 | Inspect copyable offer examples | [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples/tree/main/http) |
 | See field-level API UI | [AON API Reference](https://docs.aon.pro/api/offer-query) |
 | Choose category values | [Category Taxonomy](./category-taxonomy.md) |
 
-### Conversion Goals v0.2 Draft Pointer
+### Historical conversion-goal migration note
 
-Active v0.1 keeps top-level `bid` REQUIRED. The non-GA multi-goal draft is defined separately in [`conversion-goals-v0.2-draft.md`](./conversion-goals-v0.2-draft.md) as an additive draft overlay; it does not make active v0.1 `bid` optional and does not add `goals[]` to `offer-schema-v0.1.json`.
+The retired v0.1 shape required top-level `bid`. The superseded non-GA
+multi-goal draft is preserved in
+[`conversion-goals-v0.2-draft.md`](./conversion-goals-v0.2-draft.md). Neither
+document is a current v0.2 source.
 
 ### Conformance Keywords
 
@@ -897,12 +908,11 @@ registry.
 
 ### Source (OPTIONAL)
 
-`source` provides offer origin and tracking configuration, enabling postback and tracking URL generation for affiliate workflows.
+`source` provides offer origin and tracking configuration for affiliate workflows.
 
 | Field | Type | Level | Description |
 |------|------|-------|-------------|
-| `source.postback_url_template` | string | OPTIONAL | Agent-side conversion callback URL template. Supports variable substitution (e.g., `{aon_tracking_id}`, `{offer_id}`). See [`postback.md` S4.1 Registration and S4.5 URL Template Variables](./postback.md#41-registration) for the template variable definitions and substitution rules. |
-| `source.tracking_url_template` | string | OPTIONAL | Partner landing or tracking URL template. Supports exact `{CLICK_ID}` as the canonical per-click macro and `{AON_TRACKING_ID}` / legacy `{aon_tracking_id}` as dispatch-level macros. If `{CLICK_ID}` is omitted, AON appends or normalizes `aon_click_id=<click_id>` without overwriting a Partner-owned bare `click_id` parameter. |
+| `source.tracking_url_template` | string | OPTIONAL | Partner landing or tracking URL template. Supports exact `{CLICK_ID}` as the canonical per-click macro, `{PSEUDO_USER_ID}` as an optional best-effort pseudonymous identifier, and `{AON_TRACKING_ID}` / legacy `{aon_tracking_id}` as dispatch-level macros. `{PSEUDO_USER_ID}` is expanded only where the template contains that exact macro; it is never automatically appended. If `{CLICK_ID}` is omitted, AON appends or normalizes `aon_click_id=<click_id>` without overwriting a Partner-owned bare `click_id` parameter. |
 
 `{CLICK_ID}` is resolved only after AON accepts a user-initiated click and
 persists the click event. The exposed value is the AON-generated `aci_...`
@@ -910,6 +920,12 @@ public click id string and is suitable for later S2S conversion postbacks as
 `click_id` or `aon_click_id`. If no dispatch-level macro is present, AON also appends
 `aon_tracking_id=<offer_instance_id>` so legacy postbacks can still attribute
 without click-level data.
+
+`{PSEUDO_USER_ID}` is for a Partner that explicitly opts in by placing the
+macro in its template. A valid inbound `pseudo_user_id` is used first; otherwise
+AON derives a best-effort value. The inbound parameter is consumed by AON and
+is not forwarded as a normal destination query parameter. This macro is not an
+account identifier, authentication credential, or cross-device identity claim.
 
 ### Bid (REQUIRED)
 
@@ -981,7 +997,7 @@ These fields MAY be omitted entirely. When included, they SHOULD follow the spec
 - `action.destination_types`, when present, MUST be a non-empty array of unique values from `website`, `app_store`, `google_play`, `apk`, `agent`, and `others`. It is display metadata only; it MUST NOT replace `action.type` or `action.payload.target`.
 - `action.consumer_action`, when present, MUST be one of `learn_more`, `watch`, `play`, `listen`, `install`, `download`, `registration`, `sign_up`, `subscribe`, `purchase`, `pay`, `order`, `apply`, `submission`, `start_trial`, `read`, `book`, `claim`, `redeem`, and `contact`. It is display/analytics metadata only; it MUST NOT replace `action.name`, `action.type`, `action.payload.target`, or `conversion_rule.accepted_types`. `sign_up` is a legacy/deprecated alias retained for compatibility; new producers SHOULD use `registration`.
 - `offer.extra`, when present, MUST be a JSON object. Its internal keys are not standardized in v0.1, and values MAY be any valid JSON value. In Query API responses this appears as `data.offers[].extra`; it is not the response envelope `extra`.
-- `source`, when present, SHOULD include at least one of `postback_url_template` or `tracking_url_template`.
+- `source`, when present, SHOULD include `tracking_url_template`.
 - `conversion_rule.minimum_amount`, when present, MUST be a decimal string.
 - `conversion_rule.dedup_strategy`, when present, MUST be one of `first`, `all`, or `highest`.
 

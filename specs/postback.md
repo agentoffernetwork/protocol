@@ -1,665 +1,233 @@
-# Postback Specification v0.1
+# Postback Specification v0.2
 
-**Version**: 0.1
-**Status**: Draft
-**Last Updated**: 2026-04-17
+**Version**: 0.2
+**Status**: Current normative v0.2 payload source; runtime follow-up required
 
-## 1. Overview
+**Last Updated**: 2026-07-27
 
-This document defines the **Postback** protocol for the AgentOffer Network
-(AON) -- the asynchronous S2S callback mechanism used for conversion
-attribution, settlement, and refund/adjustment reporting.
+## 1. Scope and implementation status
 
-The specification covers two directions in a single document:
+This specification covers the two conversion-notification directions used by
+the AgentOffer Network (AON):
 
-- **Part A (AON -> Agent)**: AON notifies Agent developers of attributed
-  conversion events via webhook. The Agent developer registers a
-  `postback_url_template` (see [offer-schema.md `source.postback_url_template`](./offer-schema.md))
-  and receives POST requests with the full conversion payload.
+- **Partner conversion intake.** A Partner reports a conversion to AON through
+  the existing simplified `GET|POST /v1/postback/{partner_id}` route.
+- **AON → Agent conversion webhook.** AON delivers an attributed conversion to
+  a Developer Application callback URL.
 
-- **Part B (Partner -> AON)**: Partners report conversions, refunds, and
-  adjustments back to AON by calling `POST {aon_base_url}/v1/postback`
-  with a signed JSON payload.
+BL-033 owns the payload contract and Goal identity only. Partner intake runtime
+must follow through BL-039. The AON → Agent webhook delivery rules in sections
+3–7 remain the normative **WS-22 target contract**. This document does not
+claim that either current runtime already implements the v0.2 payload.
 
-### Relationship to Other Specifications
+This specification does **not** define a Partner-to-AON HMAC, nonce, refund, or
+adjustment protocol. AON-issued Partner AppKey/AppSecret credentials remain
+for the separate **AON → Partner Offer Fetch** signing contract in
+[`offer-provider-api.md`](./offer-provider-api.md).
 
-| Spec | Relationship |
-|------|-------------|
-| [`offer-provider-api.md`](./offer-provider-api.md) | F009 -- Partner-side synchronous query API. Postback shares the same HMAC-SHA256 signing mechanics, header conventions, and error envelope. |
-| [`events.md`](./events.md) | Defines click and conversion event payloads. Part A Postback delivers conversion events to Agent endpoints. The original Postback section in `events.md` has been consolidated into this document. |
-| [`offer-schema.md`](./offer-schema.md) | Defines `source.postback_url_template` -- the URL template that Part A uses for Agent notification. |
+## 2. Partner conversion intake
 
-## 2. Conformance
+### 2.1 Endpoint and trust boundary
 
-### 2.1 Conformance Keywords
-
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHOULD",
-"RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be
-interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
-
-### 2.2 Agent Conformance Levels (Part A Receiver)
-
-| Level | Label | Obligation | Requirements |
-|-------|-------|-----------|-------------|
-| **L1** | Baseline | MUST | Expose an HTTPS endpoint accepting POST + JSON; verify HMAC signature (S3); check timestamp within +/-5 min; deduplicate on `event_id`; return 2xx on success |
-| **L2** | Recommended | SHOULD | Verify nonce uniqueness (5-min window); log `event_id` for audit; handle all `conversion_type` enum values gracefully |
-| **L3** | Enhanced | MAY | Expose `/health` for AON liveness probes; echo structured error bodies on verification failure; support idempotent reprocessing beyond 5-min dedup window |
-
-### 2.3 Partner Conformance Levels (Part B Sender)
-
-| Level | Label | Obligation | Requirements |
-|-------|-------|-----------|-------------|
-| **L1** | Baseline | MUST | Sign every request per S3; generate unique `event_id` per business event (`evt_pb_{ulid}`); reuse same `event_id` on retry; send REQUIRED fields for the chosen `event_type`; retry at least once on non-2xx |
-| **L2** | Recommended | SHOULD | Retry >= 3 times with exponential backoff; send `X-AON-Attempt-Count` header; handle `extra.deduplicated` in responses; send `refund_reason` / `adjustment_reason` when applicable |
-| **L3** | Enhanced | MAY | Send all 5 `sub_id_*` fields; use `coupon_code` for coupon-based attribution; implement circuit-breaker on repeated 5xx from AON |
-
-## 3. Common Mechanics
-
-Both Part A and Part B share the following authentication and integrity
-mechanisms. These are identical to the signing rules defined in
-[`offer-provider-api.md` S4](./offer-provider-api.md#4-authentication).
-
-> Shares signature mechanics with [offer-provider-api.md S4](./offer-provider-api.md#4-authentication).
-
-### 3.1 HMAC-SHA256 Signature
-
-The sender authenticates each request via HMAC-SHA256 over a canonical
-signing string. The sender holds a `key_id` and a matching `secret`:
-
-- **Part A**: AON signs with the KeyId/secret assigned to each Agent
-  developer during onboarding.
-- **Part B**: Partner signs with their own `appkey`/`secret` issued during
-  Partner onboarding.
-
-### 3.2 Required Headers
-
-| Header | Value | Obligation |
-|--------|-------|:----------:|
-| `X-AON-Key` | Sender's `key_id` or `appkey` | MUST |
-| `X-AON-Timestamp` | Unix epoch seconds (integer, ASCII decimal) | MUST |
-| `X-AON-Nonce` | Unique-per-request random string; UUIDv4 RECOMMENDED | MUST |
-| `X-AON-Signature` | Lowercase hex-encoded HMAC-SHA256 (see S3.3) | MUST |
-| `X-AON-Attempt-Count` | Integer >= 1, retry attempt number (Part B only) | OPTIONAL |
-
-### 3.3 Signing String
+Partners send conversion callbacks to their configured route:
 
 ```text
-METHOD        + "\n"
-PATH          + "\n"
-CANONICAL_BODY + "\n"
-TIMESTAMP     + "\n"
-NONCE
+GET|POST {aon_base_url}/v1/postback/{partner_id}
 ```
 
-- `METHOD` -- uppercase ASCII (`POST`).
-- `PATH` -- request path only, excluding host and query string.
-  - Part A: the resolved Agent endpoint path (e.g. `/webhook/aon/postback`).
-  - Part B: `/v1/postback`.
-- `CANONICAL_BODY` -- the exact UTF-8 body bytes transmitted on the wire.
-  The sender MUST NOT re-serialize, re-order keys, or normalize whitespace
-  after signing. The verifier MUST use the received raw body for
-  verification.
-- `TIMESTAMP` -- identical ASCII decimal string sent in `X-AON-Timestamp`.
-- `NONCE` -- identical string sent in `X-AON-Nonce`.
+The `partner_id` identifies the configured Partner route. AON applies the
+route's existing Partner scope, enablement, and IP-allowlist checks before it
+records a conversion. A Partner must not send `X-AON-Key`,
+`X-AON-Timestamp`, `X-AON-Nonce`, or `X-AON-Signature` for this route;
+they are not an inbound Partner callback contract.
 
-No trailing newline. Components are joined by a single LF (`U+000A`).
+#### Partner payload
 
-Compute the signature as:
+The decoded GET query or POST JSON payload is defined by
+[`postback-partner-payload-v0.2.json`](../../schema/json-schema/postback-partner-payload-v0.2.json).
+It requires:
+
+- `event_name`: exact non-null identity of the matched Offer
+  `goals[].event`; and
+- at least one attribution anchor: `offer_instance_id`, `aon_tracking_id`,
+  `tracking_id`, `click_id`, or `aon_click_id`.
+
+Optional values are `amount` as a decimal string, `currency`, `order_id`,
+`partner_txn_id`, and `event_id`. The object is closed.
+`conversion_type` and `bid_amount` are forbidden v0.2 public fields.
+
+### 2.2 Result and retry handling
+
+- A 2xx response means the conversion was recorded or was an idempotent
+  duplicate. Do not send the same business conversion again.
+- A 4xx response is terminal for the submitted payload. Correct the payload or
+  Partner configuration before sending a new request.
+- A 5xx response, including 503 intake unavailability, is retryable with
+  backoff. Existing conversion identity and journal semantics prevent a retry
+  from producing a second settlement.
+
+`POST /v1/events/conversion` remains a legacy conversion endpoint. Its existing
+global `x-postback-token` behavior is unchanged: a configured global token must
+match, and an unset global token preserves the existing fallback. A Partner
+credential configured as `header_value`, `token`, or `shared_token` continues
+to validate its configured header. A historical inbound signing setting does
+not activate an inbound HMAC reader; it follows the same global-token/fallback
+behavior as an absent `postback_auth`.
+
+## 3. AON → Agent conversion webhook
+
+### 3.1 Callback registration
+
+The callback belongs to a Developer Application, not to a Partner credential.
+Production callback URLs MUST use HTTPS. Local or test environments MAY allow
+an explicit loopback HTTP URL; this exception MUST NOT be enabled in
+production.
+
+A callback URL may include a query string. Userinfo (`user:password@host`) and
+fragments are invalid configuration. AON sends the configured path exactly:
+it MUST NOT normalize, add, remove, or collapse trailing or repeated slashes.
+
+### 3.2 Request headers and signing string
+
+Every delivery uses `POST` with `Content-Type: application/json` and all three
+headers below:
+
+| Header | Requirement | Meaning |
+|---|---|---|
+| `X-AON-Key` | REQUIRED | Opaque, version-specific callback key id. |
+| `X-AON-Timestamp` | REQUIRED | Unix epoch seconds as an ASCII decimal string. |
+| `X-AON-Signature` | REQUIRED | Lowercase-hex HMAC-SHA256 result. |
+
+For each delivery, AON selects exactly one version-specific callback secret and
+computes:
 
 ```text
-signature_bytes = HMAC_SHA256(secret, signing_string)
-X-AON-Signature = hex_lowercase(signature_bytes)
+POST\n{request-target}\n{exact-raw-body}\n{timestamp}
 ```
 
-The verifier MUST compare signatures in **constant time** to prevent
-timing side-channels.
+`{request-target}` is the exact HTTP origin-form request-target bytes sent on
+the wire: raw path plus `?raw_query` when a query is present. It excludes
+scheme, authority, and fragment. Neither sender nor receiver may percent-decode,
+sort query parameters, change case, or parse and re-serialize this value.
 
-### 3.4 Timestamp Skew (MUST)
+`{exact-raw-body}` is the exact JSON byte sequence transmitted on the wire.
+The receiver MUST verify it before parsing or re-serializing the body. The
+signature is `HMAC-SHA256(secret, signing_string)` encoded as lowercase hex;
+the receiver MUST compare it in constant time.
 
-The verifier MUST reject the request when
-`|server_now - X-AON-Timestamp| > 300` seconds, returning `401
-UNAUTHORIZED` with message `"timestamp outside allowed skew"`. This check
-MUST happen **before** signature verification.
+### 3.3 Key rotation and receiver verification
 
-### 3.5 Nonce Anti-Replay
+Callback keys and secrets have a lifecycle independent of Partner
+AppKey/AppSecret. Each rotation creates a new opaque key id and secret. A
+receiver uses `X-AON-Key` to select exactly one current or grace-period secret;
+unknown or expired key ids MUST be rejected without trying other secrets.
 
-For Part B (AON as verifier), nonce enforcement is MUST (AON controls its
-own infrastructure). For Part A (Agent as verifier), nonce enforcement is
-RECOMMENDED -- Agent developers in stateless environments MAY skip nonce
-enforcement but MUST still enforce timestamp skew.
+A production receiver MUST:
 
-The verifier SHOULD maintain a short-TTL set of `(key_id, nonce)` pairs
-for the last 5 minutes and reject duplicates with `401 UNAUTHORIZED` and
-message `"nonce already used"`.
+1. require the three headers;
+2. reject a timestamp more than 300 seconds from its clock (exactly 300 seconds
+   is accepted; 301 seconds is rejected);
+3. select the keyed secret and verify HMAC in constant time; and
+4. validate the payload schema and durable idempotency rule in section 4.
 
-### 3.6 Error Envelope (ApiResponse)
+Only an explicit local/test insecure setting may skip timestamp, key, and HMAC
+verification. It MUST still validate the schema and idempotency rules. A
+production configuration containing that insecure setting MUST fail at startup.
+AON always sends signing headers; if its callback key or secret is missing or
+empty, it MUST record an observable configuration/delivery error before HTTP
+and MUST NOT send an unsigned request.
 
-All error responses follow the AON `ApiResponse` contract:
+### Agent payload
 
-```json
-{
-  "code": "UNAUTHORIZED",
-  "message": "invalid signature",
-  "data": {},
-  "extra": {}
-}
-```
+The conversion webhook body is defined by
+[`postback-agent-payload-v0.2.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/postback-agent-payload-v0.2.json).
 
-This is consistent with `CLAUDE.md` S"API Response Contract" and
-[`offer-provider-api.md` S9](./offer-provider-api.md#9-error-codes).
+| Field | Level | Description |
+|---|---|---|
+| `event_id` | REQUIRED | AON-generated opaque globally unique conversion-event id. |
+| `event_type` | REQUIRED | Fixed value: `conversion`. |
+| `event_name` | REQUIRED | Exact value of the matched Offer `goals[].event`. |
+| `aon_tracking_id` | REQUIRED | AON tracking identifier for the attributed conversion. |
+| `offer_id` | REQUIRED | Converted offer identifier. |
+| `agent_id` | REQUIRED | Developer Application / Agent identifier. |
+| `amount` | REQUIRED | Gross converted amount. |
+| `currency` | REQUIRED | ISO 4217 currency code. |
+| `sub_id` | OPTIONAL | First developer attribution slot, inherited from the click. |
+| `sub_id_2` … `sub_id_5` | OPTIONAL | Additional developer attribution slots, inherited from the click. |
+| `timestamp` | REQUIRED | ISO 8601 conversion-event time. |
 
-### 3.7 Event ID
+Optional attribution fields are omitted when absent, never sent as `null`.
+`conversion_type` and `bid_amount` are not part of this closed payload.
 
-Every postback event carries a unique `event_id` in format
-`evt_pb_{ulid}` (regex: `^evt_pb_[0-9A-HJKMNP-TV-Z]{26}$`).
+<a id="goal-identity"></a>
+<a id="no-bid"></a>
 
-The `event_id` serves as the **business-level idempotency key**, distinct
-from the HTTP-level `X-AON-Nonce` which provides replay protection:
+### Goal identity and no-bid
 
-| Purpose | Field | Scope | Regenerated on retry? |
-|---------|-------|-------|----------------------|
-| Business idempotency | `event_id` | Payload body | No -- same across all retries |
-| HTTP replay protection | `X-AON-Nonce` | Header | Yes -- fresh per attempt |
+Both Postback schemas reference the same
+[`goal-event-name-v0.2.json`](../../schema/json-schema/goal-event-name-v0.2.json)
+definition used by Offer Goals. A well-known or custom slug is valid only when
+it exactly matches the unique Goal declared by the attributed Offer. Schema
+checks grammar and requiredness; BL-039 owns runtime declaration lookup.
 
-## 4. Part A -- AON -> Agent Postback
+### 3.5 Delivery and retry policy
 
-### 4.1 Registration
+AON waits at most 10 seconds for a response. Any 2xx response completes the
+delivery; AON ignores the response body. A non-2xx response or timeout retries
+the same raw body on this fixed schedule:
 
-Agent developers provide a `postback_url_template` during onboarding. This
-template is stored in the Offer Schema's `source.postback_url_template`
-field (see [`offer-schema.md`](./offer-schema.md)) and supports variable
-substitution for dynamic routing.
-
-### 4.2 Endpoint
-
-The Agent developer owns the endpoint. AON resolves the
-`postback_url_template` by substituting variables (see S9) and sends a
-POST request to the resulting URL.
-
-### 4.3 Request Method & Headers
-
-- **Method**: `POST`
-- **Content-Type**: `application/json`
-- **Authentication headers**: `X-AON-Key`, `X-AON-Timestamp`, `X-AON-Nonce`,
-  `X-AON-Signature` per S3.
-
-### 4.4 Request Payload
-
-| Field | Type | Level | Description |
-|-------|------|-------|-------------|
-| `event_id` | string | REQUIRED | Unique identifier (`evt_pb_{ulid}`). Idempotency key; all retries share this value. |
-| `event_type` | string | REQUIRED | Fixed value: `"conversion"`. |
-| `aon_tracking_id` | string | REQUIRED | Tracking identifier from the original click event. |
-| `offer_id` | string | REQUIRED | Identifier of the converted offer. |
-| `agent_id` | string | REQUIRED | Identifier of the agent that drove the conversion. |
-| `conversion_type` | string | REQUIRED | Conversion classification: `sale`, `lead`, `install`, `subscription`, `trial`, or `custom`. |
-| `amount` | number | REQUIRED | Gross converted amount. |
-| `currency` | string | REQUIRED | ISO 4217 currency code. |
-| `bid_amount` | number | REQUIRED | Bid amount computed by the platform. |
-| `sub_id_1` | string | OPTIONAL | Custom tracking parameter 1. Inherited from click; absent (not null) when not set. |
-| `sub_id_2` | string | OPTIONAL | Custom tracking parameter 2. |
-| `sub_id_3` | string | OPTIONAL | Custom tracking parameter 3. |
-| `sub_id_4` | string | OPTIONAL | Custom tracking parameter 4. |
-| `sub_id_5` | string | OPTIONAL | Custom tracking parameter 5. |
-| `timestamp` | string | REQUIRED | ISO 8601 event timestamp. |
-
-JSON Schema: [`postback-agent-payload-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/postback-agent-payload-v0.1.json)
-
-### 4.5 URL Template Variables
-
-The `postback_url_template` supports the following 12 substitution
-variables. This is a **closed set** in v0.1; no additional variables MAY be
-introduced without a spec revision.
-
-| Variable | Source field | Description |
-|----------|-------------|-------------|
-| `{aon_tracking_id}` | `aon_tracking_id` | Tracking identifier from the original click. |
-| `{offer_id}` | `offer_id` | Identifier of the converted offer. |
-| `{conversion_type}` | `conversion_type` | Conversion classification value. |
-| `{amount}` | `amount` | Gross converted amount. |
-| `{bid_amount}` | `bid_amount` | Computed bid amount. |
-| `{currency}` | `currency` | ISO 4217 currency code. |
-| `{sub_id_1}` | `sub_id_1` | Custom tracking parameter 1 (empty string when not set). |
-| `{sub_id_2}` | `sub_id_2` | Custom tracking parameter 2 (empty string when not set). |
-| `{sub_id_3}` | `sub_id_3` | Custom tracking parameter 3 (empty string when not set). |
-| `{sub_id_4}` | `sub_id_4` | Custom tracking parameter 4 (empty string when not set). |
-| `{sub_id_5}` | `sub_id_5` | Custom tracking parameter 5 (empty string when not set). |
-| `{timestamp}` | `timestamp` | ISO 8601 event timestamp. |
-
-Substitution rules are detailed in S9.
-
-### 4.6 Retry Policy
-
-If the Agent developer's endpoint does not return an HTTP 2xx response
-within **10 seconds**, AON MUST retry delivery using the following
-schedule:
-
-| Attempt | Delay after previous attempt |
-|---------|------------------------------|
-| 1 | Immediate (first delivery) |
+| Attempt | Delay after the prior attempt |
+|---:|---|
+| 1 | immediate |
 | 2 | 1 minute |
 | 3 | 5 minutes |
 | 4 | 30 minutes |
 | 5 | 2 hours |
 
-After 5 failed attempts the postback is marked as **permanently failed**.
-The maximum total retry window is approximately 24 hours from the initial
-attempt.
+Each retry preserves `event_id` and the exact raw body, while using a fresh
+timestamp and corresponding signature. After the fifth failed attempt, AON
+records a final observable delivery failure.
 
-Each retry MUST use the same `event_id` and payload body but MUST
-regenerate `X-AON-Nonce` and `X-AON-Timestamp` (see S6).
+## 4. Receiver idempotency
 
-### 4.7 Response Semantics
+A receiver MUST keep a durable record for `(agent_id, event_id)` for at least
+24 hours from the first successful receipt.
 
-Any HTTP 2xx status code is treated as successful delivery. AON ignores
-the response body entirely; Agent developers are **not** required to
-return an `ApiResponse` envelope.
+- A repeated key with identical raw body MUST return a 2xx result without a
+  second business side effect.
+- A repeated key with a different raw body MUST return HTTP 409 and MUST NOT
+  process the new body.
 
-Any non-2xx response or timeout (> 10 seconds) triggers retry per S4.6.
+This is business-level idempotency. It replaces any requirement for a separate
+nonce cache.
 
-### 4.8 Example
+## 5. Reference examples and test vectors
 
-See [`examples/http/postback/agent/basic-conversion.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/basic-conversion.http)
-and [`examples/http/postback/agent/retry-scenario.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/retry-scenario.http).
+The repository contains the contract fixtures that WS-22-S3 must use as its
+compatibility gate:
 
-HMAC test vectors: [`examples/http/postback/agent/signature-verification.md`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/signature-verification.md).
+- [`basic-conversion.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/basic-conversion.http)
+- [`partner/basic-conversion-v0.2.json`](../../examples/http/postback/partner/basic-conversion-v0.2.json)
+- [`retry-scenario.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/retry-scenario.http)
+- [`signature-verification.md`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/signature-verification.md)
 
-## 5. Part B -- Partner -> AON Postback
+They cover valid and tampered raw bodies, expired timestamps, current,
+previous, and unknown key ids, same-body idempotency, conflicting-body 409, and
+all five retry times. They are contract fixtures, not evidence that the legacy
+notifier already meets this target.
 
-### 5.1 Endpoint
+## 6. Security and privacy
 
-| Field | Value |
-|-------|-------|
-| URL | `POST {aon_base_url}/v1/postback` |
-| Production `aon_base_url` | `https://api.aon.pro` |
-| Content-Type | `application/json` |
+- Do not log callback secrets or signature values.
+- Treat `aon_tracking_id` and `sub_id` fields as potentially pseudonymous
+  data. Retain only what is necessary for attribution and applicable legal
+  obligations.
+- Use separate callback credentials for AON → Agent delivery. Do not reuse
+  Partner AppKey/AppSecret or any Partner inbound-replay storage.
 
-### 5.2 Request Method & Headers
-
-- **Method**: `POST`
-- **Content-Type**: `application/json`
-- **Authentication headers**: `X-AON-Key`, `X-AON-Timestamp`, `X-AON-Nonce`,
-  `X-AON-Signature` per S3.
-- **Optional**: `X-AON-Attempt-Count: {int}` -- Partner MAY include the
-  retry attempt number (starting from 1). AON uses this for retry behavior
-  analysis and anomaly detection; it is not a business field.
-
-### 5.3 Request Payload
-
-Partner sends a JSON body with a shared envelope and event-type-specific
-fields. The `event_type` field discriminates the variant.
-
-#### 5.3.1 Shared Envelope (all event types)
-
-| Field | Type | Level | Description |
-|-------|------|-------|-------------|
-| `event_id` | string | REQUIRED | Partner-generated unique identifier (`evt_pb_{ulid}`). AON deduplication key. |
-| `event_type` | string | REQUIRED | `"conversion"`, `"refund"`, or `"adjustment"`. |
-| `aon_tracking_id` | string | CONDITIONAL | Dispatch-level AON tracking identifier from the original click. Required for refund/adjustment events and for conversion events that do not provide `click_id` or `aon_click_id`. |
-| `click_id` | string | OPTIONAL | Canonical per-click AON event identifier. It is an AON-generated `aci_...` public click id string. When present on a conversion postback, AON resolves attribution from the click row before falling back to `aon_tracking_id`. |
-| `aon_click_id` | string | OPTIONAL | AON-owned fallback query parameter carrying the same `aci_...` per-click value as `{CLICK_ID}` when a landing URL did not include the canonical click macro. |
-| `offer_id` | string | REQUIRED | Identifier of the associated offer. |
-| `conversion_id` | string | REQUIRED | Partner-side unique identifier for the conversion or transaction. |
-| `timestamp` | string | REQUIRED | ISO 8601 event timestamp. |
-
-Conversion postbacks MUST include at least one attribution key:
-`click_id`, `aon_click_id`, or `aon_tracking_id`. `click_id` is the canonical
-S2S field for the AON-generated `aci_...` per-click event ID exposed through the
-`{CLICK_ID}` landing URL macro. `aon_click_id` is the AON-owned fallback query parameter appended
-when no `{CLICK_ID}` macro is present. `aon_tracking_id` remains the
-dispatch-level fallback attribution key and is the same value as
-`offer_instance_id` from the Offer query response. If both `click_id` and
-`aon_click_id` are present, they MUST carry the same value.
-
-#### 5.3.2 Conversion Fields (`event_type = "conversion"`)
-
-| Field | Type | Level | Description |
-|-------|------|-------|-------------|
-| `conversion_type` | string | REQUIRED | `sale`, `lead`, `install`, `subscription`, `trial`, or `custom`. |
-| `amount` | number | REQUIRED | Order amount. |
-| `bid` | number | REQUIRED | Commission for this conversion (Partner's payout to AON, net of Partner's margin). |
-| `currency` | string | REQUIRED | ISO 4217 currency code. |
-| `sub_id_1` .. `sub_id_5` | string | OPTIONAL | Custom tracking parameters inherited from click. |
-| `coupon_code` | string | OPTIONAL | Coupon code for coupon-based attribution scenarios. |
-
-#### 5.3.3 Refund Fields (`event_type = "refund"`)
-
-| Field | Type | Level | Description |
-|-------|------|-------|-------------|
-| `original_event_id` | string | REQUIRED | `event_id` of the original conversion postback being refunded. |
-| `refund_amount` | number | REQUIRED | Refund amount (positive number). |
-| `currency` | string | REQUIRED | ISO 4217 currency code. |
-| `refund_reason` | string | OPTIONAL | Human-readable refund reason (free text). |
-
-#### 5.3.4 Adjustment Fields (`event_type = "adjustment"`)
-
-| Field | Type | Level | Description |
-|-------|------|-------|-------------|
-| `original_event_id` | string | REQUIRED | `event_id` of the original conversion postback being adjusted. |
-| `adjustment_amount` | number | REQUIRED | Adjustment amount. Positive = increase, negative = decrease. |
-| `currency` | string | REQUIRED | ISO 4217 currency code. |
-| `adjustment_reason` | string | OPTIONAL | Human-readable adjustment reason. |
-
-JSON Schema: [`postback-partner-payload-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/postback-partner-payload-v0.1.json)
-
-### 5.4 Retry Policy
-
-Partners SHOULD retry at least 3 times on non-2xx responses with
-exponential backoff. Recommended schedule (non-mandatory):
-
-| Attempt | Delay after previous attempt |
-|---------|------------------------------|
-| 1 | Immediate (first delivery) |
-| 2 | 1 minute |
-| 3 | 10 minutes |
-| 4 | 1 hour |
-
-Each retry MUST use the same `event_id` but MUST regenerate `X-AON-Nonce`
-and `X-AON-Timestamp` (see S6).
-
-Partners SHOULD send `X-AON-Attempt-Count` with the current attempt number.
-
-AON SHOULD respond within 3 seconds. If AON responds with `429
-RATE_LIMITED`, Partners SHOULD respect the `Retry-After` header.
-
-### 5.5 Response Semantics
-
-AON returns a standard `ApiResponse` envelope.
-
-**Success (first receipt):**
-
-```json
-{
-  "code": "SUCCESS",
-  "message": "",
-  "data": {},
-  "extra": { "event_id": "evt_pb_NWS66E195DM66YEK30HJKSVVYN", "deduplicated": false }
-}
-```
-
-**Success (deduplication hit):**
-
-```json
-{
-  "code": "SUCCESS",
-  "message": "",
-  "data": {},
-  "extra": { "event_id": "evt_pb_NWS66E195DM66YEK30HJKSVVYN", "deduplicated": true }
-}
-```
-
-Both cases return HTTP 200. Partners SHOULD treat any `code: "SUCCESS"`
-response as successful delivery regardless of the `deduplicated` flag.
-
-### 5.6 Example
-
-See [`examples/http/postback/partner/conversion.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/partner/conversion.http),
-[`examples/http/postback/partner/refund.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/partner/refund.http),
-and [`examples/http/postback/partner/error-unauthorized.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/partner/error-unauthorized.http).
-
-HMAC test vectors: [`examples/http/postback/partner/signature-verification.md`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/partner/signature-verification.md).
-
-## 6. Idempotency
-
-### 6.1 Event ID Generation
-
-Every postback event MUST carry an `event_id` in the format
-`evt_pb_{ulid}` where `{ulid}` is a 26-character [ULID](https://github.com/ulid/spec)
-(Crockford Base32, monotonic within millisecond).
-
-Regex: `^evt_pb_[0-9A-HJKMNP-TV-Z]{26}$`
-
-- **Part A**: AON generates the `event_id` when a conversion is attributed.
-- **Part B**: Partner generates the `event_id` when the business event
-  (conversion/refund/adjustment) occurs.
-
-### 6.2 Deduplication Window
-
-The receiver MUST deduplicate on `event_id` with a minimum 5-minute
-window. Within this window, if the same `event_id` arrives again, the
-receiver MUST return success without reprocessing:
-
-- **Part A (Agent)**: Return HTTP 2xx; body ignored by AON.
-- **Part B (AON)**: Return `200 SUCCESS` with `extra.deduplicated: true`.
-
-### 6.3 Retry and Deduplication Interaction
-
-When retrying a postback:
-
-1. The sender MUST reuse the **same** `event_id` and the **same** payload body.
-2. The sender MUST regenerate `X-AON-Nonce` (fresh UUIDv4) and
-   `X-AON-Timestamp` (current Unix time).
-3. The sender MUST recompute `X-AON-Signature` over the new signing string.
-
-This ensures that:
-
-- Business-level deduplication works (same `event_id`).
-- HTTP-level replay protection works (different nonce + timestamp pass
-  anti-replay checks).
-- Signature verification works (fresh signature matches fresh headers).
-
-## 7. Signature Verification
-
-### 7.1 Verification Algorithm (Pseudocode)
-
-```python
-def verify_postback(request, secret):
-    # Step 1: Extract headers
-    key_id    = request.headers["X-AON-Key"]
-    timestamp = request.headers["X-AON-Timestamp"]
-    nonce     = request.headers["X-AON-Nonce"]
-    signature = request.headers["X-AON-Signature"]
-
-    # Step 2: Timestamp check (MUST before signature)
-    if abs(server_now() - int(timestamp)) > 300:
-        return error(401, "timestamp outside allowed skew")
-
-    # Step 3: Nonce check (SHOULD / MUST depending on role)
-    if nonce_store.exists(key_id, nonce):
-        return error(401, "nonce already used")
-    nonce_store.set(key_id, nonce, ttl=300)
-
-    # Step 4: Reconstruct signing string
-    raw_body = request.raw_body()  # exact received bytes, no re-serialization
-    signing_string = (
-        request.method + "\n" +
-        request.path   + "\n" +
-        raw_body       + "\n" +
-        timestamp      + "\n" +
-        nonce
-    )
-
-    # Step 5: Compute expected signature
-    expected = hmac_sha256(secret, signing_string).hex_lowercase()
-
-    # Step 6: Constant-time comparison
-    if not constant_time_equal(expected, signature):
-        return error(401, "invalid signature")
-
-    # Step 7: Proceed to business logic
-    return process(request)
-```
-
-### 7.2 Canonical Body Rules
-
-- The canonical body is the **raw UTF-8 bytes** as received on the wire.
-- The verifier MUST NOT re-serialize, re-order keys, or normalize
-  whitespace before hashing.
-- This matches the convention used in
-  [`offer-provider-api.md` S4.2](./offer-provider-api.md#42-signing-string).
-
-### 7.3 Timestamp and Nonce Window
-
-- Timestamp: `|server_now - X-AON-Timestamp| > 300` seconds MUST reject.
-- Nonce: `(key_id, nonce)` pair must not have been seen in the last
-  5 minutes.
-- Both windows are 5 minutes to keep implementation simple and symmetric.
-
-## 8. Error Codes
-
-Error responses follow the AON `ApiResponse` contract, consistent with
-[`offer-provider-api.md` S9](./offer-provider-api.md#9-error-codes).
-
-| HTTP | `code` | When it happens |
-|-----:|--------|-----------------|
-| 200 | `SUCCESS` | Part B: event accepted or deduplicated. |
-| 400 | `BAD_REQUEST` | Payload format error, missing REQUIRED fields, invalid `event_type`. |
-| 401 | `UNAUTHORIZED` | Missing auth header, invalid signature, expired timestamp, or replayed nonce. |
-| 403 | `FORBIDDEN` | Valid `appkey` but suspended or not permitted. |
-| 404 | `NOT_FOUND` | `aon_tracking_id` or `original_event_id` not found. |
-| 422 | `UNPROCESSABLE_ENTITY` | Fields are valid but semantically conflicting (e.g. `refund_amount` > original `amount`). |
-| 429 | `RATE_LIMITED` | Frequency cap exceeded. Response SHOULD include a `Retry-After` header (integer seconds). |
-| 500 | `INTERNAL_ERROR` | AON internal failure. |
-
-Note: Part A (AON -> Agent) does not require Agent to return `ApiResponse`
-envelopes; any 2xx is treated as success. The error codes above apply
-primarily to Part B (Partner -> AON).
-
-## 9. URL Template Substitution Rules
-
-This section applies to Part A only.
-
-### 9.1 Variable Encoding
-
-After substitution, each variable value is **percent-encoded** per
-[RFC 3986 S2.1](https://datatracker.ietf.org/doc/html/rfc3986#section-2.1)
-when it appears in a URL path or query parameter position. Values
-containing characters outside the unreserved set (`A-Z a-z 0-9 - . _ ~`)
-MUST be percent-encoded.
-
-### 9.2 Empty Values
-
-When a variable's source value is absent (e.g. `sub_id_3` was not set on
-the original click), the variable MUST be replaced with an **empty string**.
-
-Example: `https://agent.example.com/pb?sid3={sub_id_3}` becomes
-`https://agent.example.com/pb?sid3=`
-
-### 9.3 Unknown Variables
-
-AON MUST NOT substitute unknown variables (any `{variable_name}` not in
-the 12-variable closed set). If the template contains an unknown variable,
-AON MUST treat this as a configuration error and fail fast (do not deliver
-the postback; log an error). Templates MUST be validated at registration
-time.
-
-### 9.4 Closed Set
-
-The 12 variables listed in S4.5 form a **closed set** in v0.1. Adding new
-variables requires a spec revision to v0.2 or later.
-
-## 10. Versioning
-
-- **URL path**: Part B endpoint uses `/v1/` in the path
-  (`POST /v1/postback`). Backward-incompatible changes MUST be introduced
-  under a new `/v{N+1}/` path.
-- **Schema file naming**: JSON Schema files use `v0.1` suffix
-  (`postback-agent-payload-v0.1.json`, `postback-partner-payload-v0.1.json`).
-- **Backward-compatible additions** (new OPTIONAL fields, new enum values)
-  MAY land within `/v1/` in a minor semantic version (e.g. `v0.2`).
-  Consumers SHOULD ignore unknown fields and handle unknown enum values
-  gracefully.
-- **Backward-incompatible changes** (removing fields, renaming REQUIRED
-  fields, tightening validation) require `/v2/` and a deprecation plan.
-
-## 11. Security Considerations
-
-### 11.1 Transport Security
-
-All postback communication MUST use HTTPS (TLS 1.2 or later). Plaintext
-HTTP endpoints MUST NOT be registered.
-
-### 11.2 Secret Management
-
-- Secrets SHOULD be rotated at least every 90 days.
-- During rotation, both old and new secrets SHOULD be accepted for a grace
-  period (RECOMMENDED: 24 hours).
-- Secrets MUST NOT be logged, included in error messages, or transmitted in
-  URL query parameters.
-
-### 11.3 PII Considerations
-
-Postback payloads MAY contain PII-adjacent fields:
-
-| Field | PII risk | Mitigation |
-|-------|---------|------------|
-| `aon_tracking_id` | Pseudonymous identifier | Short TTL; rotated per click |
-| `sub_id_1` .. `sub_id_5` | May contain user-supplied data | Agent developers MUST NOT store raw sub_id values beyond the attribution window without consent |
-| `coupon_code` | Low risk | No PII in standard usage |
-
-Partners and Agent developers MUST comply with applicable data protection
-regulations (GDPR, CCPA, etc.) when processing postback data.
-
-## 12. Design Decisions
-
-1. **Single file, dual Part.** Postback is a single protocol concern with
-   two directions. A single document avoids cross-file inconsistency and
-   makes it easy to maintain shared mechanics (signing, idempotency) in
-   one place.
-
-2. **`event_id` + nonce dual protection.** `event_id` provides
-   business-level idempotency (same conversion across retries), while
-   `X-AON-Nonce` provides HTTP-level replay protection (each attempt is
-   cryptographically unique). Collapsing them into one field would force
-   a choice between idempotency and replay protection.
-
-3. **Agent free from ApiResponse.** Part A receivers (Agent developers)
-   only need to return HTTP 2xx. Mandating `ApiResponse` for Agent
-   endpoints would raise the integration bar for minimal benefit -- AON
-   only needs a success signal, not structured data back.
-
-4. **Part B retry SHOULD vs Part A retry MUST.** AON controls its own
-   retry infrastructure (MUST 5-step schedule). Partner retry is advisory
-   (SHOULD >= 3 times) because AON cannot enforce Partner-side behavior,
-   and Partners vary in infrastructure maturity.
-
-5. **5-minute deduplication window.** Matches the nonce/timestamp anti-replay
-   window for implementation simplicity. Events older than 5 minutes that
-   arrive with the same `event_id` are treated as new (AON handles late
-   duplicates via settlement reconciliation, outside the scope of this
-   spec).
-
-6. **`X-AON-Attempt-Count` as OPTIONAL.** This header is useful for AON
-   operational analytics (e.g. Partner anomaly detection) but is not a
-   business field. Making it OPTIONAL keeps the L1 bar low for Partners.
-
-7. **`aon_tracking_id` (final name; previously `aon_id` then `tracking_id`).**
-   The integration-layer attribution key has gone through two non-breaking
-   renames within the v0.1 Draft window:
-   - First: legacy `aon_id` → `tracking_id` (early v0.1, unifying with
-     `events.md` click/conversion event schema for the join-key naming).
-   - Second (PROTO-F014b, 2026-04-28): `tracking_id` → `aon_tracking_id`,
-     adding the `aon_` brand prefix to align with industry convention for
-     integration-layer click identifiers (Google Ads `gclid`, Meta `fbclid`,
-     TikTok `ttclid`, Microsoft `msclkid`). The protocol-side field name in
-     the Offer query response is the neutral `offer_instance_id` (see
-     PROTO-F014a in `offer-schema.md` Changelog). The brand prefix lives
-     only at the integration layer (URL query param + S2S body), preserving
-     protocol openness while making the partner-facing contract explicit
-     about its origin platform.
-   - Both renames are non-breaking because the protocol is in v0.1 Draft
-     with no GA consumers.
-   - Value semantics unchanged across all renames: a per-dispatch unique
-     identifier (UUIDv7 recommended) generated by AON when an offer is
-     served, and used as the dispatch-level fallback key for click →
-     conversion → settlement attribution.
-
-8. **Click-level attribution key.** `click_id` / `aon_click_id` identify the
-   specific click event as an AON-generated `aci_...` public click id string,
-   while `aon_tracking_id` identifies the dispatch. AON prefers the
-   click-level key when present, validates any supplied
-   dispatch-level key against the click row, and falls back to
-   `aon_tracking_id` for legacy integrations.
-
-9. **12-variable closed set for URL templates.** Limiting to a fixed set
-   prevents template injection and keeps AON's substitution engine simple.
-   New variables require a spec revision, ensuring they are deliberately
-   designed.
-
-## 13. Changelog
+## 7. Changelog
 
 | Version | Date | Changes |
-|---------|------|---------|
-| 0.1 | 2026-04-17 | Initial draft. Consolidated from `events.md` Postback section; added Part B (Partner -> AON) with conversion/refund/adjustment event types; added `event_id` (ULID-based) idempotency; aligned signing with F009 `offer-provider-api.md`; added JSON Schema, HTTP examples, and HMAC test vectors. |
-| 0.1 | 2026-04-28 | PROTO-F014b non-breaking rename: `tracking_id` → `aon_tracking_id` across all schema tables, design notes, and HTTP examples (this spec). Aligns with industry integration-layer convention (Google Ads `gclid` / Meta `fbclid` / TikTok `ttclid` / Microsoft `msclkid` pattern). Value semantics unchanged. Cross-protocol family alignment: `events.md` (click/conversion events) renamed in the same wave; `offer-schema.md` Offer response keeps the neutral protocol-side field name `offer_instance_id` (PROTO-F014a). |
-| 0.1 | 2026-06-30 | Added optional click-level attribution keys for conversion postbacks: canonical `click_id` and fallback `aon_click_id`. `aon_tracking_id` remains the dispatch-level fallback key for legacy integrations and refund/adjustment flows. |
+|---|---|---|
+| 0.2 | 2026-07-27 | Unified both directions on required `event_name` referencing Offer `goals[].event`; removed public `conversion_type` and `bid_amount`; added Partner/Agent closed payload schemas and bound Agent signing vectors to the canonical example. |
+| 0.2 | 2026-07-24 | Retired the unimplemented Partner inbound signing, replay, and reversal-event contract. Kept simplified Partner conversion intake and global-token/fallback semantics. Defined the versioned-key, HMAC/timestamp, raw request-target, durable 24-hour idempotency, and fixed retry target contract for WS-22. Standardized the five attribution fields as `sub_id` plus `sub_id_2`–`sub_id_5`. |

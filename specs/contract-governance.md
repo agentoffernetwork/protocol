@@ -36,12 +36,13 @@ Canonical fields:
 
 | Field | Meaning |
 | --- | --- |
-| `AON-Protocol-Version` | HTTP header that pins the AgentOffer Protocol payload contract version, for example `0.1` |
+| `AON-Protocol-Version` | HTTP header that pins the current AgentOffer Protocol payload contract version, for example `0.2`; omission also selects v0.2 |
 | `X-AON-TRACE-ID` | Hosted Query API HTTP response header for support diagnostics; not a JSON body field |
 | `request_id` | Query/request correlation identifier |
 | `offers` | Ranked Offer objects returned by the query |
 | `offers[].offer_id` | Inventory-level stable Offer ID |
 | `offers[].offer_instance_id` | Per-dispatch Offer instance ID |
+| `offers[].goals[].event` | Exact Goal identity shared with both Postback directions |
 
 Canonical agent-facing request constraints:
 
