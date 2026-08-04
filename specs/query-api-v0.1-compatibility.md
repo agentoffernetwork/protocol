@@ -18,10 +18,10 @@ Unknown, repeated, or invalid version headers fail closed.
 
 ## Contract artifacts
 
-- Request: [`offer-query-schema-v0.1.json`](../../schema/json-schema/offer-query-schema-v0.1.json)
-- Offer: [`offer-schema-v0.1.json`](../../schema/json-schema/offer-schema-v0.1.json)
-- Request example: [`offer-query-request.json`](../../examples/http/offer-query-request.json)
-- Response example: [`offer-response.json`](../../examples/http/offer-response.json)
+- Request: [`offer-query-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-query-schema-v0.1.json)
+- Offer: [`offer-schema-v0.1.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-schema-v0.1.json)
+- Request example: [`offer-query-request.json`](https://github.com/agentoffernetwork/examples/blob/main/http/offer-query-request.json)
+- Response example: [`offer-response.json`](https://github.com/agentoffernetwork/examples/blob/main/http/offer-response.json)
 
 The v0.1 compatibility Offer may contain `bid`. It is not a valid v0.2 Offer
 field and MUST NOT appear in v0.2 requests, responses, SDK entry points, or

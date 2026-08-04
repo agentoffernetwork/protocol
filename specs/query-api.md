@@ -37,11 +37,11 @@ BL-034 owns actual HTTP negotiation, response echo, and runtime support.
 ## Contract authority
 
 The request structure is defined by
-[`offer-query-schema-v0.2.json`](../../schema/json-schema/offer-query-schema-v0.2.json).
+[`offer-query-schema-v0.2.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-query-schema-v0.2.json).
 The protocol success payload is defined by
-[`offer-query-response-v0.2.json`](../../schema/json-schema/offer-query-response-v0.2.json),
+[`offer-query-response-v0.2.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-query-response-v0.2.json),
 whose `offers[]` items reference
-[`offer-schema-v0.2.json`](../../schema/json-schema/offer-schema-v0.2.json).
+[`offer-schema-v0.2.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-schema-v0.2.json).
 
 Protocol objects are closed: fields not declared by the relevant schema are
 rejected. Required properties are not nullable unless a schema explicitly says
@@ -68,12 +68,12 @@ otherwise.
 ```
 
 The canonical file is
-[`offer-query-request-v0.2-minimal.json`](../../examples/http/offer-query-request-v0.2-minimal.json).
+[`offer-query-request-v0.2-minimal.json`](https://github.com/agentoffernetwork/examples/blob/main/http/offer-query-request-v0.2-minimal.json).
 
 ### Full request
 
 The complete canonical request is
-[`offer-query-request-v0.2-full.json`](../../examples/http/offer-query-request-v0.2-full.json).
+[`offer-query-request-v0.2-full.json`](https://github.com/agentoffernetwork/examples/blob/main/http/offer-query-request-v0.2-full.json).
 
 ### Top-level fields
 
@@ -210,8 +210,8 @@ downstream implementation and release gates pass.
 
 ## References
 
-- [Full Query example](../../examples/http/offer-query-request-v0.2-full.json)
-- [Hosted response example](../../examples/http/offer-query-hosted-response-v0.2.json)
+- [Full Query example](https://github.com/agentoffernetwork/examples/blob/main/http/offer-query-request-v0.2-full.json)
+- [Hosted response example](https://github.com/agentoffernetwork/examples/blob/main/http/offer-query-hosted-response-v0.2.json)
 - [Offer v0.2](./offer-schema-v0.2.md)
 - [OfferProvider v0.2](./offer-provider-api.md)
 - [Contract Governance](./contract-governance.md)

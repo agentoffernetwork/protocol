@@ -6,9 +6,9 @@
 
 This specification defines the complete canonical Offer returned by Query and
 OfferProvider. The structural source is
-[`offer-schema-v0.2.json`](../../schema/json-schema/offer-schema-v0.2.json);
+[`offer-schema-v0.2.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-schema-v0.2.json);
 the TypeScript projection is
-[`offer-v0.2.types.ts`](../../schema/types/offer-v0.2.types.ts).
+[`offer-v0.2.types.ts`](https://github.com/agentoffernetwork/schema/blob/main/types/offer-v0.2.types.ts).
 
 <a id="canonical-shape"></a>
 <a id="requirement-levels"></a>
@@ -55,7 +55,7 @@ Every item in `goals[]` requires:
 ```
 
 `event` is the Goal's cross-message identity. It uses the shared
-[`goal-event-name-v0.2.json`](../../schema/json-schema/goal-event-name-v0.2.json)
+[`goal-event-name-v0.2.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/goal-event-name-v0.2.json)
 slug grammar and must be exact-string unique within one Offer. Postback
 `event_name` carries this exact value without mapping to a closed conversion
 type.
@@ -183,8 +183,8 @@ unchanged.
 
 ## Related sources
 
-- [Canonical Offer example](../../examples/http/offer-response-v0.2.json)
+- [Canonical Offer example](https://github.com/agentoffernetwork/examples/blob/main/http/offer-response-v0.2.json)
 - [Query API v0.2](./query-api.md)
 - [OfferProvider API v0.2](./offer-provider-api.md)
 - [Postback v0.2](./postback.md)
-- [RFC-0002](../../rfcs/rfcs/RFC-0002-conversion-goals-v0-2-formal.md)
+- [RFC-0002](../rfcs/RFC-0002-conversion-goals-v0-2-formal.md)

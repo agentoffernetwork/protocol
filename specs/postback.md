@@ -44,7 +44,7 @@ they are not an inbound Partner callback contract.
 #### Partner payload
 
 The decoded GET query or POST JSON payload is defined by
-[`postback-partner-payload-v0.2.json`](../../schema/json-schema/postback-partner-payload-v0.2.json).
+[`postback-partner-payload-v0.2.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/postback-partner-payload-v0.2.json).
 It requires:
 
 - `event_name`: exact non-null identity of the matched Offer
@@ -165,7 +165,7 @@ Optional attribution fields are omitted when absent, never sent as `null`.
 ### Goal identity and no-bid
 
 Both Postback schemas reference the same
-[`goal-event-name-v0.2.json`](../../schema/json-schema/goal-event-name-v0.2.json)
+[`goal-event-name-v0.2.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/goal-event-name-v0.2.json)
 definition used by Offer Goals. A well-known or custom slug is valid only when
 it exactly matches the unique Goal declared by the attributed Offer. Schema
 checks grammar and requiredness; BL-039 owns runtime declaration lookup.
@@ -207,7 +207,7 @@ The repository contains the contract fixtures that WS-22-S3 must use as its
 compatibility gate:
 
 - [`basic-conversion.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/basic-conversion.http)
-- [`partner/basic-conversion-v0.2.json`](../../examples/http/postback/partner/basic-conversion-v0.2.json)
+- [`partner/basic-conversion-v0.2.json`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/partner/basic-conversion-v0.2.json)
 - [`retry-scenario.http`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/retry-scenario.http)
 - [`signature-verification.md`](https://github.com/agentoffernetwork/examples/blob/main/http/postback/agent/signature-verification.md)
 

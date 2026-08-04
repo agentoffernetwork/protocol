@@ -24,9 +24,9 @@ before dispatch.
 ## Shared Query core
 
 The Provider request schema is
-[`offer-provider-request-v0.2.json`](../../schema/json-schema/offer-provider-request-v0.2.json).
+[`offer-provider-request-v0.2.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-provider-request-v0.2.json).
 It composes
-[`offer-query-schema-v0.2.json`](../../schema/json-schema/offer-query-schema-v0.2.json)
+[`offer-query-schema-v0.2.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-query-schema-v0.2.json)
 by reference and only raises `request_id` from optional to required. It does
 not copy or redefine the Query fields.
 
@@ -111,7 +111,7 @@ and pagination rules are inherited from Query v0.2.
 
 ## Response
 
-[`offer-provider-response-v0.2.json`](../../schema/json-schema/offer-provider-response-v0.2.json)
+[`offer-provider-response-v0.2.json`](https://github.com/agentoffernetwork/schema/blob/main/json-schema/offer-provider-response-v0.2.json)
 defines exactly two closed branches.
 
 ### Success
@@ -152,9 +152,9 @@ extend the shared request core.
 
 ## References
 
-- [`basic-query-v0.2.json`](../../examples/http/offer-provider/basic-query-v0.2.json)
-- [`full-query-v0.2.json`](../../examples/http/offer-provider/full-query-v0.2.json)
-- [`success-v0.2.json`](../../examples/http/offer-provider/success-v0.2.json)
-- [`error-bad-request-v0.2.json`](../../examples/http/offer-provider/error-bad-request-v0.2.json)
+- [`basic-query-v0.2.json`](https://github.com/agentoffernetwork/examples/blob/main/http/offer-provider/basic-query-v0.2.json)
+- [`full-query-v0.2.json`](https://github.com/agentoffernetwork/examples/blob/main/http/offer-provider/full-query-v0.2.json)
+- [`success-v0.2.json`](https://github.com/agentoffernetwork/examples/blob/main/http/offer-provider/success-v0.2.json)
+- [`error-bad-request-v0.2.json`](https://github.com/agentoffernetwork/examples/blob/main/http/offer-provider/error-bad-request-v0.2.json)
 - [Query API v0.2](./query-api.md)
 - [Offer Schema v0.2](./offer-schema-v0.2.md)

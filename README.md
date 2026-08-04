@@ -3,7 +3,7 @@
 The open contract for discovering commercial offers, preserving attribution,
 and reporting conversion events between AI agents, AON, and Offer Providers.
 
-**Current normative contract: Protocol v0.2**
+## Current normative contract: Protocol v0.2
 
 Protocol v0.2 is the only current public contract for new integrations. The
 checked-in specification, JSON Schemas, TypeScript types, examples, and
