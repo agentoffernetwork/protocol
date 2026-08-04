@@ -187,4 +187,4 @@ unchanged.
 - [Query API v0.2](./query-api.md)
 - [OfferProvider API v0.2](./offer-provider-api.md)
 - [Postback v0.2](./postback.md)
-- [RFC-0002](../rfcs/RFC-0002-conversion-goals-v0-2-formal.md)
+- [RFC-0002](https://github.com/agentoffernetwork/rfcs/blob/main/rfcs/RFC-0002-conversion-goals-v0-2-formal.md)
