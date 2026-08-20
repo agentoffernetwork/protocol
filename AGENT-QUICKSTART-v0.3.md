@@ -1,6 +1,7 @@
-# AgentOffer v0.3 Quickstart
+# AgentOffer v0.3 Quickstart summary
 
-> This is the canonical quickstart for new v0.3 integrations. Runtime
+> The canonical quickstart for new v0.3 integrations is `AGENT-QUICKSTART.md`.
+> This versioned file is a compact summary. Runtime
 > availability is deployment-specific; use the deployment's conformance and
 > availability evidence before sending production traffic.
 

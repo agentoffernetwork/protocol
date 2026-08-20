@@ -14,9 +14,10 @@ traffic. Protocol v0.2 remains an explicit compatibility path and is unchanged.
 ## Start here
 
 For a directly loadable integration guide, use the canonical
-[Agent v0.3 quickstart](AGENT-QUICKSTART-v0.3.md) or
-[Partner quickstart](PARTNER-QUICKSTART.md). They are the only public quickstart
-bodies; the other public repositories link here rather than copying the steps.
+[Agent v0.3 quickstart](AGENT-QUICKSTART-v0.3.md). Partner integrations begin
+with the [OfferProvider API v0.3](specs/offer-provider-api-v0.3.md). These are
+the public entry points; the other public repositories link here rather than
+copying the steps.
 
 | Surface | Normative specification | Machine-readable contract |
 |---|---|---|
