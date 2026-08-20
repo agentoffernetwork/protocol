@@ -112,3 +112,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Version: `v0.1`
 - Status: `Draft`
+# v0.3.0 - 2026-08-20
+
+## Added
+
+- Added a version-isolated conversational Query/Offer/Provider contract.
+- Added `thinking_mode`, `force_offer`, `intent.origin[]`, guided
+  `refinements` / `followup_topics`, item-level `query_helper`, and optional
+  `listing_source`.
+- Kept `decision_factors`, `watch_status`, and generic `next_actions` out of the
+  v0.3 public surface.
+- Added canonical feedback/watches envelopes shared by REST and MCP, including
+  explicit user actions and required idempotency keys.
+
+## Compatibility
+
+- Protocol v0.2 remains available as an explicit compatibility path and is
+  unchanged.
+- Runtime availability is deployment-owned and is not implied by source files.
