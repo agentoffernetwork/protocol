@@ -58,10 +58,10 @@ v0.3 does not define a top-level
 `engagement.query_helper`, generic `next_actions`, or `decision_factors`.
 
 `query_helper.request_patch` uses RFC 7386 merge-patch semantics and is limited to
-`intent.signals`, `constraints.category_ids`, `constraints.excluded_category_ids`,
-and `constraints.features`. User-provided conditions from the current turn win
-over conflicting patch values. The merged request is validated again before it is
-sent.
+`intent.signals`, `constraints.category_ids`, and
+`constraints.excluded_category_ids`. User-provided conditions from the current
+turn win over conflicting patch values. The merged request is validated again
+before it is sent.
 
 ## Offer boundaries
 
