@@ -10,6 +10,7 @@ each deployment.
 - **Agent integration:** follow the [Agent quickstart](quickstarts/agent.md),
   then implement the [Query API](specs/query-api.md),
   [Offer schema](specs/offer-schema.md), and
+  [Offer and Query Response field semantics](specs/offer-field-semantics.md), and
   [Postback contract](specs/postback.md) as needed.
 - **Offer Provider integration:** follow the
   [Partner quickstart](quickstarts/partner.md), then implement the

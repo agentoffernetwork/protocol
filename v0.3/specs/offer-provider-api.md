@@ -2,9 +2,10 @@
 
 > **Current stable contract**
 
-Provider request reuses the Query shape and requires `request_id`. Provider
-success reuses the Query response shape; Provider errors use the existing
-uppercase `code`, `message`, `data`, `extra` envelope (`BAD_REQUEST`,
+Provider request reuses the Query request shape and requires `request_id`.
+Provider success returns Partner supply Offers; AON resolves source identity,
+evaluates Partner-only rules, and creates the public Query response. Provider
+errors use the existing uppercase `code`, `message`, `data`, `extra` envelope (`BAD_REQUEST`,
 `UNAUTHORIZED`, `FORBIDDEN`, `RATE_LIMITED`, `INTERNAL_ERROR`). HMAC, nonce and
 transport metadata remain headers, not public body fields.
 
@@ -72,19 +73,28 @@ billing or settlement effects.
 The response is exactly one branch of
 [`offer-provider-response.json`](https://github.com/agentoffernetwork/schema/blob/main/v0.3/json-schema/offer-provider-response.json):
 
-- **Success:** the raw Query response with an exactly matching
-  `request_id`, `protocol_version: "0.3"`, `language`, and `offers`.
+- **Success:** the Partner supply envelope with an exactly matching
+  `request_id`, `protocol_version: "0.3"`, `language`, and `offers` from
+  `offer-partner-schema-v0.3.json`.
 - **Error:** `{code,message,data,extra}` with a closed uppercase error code.
 
-A success response is not wrapped in the hosted API envelope. `entity`,
-optional `listing_source`, and `action` retain their separate Offer
-meanings. Provider-private eligibility, freshness, supply lineage, affiliate,
-or mapping data must not appear in the response.
+A success response is not wrapped in the hosted API envelope. Each Partner
+Offer requires stable `source_offer_id` in the identity namespace configured
+for that integration. It must not contain AON-owned `offer_id`,
+`offer_instance_id`, or `match_reason`. AON resolves
+`owner Partner + identity namespace + source_offer_id` to canonical `offer_id`,
+evaluates `targeting` and `conversion_rule`, and then creates a public Offer
+with a fresh dispatch identity and any permitted match explanation.
 
-Provider adapters may use private eligibility, freshness, mapping and supply
-lineage data internally, but those fields must not leak into the public response.
-The public Offer projection is the same shape as Query, including the semantic
-separation of `entity`, `listing_source` and `action`.
+`entity`, optional `listing_source`, and `action` retain their separate Offer
+meanings. Provider-private freshness, supply lineage, affiliate, or mapping data
+other than the declared source identity must not appear in the response.
+
+Provider adapters may use private freshness, mapping and supply lineage data
+internally, but those fields must not leak into the Partner supply payload or
+the later public response. The public Offer projection is produced by AON and
+uses the Query response shape, including the semantic separation of `entity`,
+`listing_source` and `action`.
 
 When a Provider sends `listing_source.logo`, it must be an explicit absolute
 HTTPS URI no longer than 2048 characters; non-ASCII components must be
@@ -96,5 +106,7 @@ not infer the field from entity, action, or material data.
 ## Implementation vectors
 
 - [HMAC signing vectors](https://github.com/agentoffernetwork/examples/blob/main/v0.3/http/offer-provider/hmac-signing-cases.md)
+- [Provider request example](https://github.com/agentoffernetwork/examples/blob/main/v0.3/http/offer-provider/request.json)
+- [Provider success example](https://github.com/agentoffernetwork/examples/blob/main/v0.3/http/offer-provider/success.json)
 - [Provider request schema](https://github.com/agentoffernetwork/schema/blob/main/v0.3/json-schema/offer-provider-request.json)
 - [Provider response schema](https://github.com/agentoffernetwork/schema/blob/main/v0.3/json-schema/offer-provider-response.json)

@@ -2,21 +2,24 @@
 
 > **Current stable contract**
 >
-> New integrations use wire version `0.3`. Each API, MCP, Provider, and Host
-> deployment publishes its own endpoint, access, and conformance details.
+> The final v0.3 canonical line uses wire version `0.3`. Each API, MCP,
+> Provider, and Host deployment publishes its own endpoint, access, and
+> conformance details.
 
 ## Version negotiation
 
-Only the exact request header `AON-Protocol-Version: 0.3` selects this
-contract. A service that has not deployed v0.3 returns
-`unsupported_protocol_version` rather than silently interpreting the request as
-v0.2. The response echoes `AON-Protocol-Version: 0.3` when v0.3 is actually
-supported. Shared caches must vary on this header.
+Only the exact request header `AON-Protocol-Version: 0.3` selects the final
+v0.3 contract. A conforming response echoes `AON-Protocol-Version: 0.3`, carries
+`protocol_version: "0.3"` in its JSON body, and sends
+`Vary: AON-Protocol-Version`. The Offer payload remains `version: "3.0"`:
+that value is the Offer document-model lineage, not the transport protocol
+selector.
 
-New integrations should send `AON-Protocol-Version: 0.3`. Requests without a
-version header follow the deployment's documented rollout state. Requests with
-`0.2` keep the existing v0.2 behavior and must never be silently reinterpreted
-as v0.3.
+The selector is mandatory for this final line. Missing or unknown selectors,
+including `1.0`, return `unsupported_protocol_version`; no deployment may
+silently fall back or reinterpret a request. Explicit `0.2` is the legacy
+compatibility line only and does not select v0.3. A future protocol line must
+publish its own version namespace policy before it can be selected.
 
 ## Request
 
@@ -49,6 +52,18 @@ Offers can be empty. When `offers` is empty, `empty_reason` is required and uses
 `no_material`, or `consent_missing`. When an Offer is returned, `empty_reason`
 is omitted.
 
+Returned Offers are ordered by descending selection priority for this request.
+The ordering is meaningful only within the response and is not stable or
+comparable across separate requests. When several empty-result causes apply,
+the canonical precedence is `consent_missing`, `scene_suppressed`,
+`frequency_capped`, `no_material`, then `below_relevance_threshold`.
+
+The normative meaning of every returned Offer and response-envelope property is
+defined in [Offer and Query Response Field Semantics v0.3](offer-field-semantics.md).
+The published JSON Schema `description` annotations are the authoritative
+field-level contract; this API specification defines cross-field and transport
+behavior.
+
 `engagement.refinements` helps narrow the current request and carries a short
 `label`, an optional `speak` suggestion, and an item-level `query_helper`.
 `engagement.followup_topics` helps the user explore a related direction and
@@ -56,11 +71,22 @@ carries a `label`, `basis`, confidence score, and item-level `query_helper`.
 v0.3 does not define a top-level
 `engagement.query_helper`, generic `next_actions`, or `decision_factors`.
 
-`query_helper.request_patch` uses RFC 7386 merge-patch semantics and is limited to
+`query_helper.request_patch` is a constrained non-destructive partial update limited to
 `intent.signals`, `constraints.category_ids`, and
-`constraints.excluded_category_ids`. User-provided conditions from the current
-turn win over conflicting patch values. The merged request is validated again
-before it is sent.
+`constraints.excluded_category_ids`. Omitted members remain unchanged, objects
+merge recursively, arrays replace prior arrays, and `null` is invalid rather
+than a removal instruction. User-provided conditions from the current turn win
+over conflicting suggested values. The merged request is validated again before
+it is sent.
+
+`followup_topics` are ordered by descending `confidence`. Confidence is
+comparable only among follow-ups in the same response from the same producer; it
+is not a calibrated probability or a cross-request score.
+
+Every Hook identifies one returned Offer with `subject_offer_id` and one prior
+response with `baseline_request_id`. The baseline must equal the current
+request's `context.session.previous_request_id`. Hooks report observed change
+cues only; they do not register a watch or promise future notification.
 
 ## Offer boundaries
 

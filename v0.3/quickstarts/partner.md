@@ -13,8 +13,9 @@ remain between the Provider and its AON integration.
 
 ## Build an Offer Provider
 
-1. Read the [OfferProvider API](../specs/offer-provider-api.md) and
-   [Offer schema](../specs/offer-schema.md). Validate payloads against the exact
+1. Read the [OfferProvider API](../specs/offer-provider-api.md),
+   [Partner Offer schema](../specs/offer-partner-schema.md), and
+   [public Offer schema](../specs/offer-schema.md). Validate payloads against the exact
    Provider request and response paths in the
    [schema repository](https://github.com/agentoffernetwork/schema); the
    machine-readable metadata below binds those paths to the release manifest.
@@ -30,9 +31,9 @@ remain between the Provider and its AON integration.
 4. Verify transport authentication before processing. HMAC key id, timestamp,
    nonce, signature, and test-mode headers remain transport metadata, not body
    fields. Sign the exact transmitted request body.
-5. Return either a raw success response whose `request_id` exactly echoes
-   the request, or the closed Provider error envelope. Do not wrap a success
-   body in the hosted `{code,message,data,extra}` envelope.
+5. Return either a Partner supply success response whose `request_id` exactly
+   echoes the request, or the closed Provider error envelope. Do not wrap a
+   success body in the hosted `{code,message,data,extra}` envelope.
 
 ## Minimal request
 
@@ -76,10 +77,11 @@ profile to serve the request.
 }
 ```
 
-Each `offers[]` item follows the Offer schema. Keep `entity`, optional
-`listing_source`, and `action` separate. Include `match_reason` only when it
-is safe for end users; AON removes it when the original request disables
-`thinking_mode`.
+Each `offers[]` item follows the Partner Offer schema and requires a stable
+`source_offer_id`. Keep `entity`, optional `listing_source`, and `action`
+separate. Do not return AON-owned `offer_id`, `offer_instance_id`, or
+`match_reason`; AON resolves inventory identity, evaluates Partner-only rules,
+and creates the public Query response projection.
 
 ### Error
 
@@ -127,11 +129,14 @@ silently retry a different contract.
   },
   "references": {
     "provider_api": {"repository": "agentoffernetwork/protocol", "path": "v0.3/specs/offer-provider-api.md"},
-    "offer_schema": {"repository": "agentoffernetwork/protocol", "path": "v0.3/specs/offer-schema.md"},
+    "partner_offer_schema": {"repository": "agentoffernetwork/protocol", "path": "v0.3/specs/offer-partner-schema.md"},
+    "public_offer_schema": {"repository": "agentoffernetwork/protocol", "path": "v0.3/specs/offer-schema.md"},
     "category_taxonomy": {"repository": "agentoffernetwork/protocol", "path": "v0.3/specs/category-taxonomy.md"},
     "location_targeting": {"repository": "agentoffernetwork/protocol", "path": "v0.3/specs/location-targeting.md"},
     "request_schema": {"repository": "agentoffernetwork/schema", "path": "v0.3/json-schema/offer-provider-request.json"},
     "response_schema": {"repository": "agentoffernetwork/schema", "path": "v0.3/json-schema/offer-provider-response.json"},
+    "provider_request_example": {"repository": "agentoffernetwork/examples", "path": "v0.3/http/offer-provider/request.json"},
+    "provider_success_example": {"repository": "agentoffernetwork/examples", "path": "v0.3/http/offer-provider/success.json"},
     "provider_postback_spec": {"repository": "agentoffernetwork/protocol", "path": "v0.3/specs/postback.md"},
     "provider_postback_schema": {"repository": "agentoffernetwork/schema", "path": "v0.3/json-schema/postback-partner-payload.json"},
     "provider_postback_success_json": {"repository": "agentoffernetwork/examples", "path": "v0.3/http/postback/partner/basic-conversion.json"},
