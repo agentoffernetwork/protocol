@@ -4,9 +4,9 @@
 
 The Partner Offer artifact uses `offer-partner-schema-v0.3.json`. It is the
 normalized Partner supply/configuration carrier submitted before AON creates a
-public Offer projection. It contains a stable Partner source identity,
-Partner-authored public Offer content, and exactly two Partner-only fields:
-`targeting` and `conversion_rule`.
+public Offer projection. It contains the Partner-only stable source identity
+`source_offer_id`, Partner-authored public Offer content, and two Partner-only
+configuration fields: `targeting` and `conversion_rule`.
 
 The Partner artifact requires `source_offer_id`, which is opaque and stable in
 the identity namespace configured for that integration. AON resolves
@@ -44,9 +44,7 @@ stable syntax profile, not a claim that the value is an assigned ISO 639 code;
 producers and consumers must not infer registry membership from Schema
 acceptance.
 
-The public and Partner carrier split is normative. The authoritative pointer
-inventory and lifecycle labels are in
-`protocol/docs/contract-governance/offer-field-lifecycle-v0.3.json`.
+The public and Partner carrier split in this document is normative.
 The normative definition of every inherited and Partner-only property is in
 [Offer and Query Response Field Semantics v0.3](offer-field-semantics.md);
 the JSON Schema `description` annotations remain the authoritative field-level

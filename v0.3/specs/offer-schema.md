@@ -5,8 +5,7 @@
 The public Agent-facing carrier is
 [`offer-schema-v0.3.json`](https://github.com/agentoffernetwork/schema/blob/main/v0.3/json-schema/offer-schema.json).
 It is distinct from the Partner Offer artifact and the internal operator policy.
-The machine-readable representation inventory is
-[`offer-field-lifecycle-v0.3.json`](../../../docs/contract-governance/offer-field-lifecycle-v0.3.json).
+The representation boundaries in this document are normative.
 The normative meaning of every Offer and Query response property is in
 [Offer and Query Response Field Semantics v0.3](offer-field-semantics.md);
 the corresponding JSON Schema `description` annotations are authoritative.
