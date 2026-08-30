@@ -101,10 +101,12 @@ non-runtime placeholder.
 copy or broaden that grammar locally. A syntactically valid event is mapped by
 exact, case-sensitive equality to a Goal declared by the attributed Offer.
 
-A syntactically valid but undeclared event produces the stable `unmapped` /
-`unmapped_event` result. It is not silently mapped to a default Goal and does
-not create settlement. A value that does not satisfy the shared grammar is an
-invalid payload.
+A syntactically valid but undeclared event produces `result="unmapped"` with
+`reason="UNMAPPED_EVENT"`. `result` is the stable business-outcome class;
+`reason` is the diagnostic reason code for that outcome. They are separate
+response dimensions, not interchangeable aliases. The event is not silently
+mapped to a default Goal and does not create settlement. A value that does not
+satisfy the shared grammar is an invalid payload.
 
 The current Offer contract accepts only `first` and `all` as
 `dedup_strategy`. `highest` is not a v1.0 current strategy and MUST be rejected
@@ -199,7 +201,7 @@ Stable result classes are `accepted`, `already_recorded`, `unmapped`,
 | --- | ---: | --- |
 | `accepted` | 200 | The conversion was durably accepted. |
 | `already_recorded` | 200 | This is a safe replay or first-wins duplicate; do not create another business conversion. |
-| `unmapped` / `unmapped_event` | 200 | The event was recorded for audit but did not match a declared Goal and was not settled. |
+| `result="unmapped"` with `reason="UNMAPPED_EVENT"` | 200 | The event was recorded for audit but did not match a declared Goal and was not settled. |
 | identity conflict | 409 | The submitted aliases or immutable business facts conflict; correct the request rather than retrying it unchanged. |
 
 ### 4.2 Rejections and recoverable failures

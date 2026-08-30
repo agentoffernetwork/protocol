@@ -22,9 +22,10 @@ Supported operations are `feedback`, `watch`, and `unwatch`. A Query
 response does not expose `watch_status` in the first release. After a Query
 returns an Offer, the service may create or renew a default watch for later
 Offer changes; that server-side behavior does not require a separate `watch`
-call or add a C-side status field. The control envelope is only for an explicit
-feedback action, cancellation (`unwatch`), or restore (`watch`). Missing user
-action maps to `user_action_required`.
+call and does not add `watch_status` or another watch-state field to the Query
+response. The control envelope is only for an explicit feedback action,
+cancellation (`unwatch`), or restore (`watch`). Missing user action maps to
+`user_action_required`.
 
 `feedback` targets an `offer` and accepts `dismissed` or `not_interested`.
 `watch` and `unwatch` target an `offer` or `category` and must not carry a

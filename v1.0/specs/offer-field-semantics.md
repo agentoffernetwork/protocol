@@ -30,7 +30,7 @@ copy.
 
 The public Offer is a user-facing projection. `targeting` and
 `conversion_rule` belong only to the Partner artifact. Operational status,
-audit, priority, resolved supply lineage, eligibility decisions, freshness evaluation,
+audit, priority, resolved supply provenance, eligibility decisions, freshness evaluation,
 affiliate parameters, negotiated overrides, fee splits, settlement state, and
 refund state remain internal policy. The Partner-only `source_offer_id` is the
 one declared source identity and is removed from the public projection.
@@ -42,7 +42,7 @@ one declared source identity and is removed from the public projection.
 | `offer_id` | AON-issued, globally unique inventory identity for one logical Offer. It is stable across dispatches. Partner source ids, database row ids, and request ids must not be serialized into this field. |
 | `offer_instance_id` | AON-issued identity for one dispatch of an Offer in a public response. It changes for a later dispatch of the same `offer_id` and is propagated unchanged through click and conversion attribution. |
 | `source_offer_id` | Partner-issued stable opaque identity for one logical source Offer within the identity namespace configured for that integration. It exists only in the Partner supply carrier. |
-| `version` | Offer document-model lineage (`"3.0"`). It is independent of the transport selector and response `protocol_version` (`"1.0"`). |
+| `version` | Schema-bound Offer payload marker. Its allowed value is fixed by the applicable public or Partner Offer JSON Schema; consumers must not use it for transport negotiation. |
 
 The Partner Offer requires `source_offer_id`. AON resolves `(Partner, identity
 namespace, source_offer_id)` to its own canonical `offer_id` before ranking or
@@ -293,7 +293,7 @@ currency-qualified thresholds in internal Partner policy.
 | Field | Normative meaning |
 | --- | --- |
 | `request_id` | Correlation id shared with the current Query request. |
-| `protocol_version` | Transport protocol line (`"1.0"`), distinct from Offer document lineage. |
+| `protocol_version` | Exact transport protocol selected by the request header and echoed in the response body (`"1.0"`); it is independent of Offer payload fields. |
 | `language` | Selected language of user-facing response content under the stable-v1.0 language profile. |
 | `offers` | Public Offer projections in descending selection priority for this request. Order is meaningful within one response but is neither stable nor comparable across requests. |
 | `engagement.refinements[]` | Suggestions that narrow the current intent. |

@@ -4,12 +4,12 @@
 
 `AON-Protocol-Version: 1.0` selects the stable v1.0 Query contract. A successful
 response echoes the same header, includes `protocol_version: "1.0"`, and varies
-shared caches on `AON-Protocol-Version`. The Offer payload carries
-`version: "3.0"`; that is the Offer document-model lineage and is intentionally
-not the transport protocol token.
+shared caches on `AON-Protocol-Version`. Payload structure and field constraints
+are governed by the v1.0 schemas and semantic validators; payload fields do not
+select a transport protocol line.
 
 The header is mandatory. Omitted values and every value other than exact
-`1.0`, including `0.3`, `0.2`, ranges, and approximate values, fail closed with
+`1.0`, including historical, range, and approximate values, fail closed with
 `unsupported_protocol_version`. No other selector is accepted or silently
 reinterpreted by this contract.
 

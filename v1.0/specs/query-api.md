@@ -11,12 +11,12 @@
 Only the exact request header `AON-Protocol-Version: 1.0` selects the stable
 v1.0 contract. A conforming response echoes `AON-Protocol-Version: 1.0`, carries
 `protocol_version: "1.0"` in its JSON body, and sends
-`Vary: AON-Protocol-Version`. The Offer payload remains `version: "3.0"`:
-that value is the Offer document-model lineage, not the transport protocol
-selector.
+`Vary: AON-Protocol-Version`. Offer payload structure and field constraints are
+defined by the v1.0 Offer schemas and semantic validator; payload fields do not
+participate in transport version negotiation.
 
 The selector is mandatory. Missing values and every value other than exact
-`1.0`, including `0.3`, `0.2`, ranges, and approximate values, return
+`1.0`, including historical, range, and approximate values, return
 `unsupported_protocol_version`. A conforming v1.0 implementation does not
 silently fall back or reinterpret a request. A future protocol line must publish
 its own version namespace policy before it can be selected.
