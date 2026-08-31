@@ -263,10 +263,10 @@ these stable-v1.0 defaults apply:
 | `attribution_model` | `last_click` | Select the latest eligible click. `first_click` selects the earliest. A qualifying click always takes precedence over a view; the same earliest/latest rule applies to views only when no click qualifies. |
 | `dedup_strategy` | `first` | `first` accepts only the first qualifying distinct business conversion in scope; `all` accepts every distinct qualifying business conversion. |
 
-The deduplication scope is Partner + resolved canonical `offer_id` + Goal event
-+ stable business conversion identity. `order_id`, `partner_txn_id`, or
-`event_id` supplies that identity when available. Retries of one identity are
-idempotent under both strategies and never count twice.
+The deduplication scope is Partner + resolved canonical `offer_id` + Goal event +
+stable business conversion identity. `order_id`, `partner_txn_id`, or `event_id`
+supplies that identity when available. Retries of one identity are idempotent
+under both strategies and never count twice.
 
 `minimum_amount` is a strictly positive threshold on the gross reported
 conversion amount. Because v1.0 has no currency member beside this field, it is

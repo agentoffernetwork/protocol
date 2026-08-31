@@ -273,11 +273,11 @@ send an unsigned or partial request.
 
 ### 5.3 Agent payload and size bound
 
-The exact JSON body MUST conform to the Agent payload schema linked in section
-1. The object is closed and has no payload version field. `amount` and
-`currency` are either both present or both absent. A normal CPA conversion
-without revenue therefore remains a valid current delivery; CPS and other
-revenue-bearing conversions include the pair when those facts exist.
+The exact JSON body MUST conform to the Agent payload schema linked in section 1.
+The object is closed and has no payload version field. `amount` and `currency`
+are either both present or both absent. A normal CPA conversion without revenue
+therefore remains a valid current delivery; CPS and other revenue-bearing
+conversions include the pair when those facts exist.
 
 The maximum current raw body size is 2,097,152 bytes (2 MiB). A sender MUST
 reject an oversized body before HTTP delivery. A receiver MUST enforce a
