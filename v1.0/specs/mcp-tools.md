@@ -2,9 +2,11 @@
 
 > **Current stable tool contract**
 
-This list aligns MCP names with the current Query and control envelopes. A
-deployment claims availability only after its owner provides the required
-conformance evidence.
+This list registers four MCP tool names and their boundaries against the
+current Query and control envelopes. A deployment claims availability only
+after its owner provides the required conformance evidence. Deployments may
+also expose additional tools through `tools/list`; those extensions are not a
+portable Protocol v1.0 availability guarantee.
 
 | Tool | Purpose | Contract source | Status |
 | --- | --- | --- | --- |
@@ -12,6 +14,16 @@ conformance evidence.
 | `aon_resolve_category` | Resolve a category reference before querying; returns category metadata, not decision factors | Deployment extension | Deployment-defined |
 | `aon_submit_feedback` | Submit an explicit user feedback action for an Offer | [Feedback and watches](mcp-feedback-watches.md) | Contract; deployment-owned |
 | `aon_manage_watch` | Explicitly restore or cancel the default Offer-change watch | [Feedback and watches](mcp-feedback-watches.md) | Contract; deployment-owned |
+
+## Deployment extensions
+
+Extensions must be discovered from the connected deployment's `tools/list`
+response before use. The Hosted AON MCP deployment currently exposes the
+following extension in addition to the four names above:
+
+| Tool | Purpose | Contract source | Status |
+| --- | --- | --- | --- |
+| `aon_get_category_schema` | Return category decision factors for a clarification step before searching | Hosted `tools/list` schema | Optional Hosted extension |
 
 ## Shared rules
 
@@ -26,4 +38,9 @@ conformance evidence.
   feedback, cancellation, or restore. Inferred intent or simply displaying an
   Offer does not create one of those explicit control operations.
 - Query responses do not expose first-release `watch_status`.
-- `decision_factors` and generic `next_actions` are not MCP fields in the current contract.
+- `aon_resolve_category` returns category metadata and candidate ids; it does
+  not return decision factors.
+- The optional `aon_get_category_schema` extension may return decision factors
+  in its own result for clarification. `decision_factors` is not a field in the
+  current Query request or response, and generic `next_actions` is not a
+  current MCP contract field.

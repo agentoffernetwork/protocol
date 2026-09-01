@@ -80,7 +80,7 @@ The targeting field validates this syntax profile only and does not assert ISO
 
 | Field group | Meaning |
 | --- | --- |
-| `offer_info.title`, `description` | Primary user-facing Offer copy. |
+| `offer_info.title`, `short_description`, `description` | `title` identifies the Offer; optional `short_description` is compact preview copy, while required `description` is the full user-facing explanation. Neither description field is AON ranking or per-request matching rationale. |
 | `offer_info.category.id`, `secondary_category_ids` | Primary and additional AON Taxonomy v1 classifications. Secondary entries must be disjoint from the primary and one another. |
 | `offer_info.tags` | Optional descriptive labels. They do not replace taxonomy, eligibility, or targeting. |
 | `offer_info.rating.*` | Source-provided rating value on a five-point scale, with optional positive observation count and source. `count` is omitted when no observation count is available; zero is not a meaningful represented sample. It is not an AON endorsement. |
@@ -88,6 +88,15 @@ The targeting field validates this syntax profile only and does not assert ISO
 | `offer_info.recommendation_reason` | Static Partner/provider-authored Offer copy. It is not per-request reasoning, is not a ranking input, and is unaffected by `thinking_mode`. |
 | `offer_info.commercial.*` | Public user price and fulfillment presentation. It is distinct from Goal commission and final settlement. |
 | `offer_info.start_at`, `expire_at` | Inclusive user-visible availability bounds. When both are present, `expire_at` must not precede `start_at`. |
+
+When supplied, `offer_info.short_description` remains serialized exactly as
+provided but must contain at most 500 Unicode code points. Semantic validation
+normalizes it to NFC and trims ECMAScript whitespace for validation only. An
+empty normalized value is rejected with `short_description_blank`; otherwise,
+the value may contain at most 50 `isWordLike` segments from
+`Intl.Segmenter("und", { granularity: "word" })`, or it is rejected with
+`short_description_word_limit`. These shared `offer_info` rules apply to both
+public Offers and Partner Offers through the shared public Offer schema.
 
 ### Offer type values
 
@@ -239,13 +248,17 @@ Targeting uses this truth table:
 6. A dimension omitted from a rule is unconstrained for that rule.
 7. Missing, unverified, or unknown user context fails a declared dimension and
    therefore fails that rule. Another rule may still match.
-8. A location matches a declared location when it is that registry location or
-   a descendant. `geo.exclude` wins over `geo.include`.
+8. A location matches a declared location when it is that full-catalog location
+   or a descendant in the resolved ACTIVE hierarchy. `geo.exclude` wins over
+   `geo.include`.
 9. An omitted `geo.include` means no positive include restriction. A present
    include or exclude list is non-empty.
-10. Every declared `location_id` must exist in the AON Location Registry v1
-    snapshot pinned by the stable-v1.0 release; numeric grammar alone is not
-    sufficient.
+10. Every declared `location_id` must be a numeric entry in the AON Full
+    Location Catalog v1 snapshot pinned by the stable-v1.0 release; numeric
+    grammar alone is not sufficient. The catalog contains every legacy AON
+    Location Registry v1 country entry, so legacy country targeting semantics
+    are unchanged. Unknown and non-numeric values fail closed with
+    `location_registry_membership`.
 
 `eligibility.min_age` requires verified age context. Targeting is an eligibility
 filter, not a substitute for independent legal, consent, sensitive-category, or
@@ -263,10 +276,10 @@ these stable-v1.0 defaults apply:
 | `attribution_model` | `last_click` | Select the latest eligible click. `first_click` selects the earliest. A qualifying click always takes precedence over a view; the same earliest/latest rule applies to views only when no click qualifies. |
 | `dedup_strategy` | `first` | `first` accepts only the first qualifying distinct business conversion in scope; `all` accepts every distinct qualifying business conversion. |
 
-The deduplication scope is Partner + resolved canonical `offer_id` + Goal event +
-stable business conversion identity. `order_id`, `partner_txn_id`, or `event_id`
-supplies that identity when available. Retries of one identity are idempotent
-under both strategies and never count twice.
+The deduplication scope is Partner + resolved canonical `offer_id` + Goal event
++ stable business conversion identity. `order_id`, `partner_txn_id`, or
+`event_id` supplies that identity when available. Retries of one identity are
+idempotent under both strategies and never count twice.
 
 `minimum_amount` is a strictly positive threshold on the gross reported
 conversion amount. Because v1.0 has no currency member beside this field, it is

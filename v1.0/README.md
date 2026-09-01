@@ -20,9 +20,10 @@ each deployment.
   [feedback and watches](specs/mcp-feedback-watches.md).
 
 Shared resources define the stable
-[category taxonomy](specs/category-taxonomy.md) and
-[Offer location and age targeting](specs/location-targeting.md). Query v1.0
-does not expose viewer location or age fields.
+[category taxonomy](specs/category-taxonomy.md),
+[Offer location and age targeting](specs/location-targeting.md), and
+[Location Search API](specs/location-search-api.md). Query v1.0 does not
+expose viewer location or age fields.
 
 Machine-readable schemas, validators, types, and payloads are published in the
 matching [Schema](https://github.com/agentoffernetwork/schema/tree/main/v1.0)
