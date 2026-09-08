@@ -76,6 +76,38 @@ The targeting field validates this syntax profile only and does not assert ISO
 
 ## Public Offer content
 
+### Supply profile facts
+
+`offer_info.details` is optional. When present, it is the closed
+`{ profile, data }` envelope in the v1.0 Supply Offer Profile Registry. The
+only registered profile names are `flight` and `hotel_rate`; producers omit the
+entire member for a Generic Offer and must not serialize a free-form profile.
+The profile facts belong to canonical supply carriers (Public Offer, Partner
+Offer, and Provider success), not the current Hosted Query/MCP projection.
+
+`flight` describes one priced itinerary: its declared trip topology, traveller
+composition, and ordered segments must agree. `hotel_rate` describes a hotel
+property and a rate observation. It requires an explicit property location
+(`location_id` plus uppercase `country_code`) and uses
+`reference_starting_nightly` only for a single-night reference or starting
+price. Its `book` action is a source jump and does not assert an available room,
+a chosen stay, or a confirmed total.
+
+For `hotel_rate`, `stay` and `room` are independently optional. A producer that
+does not know exact dates or a room type omits the entire corresponding object;
+it must not send `null`, empty strings, placeholder dates, or a partial stay.
+When `stay` is present, `check_in` and `check_out` are both required and
+`check_out` is later than `check_in`. When `room` is present, `room.name` is a
+non-empty source-provided name.
+
+`commercial.price.tax_status` states whether the displayed supply price includes
+taxes and mandatory fees. `commercial.quote` records an observed-price time and,
+when supplied, a future validity limit; it is valid only with
+`commercial.price`, and its `valid_until` must be later than `observed_at`.
+Neither field itself promises external inventory or availability. Quote times
+describe only the original `price`; they do not establish freshness for a
+response-derived display amount or its FX conversion.
+
 ### Offer information
 
 | Field group | Meaning |
@@ -86,7 +118,7 @@ The targeting field validates this syntax profile only and does not assert ISO
 | `offer_info.rating.*` | Source-provided rating value on a five-point scale, with optional positive observation count and source. `count` is omitted when no observation count is available; zero is not a meaningful represented sample. It is not an AON endorsement. |
 | `offer_info.properties[]` | Structured user-facing facts. `display_pattern` may use only `${type}`, `${value}`, and `${unit}` from the same item. |
 | `offer_info.recommendation_reason` | Static Partner/provider-authored Offer copy. It is not per-request reasoning, is not a ranking input, and is unaffected by `thinking_mode`. |
-| `offer_info.commercial.*` | Public user price and fulfillment presentation. It is distinct from Goal commission and final settlement. |
+| `offer_info.commercial.*` | Original public price, optional response-scoped display price, and fulfillment presentation. All are distinct from Goal commission and final settlement. |
 | `offer_info.start_at`, `expire_at` | Inclusive user-visible availability bounds. When both are present, `expire_at` must not precede `start_at`. |
 
 When supplied, `offer_info.short_description` remains serialized exactly as
@@ -199,10 +231,60 @@ verification or endorsement.
 
 ## Public price and Goal commission
 
+When `offer_info.commercial.display_price` is absent,
 `offer_info.commercial.price` is what the user is shown as the price of the
-offered good or service. `goals[].pricing` is the gross commission basis that the
-Partner declares payable to AON for an approved, attributed conversion. The two
-prices are independent.
+offered good or service. When `display_price` is present, the response-scoped
+display rule below overrides only the original price's `amount` and `currency`.
+`goals[].pricing` is the gross commission basis that the Partner declares
+payable to AON for an approved, attributed conversion. The displayed price and
+Goal commission are independent.
+
+### Response-scoped display price
+
+`offer_info.commercial.display_price` is optional response presentation data
+owned by the AON Query projection. It is allowed in Public Offer and Generic
+Query Offer carriers and prohibited in Partner Offer and OfferProvider success
+carriers. It is one closed object with exactly required string `amount` and
+`currency`; `unit`, `tax_status`, `quote`, `fulfillment_note`, and unknown
+members are invalid.
+
+Its `amount` follows the canonical non-negative decimal grammar with at most 12
+integer digits and 6 fractional digits. Its `currency` contains exactly three
+uppercase ASCII letters. Schema acceptance establishes syntax, not ISO 4217
+registry membership.
+
+When the object is present, the original `commercial.price` is required and the
+two currencies differ. A zero original amount requires a zero display amount;
+a strictly positive original amount requires a strictly positive display
+amount. A producer must omit the object when it lacks a reliable derived
+amount, lacks a target currency, selects the original currency, or obtains a
+rounded zero for a positive source price.
+
+The consumer derives the value to present as follows:
+
+```text
+effective_display_price =
+  display_price exists
+    ? { ...price, amount: display_price.amount, currency: display_price.currency }
+    : price
+```
+
+This notation is not a wire field. Only `amount` and `currency` are overlaid.
+Existing `price.unit` and any available `price.tax_status` retain only their
+source-price meaning; changing currency does not create a new unit, tax, fee,
+or total-price guarantee. `commercial.quote` and `fulfillment_note` remain
+sibling data. Only complete absence permits fallback to `price`; a present
+null, partial, malformed, same-currency, or zero-inconsistent object is a
+contract error and must not be treated as absent.
+
+`display_price` is a response-scoped presentation value. It is never a
+checkout, settlement, or transaction-authoritative price and does not affect
+eligibility, budget evaluation, ranking, tracking, Goal commission, or
+settlement. The original `commercial.quote.observed_at` and `valid_until` do
+not establish display-price or FX freshness. The wire object intentionally
+carries no FX source, FX observation time, rounding method, or validity
+evidence. Consumers must not infer that a conversion is correct, current, or
+available for transaction.
 
 Goal events are unique within one Offer. Each pricing branch is strictly
 positive:
@@ -236,6 +318,9 @@ are not encoded by rewriting the immutable Offer response.
 The Partner Offer is a normalized supply/configuration artifact, not an Agent
 response. `targeting` and `conversion_rule` are Partner-authored inputs. AON
 evaluates them before ranking and strips them from the public Offer projection.
+The response-owned `offer_info.commercial.display_price` is also prohibited in
+the Partner artifact and in every OfferProvider success Offer; AON may derive it
+only while producing a public response.
 
 Targeting uses this truth table:
 
@@ -313,6 +398,14 @@ currency-qualified thresholds in internal Partner policy.
 | `engagement.followup_topics[]` | Adjacent-topic suggestions ordered by descending `confidence`. |
 | `query_helper.request_patch` | Non-null, non-destructive partial update for a subsequent Query. |
 | `hooks[]` | Change cues comparing one returned Offer with one explicit previous response baseline. They are not watch registrations or delivery guarantees. |
+
+The current Query/MCP `offers[]` carrier is the Generic Offer projection. It
+may carry `offer_info.commercial.display_price` when all display-price rules
+hold. It must reject and omit `offer_info.details`,
+`offer_info.commercial.price.tax_status`, and
+`offer_info.commercial.quote` even when AON holds those canonical supply facts.
+Consumers must not infer the omitted values or treat their absence as a negative
+travel, tax, or quote assertion.
 
 ### Query Helper update profile
 

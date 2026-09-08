@@ -55,6 +55,7 @@ use the [RFC process](https://github.com/agentoffernetwork/rfcs). Editorial
 clarity, navigation, and broken-link fixes may use a direct pull request when
 they do not change semantics.
 
-The v1.0 promotion carries forward the already governed field and behavior
-semantics without inventing a retroactive RFC. Future semantic changes follow
-the live RFC process.
+The initial v1.0 promotion carried forward the already governed field and
+behavior semantics without inventing a retroactive RFC. Later v1.0 semantic
+changes follow the live process before contract admission. RFC-0004 is the
+accepted and implemented decision for the response-scoped Offer display price.

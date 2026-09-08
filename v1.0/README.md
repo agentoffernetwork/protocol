@@ -30,6 +30,14 @@ matching [Schema](https://github.com/agentoffernetwork/schema/tree/main/v1.0)
 and [Examples](https://github.com/agentoffernetwork/examples/tree/main/v1.0)
 directories.
 
+Query response Offers may carry one optional, response-scoped
+`offer_info.commercial.display_price` for presentation in a target currency.
+The original `commercial.price` remains authoritative as the source and
+fallback price; Partner and OfferProvider supply carriers reject the derived
+field. See the [Query API](specs/query-api.md),
+[Offer schema](specs/offer-schema.md), and
+[field semantics](specs/offer-field-semantics.md).
+
 ## Contract lifecycle
 
 The current contract is **adopted** and **stable** for new integrations.

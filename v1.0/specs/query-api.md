@@ -44,6 +44,11 @@ omits `offers[].match_reason`; when true, `match_reason` may contain a concise,
 user-facing explanation and must not expose internal chain-of-thought or private
 ranking data.
 
+The request does not declare a target display currency and does not define
+`response_options.price_currency`. Intent parsing, session preferences, and
+target-currency selection are implementation-owned inputs to the response, not
+a second public request contract.
+
 ## Response
 
 Every response has `request_id`, `protocol_version`, `language`, and `offers`.
@@ -63,6 +68,50 @@ defined in [Offer and Query Response Field Semantics v1.0](offer-field-semantics
 The published JSON Schema `description` annotations are the authoritative
 field-level contract; this API specification defines cross-field and transport
 behavior.
+
+The current `offers[]` response is intentionally the Generic Offer projection.
+It may carry the response-owned
+`offer_info.commercial.display_price` defined below. It rejects and does not
+emit `offer_info.details`,
+`offer_info.commercial.price.tax_status`, or
+`offer_info.commercial.quote`, even if the source Offer carries a registered
+Flight or Hotel Rate supply profile. This is a projection boundary, not a new
+selector or Offer version: the only v1.0 selector remains
+`AON-Protocol-Version: 1.0`, and the Offer document marker remains `"3.0"`.
+A later runtime projection requires separately certified deployment evidence.
+
+### Response display price
+
+Each returned Offer may contain one optional, closed
+`offer_info.commercial.display_price` object with exactly string `amount` and
+`currency`. It is generated for the current Query response; Partner Offers and
+OfferProvider success Offers must not supply it. When present it requires an
+original `commercial.price`, uses a different currency, and follows the same
+canonical decimal grammar and zero-value class as that original price.
+
+The normative consumer rule is:
+
+```text
+effective_display_price =
+  display_price exists
+    ? { ...price, amount: display_price.amount, currency: display_price.currency }
+    : price
+```
+
+Only `amount` and `currency` are overlaid. Existing `price.unit` and any
+available `price.tax_status` retain only their source-price meaning. The
+Generic Query projection does not currently carry `tax_status`; consumers must
+not infer it. Only complete absence permits fallback to `price`. If
+`display_price` is present but null, partial, malformed, same-currency, or
+otherwise invalid, the response violates the contract and must not be silently
+rendered using the fallback branch.
+
+`display_price` is a response-scoped presentation value. It is never a
+checkout, settlement, or transaction-authoritative price. The original
+`commercial.quote.observed_at` and `valid_until` do not establish
+display-price or FX freshness. The wire object intentionally provides no FX
+source, FX observation time, rounding method, or validity evidence. Consumers
+must not infer that a conversion is correct or current.
 
 `engagement.refinements` helps narrow the current request and carries a short
 `label`, an optional `speak` suggestion, and an item-level `query_helper`.

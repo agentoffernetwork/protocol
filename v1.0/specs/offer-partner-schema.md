@@ -16,6 +16,13 @@ The Partner artifact rejects AON-owned `offer_id`, `offer_instance_id`, and
 response. It is not an Agent response schema and not a replacement for
 `offer-schema-v1.0.json`.
 
+The Partner artifact also rejects
+`offer_info.commercial.display_price`. That field is owned by the AON Query
+response projection and is not a Partner-authored price fact. Partner systems
+must supply the original `commercial.price` only; AON may derive one display
+amount for a later Public/Generic Query response. This nested prohibition also
+applies to Partner Offers carried by an OfferProvider success response.
+
 ## Partner-only fields
 
 | Field | Purpose | Strict stable-v1.0 rule |
@@ -36,6 +43,23 @@ Offer.
 The canonical conversion defaults are click window 720 hours, view window 0,
 `last_click`, and `first` deduplication. Window endpoints are inclusive and zero
 disables that source. Eligible clicks take precedence over eligible views.
+
+## Registered supply profiles
+
+A Partner Offer may optionally include `offer_info.details` from the closed
+v1.0 Supply Offer Profile Registry. The registry currently permits only
+`flight` and `hotel_rate`, and the selected `details.data` shape is closed.
+The same rule applies to the Partner supply Offer inside a Provider success
+response. These are supply facts, not a Hosted Query/MCP response extension:
+current Query/MCP projections omit `details`, `commercial.price.tax_status`,
+and `commercial.quote`. AON may add response-scoped `commercial.display_price`
+to a later public projection, but its presence in this supply artifact is a
+contract error rather than an ignored extension.
+
+For a `hotel_rate`, omit `stay` or `room` as a whole when the Partner does not
+know dates or a room type. A supplied stay has both ordered dates, and a
+supplied room has a non-empty name. A `reference_starting_nightly` price is a
+single-night reference, not a confirmed stay total or room allocation.
 `minimum_amount` is limited to integrations with one fixed reported conversion
 currency; multi-currency thresholds remain internal policy.
 

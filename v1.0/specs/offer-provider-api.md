@@ -81,7 +81,10 @@ The response is exactly one branch of
 A success response is not wrapped in the hosted API envelope. Each Partner
 Offer requires stable `source_offer_id` in the identity namespace configured
 for that integration. It must not contain AON-owned `offer_id`,
-`offer_instance_id`, or `match_reason`. AON resolves
+`offer_instance_id`, `match_reason`, or
+`offer_info.commercial.display_price`. The display-price field is owned by the
+AON Query response projection, not the Provider supply carrier; its presence
+causes the complete Provider response to fail structural validation. AON resolves
 `owner Partner + identity namespace + source_offer_id` to canonical `offer_id`,
 evaluates `targeting` and `conversion_rule`, and then creates a public Offer
 with a fresh dispatch identity and any permitted match explanation.
@@ -90,11 +93,30 @@ with a fresh dispatch identity and any permitted match explanation.
 meanings. Provider-private freshness, supply lineage, affiliate, or mapping data
 other than the declared source identity must not appear in the response.
 
+### Registered supply profiles
+
+The Partner Offer in a success response may carry an optional closed
+`offer_info.details` envelope from the v1.0 Supply Offer Profile Registry. The
+only registered names are `flight` and `hotel_rate`. Profile facts, observed
+`commercial.price.tax_status`, and `commercial.quote` are accepted on this
+supply carrier when they meet the Offer semantic rules. They do not cause the
+later Hosted Query or MCP response to expose those fields: the current Query
+projection remains Generic and explicitly omits all three extensions.
+
+When a Hotel Provider offers only a Ctrip-style one-night starting price, it
+uses `hotel_rate` with `reference_starting_nightly` and omits `stay` and `room`
+entirely. The `book` action remains a source jump and is not a guarantee of
+dates, room type, inventory, or a total price.
+
 Provider adapters may use private freshness, mapping and supply lineage data
 internally, but those fields must not leak into the Partner supply payload or
 the later public response. The public Offer projection is produced by AON and
 uses the Query response shape, including the semantic separation of `entity`,
 `listing_source` and `action`.
+
+AON may derive one response-scoped `commercial.display_price` only after it has
+accepted the Provider supply Offer. The Provider does not select the target
+currency and does not submit the converted amount.
 
 When a Provider sends `listing_source.logo`, it must be an explicit absolute
 HTTPS URI no longer than 2048 characters; non-ASCII components must be
