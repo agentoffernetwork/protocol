@@ -9,7 +9,7 @@ Start a new integration from the role that matches your system.
 
 ## Choose your path
 
-- **Building an Agent:** start with the [Agent quickstart](v1.0/quickstarts/agent.md), then use the [Query API](v1.0/specs/query-api.md), [Offer schema](v1.0/specs/offer-schema.md), and [Postback contract](v1.0/specs/postback.md).
+- **Building an Agent:** start with the [Agent quickstart](v1.0/quickstarts/agent.md), then use the [Query API](v1.0/specs/query-api.md), [Offer schema](v1.0/specs/offer-schema.md), [Offer and Query Response field semantics](v1.0/specs/offer-field-semantics.md), and [Postback contract](v1.0/specs/postback.md).
 - **Building an Offer Provider:** start with the [Partner quickstart](v1.0/quickstarts/partner.md), then implement the [OfferProvider API](v1.0/specs/offer-provider-api.md) and [Postback contract](v1.0/specs/postback.md).
 - **Using MCP:** review [MCP tools](v1.0/specs/mcp-tools.md) and [feedback and watches](v1.0/specs/mcp-feedback-watches.md).
 - **Using shared classifications and targeting:** review the [category taxonomy](v1.0/specs/category-taxonomy.md) and [Offer location and age targeting](v1.0/specs/location-targeting.md).
