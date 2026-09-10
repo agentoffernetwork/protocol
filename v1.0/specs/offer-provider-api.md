@@ -103,6 +103,11 @@ supply carrier when they meet the Offer semantic rules. They do not cause the
 later Hosted Query or MCP response to expose those fields: the current Query
 projection remains Generic and explicitly omits all three extensions.
 
+Flight Providers send endpoint `local_at` values in each airport's local clock
+using `YYYY-MM-DDTHH:mm:ss`, without offsets, and include positive
+source-provided `duration_minutes` for every segment. A Provider must not infer
+airport timezone data solely to construct the payload.
+
 When a Hotel Provider offers only a Ctrip-style one-night starting price, it
 uses `hotel_rate` with `reference_starting_nightly` and omits `stay` and `room`
 entirely. The `book` action remains a source jump and is not a guarantee of

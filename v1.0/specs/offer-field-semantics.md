@@ -86,8 +86,19 @@ The profile facts belong to canonical supply carriers (Public Offer, Partner
 Offer, and Provider success), not the current Hosted Query/MCP projection.
 
 `flight` describes one priced itinerary: its declared trip topology, traveller
-composition, and ordered segments must agree. `hotel_rate` describes a hotel
-property and a rate observation. It requires an explicit property location
+composition, and ordered segments must agree. Each endpoint `local_at` is the
+source schedule in that airport's local clock, serialized exactly as
+`YYYY-MM-DDTHH:mm:ss` without an offset or timezone. A producer may normalize a
+source value such as `2026-02-05 20:55:00` by replacing the space with `T`, but
+must not infer a timezone or convert the value to an instant. Each segment also
+requires the source-provided positive `duration_minutes`; duration is not
+derived by subtracting two airport-local values. Consequently an arrival
+`local_at` may be lexically earlier than its departure `local_at` on a
+westbound or date-line-crossing flight. Adjacent segments still require the
+same connecting airport, and their local values at that same airport must be
+chronological.
+
+`hotel_rate` describes a hotel property and a rate observation. It requires an explicit property location
 (`location_id` plus uppercase `country_code`) and uses
 `reference_starting_nightly` only for a single-night reference or starting
 price. Its `book` action is a source jump and does not assert an available room,

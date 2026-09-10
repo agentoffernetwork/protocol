@@ -40,6 +40,15 @@ and `hotel_rate`; each profile selects one closed `details.data` shape. Generic
 Offers omit `details`. A producer must not use an unregistered profile name or
 a free-form domain payload.
 
+Flight schedules use required airport-local `departure.local_at` and
+`arrival.local_at` strings without UTC offsets or timezone identifiers. Every
+segment supplies a required positive `duration_minutes`; producers must not
+invent timezone data to derive duration or compare departure and arrival as
+absolute instants. Array order, connecting-airport continuity, and chronology
+within the same connecting airport remain normative.
+These Flight schedule rules are governed by
+[RFC-0005](https://github.com/agentoffernetwork/rfcs/blob/main/rfcs/RFC-0005-flight-local-schedule-times.md).
+
 These fields are canonical supply facts for the Public Offer, Partner Offer,
 and Provider success carriers. They do not extend the current Hosted Query or
 MCP response: those surfaces bind

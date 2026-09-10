@@ -56,6 +56,11 @@ and `commercial.quote`. AON may add response-scoped `commercial.display_price`
 to a later public projection, but its presence in this supply artifact is a
 contract error rather than an ignored extension.
 
+For a `flight`, send each endpoint as airport-local `local_at` in
+`YYYY-MM-DDTHH:mm:ss` form and send source-provided `duration_minutes` on every
+segment. Do not add a UTC offset, infer an airport timezone, or calculate the
+duration by subtracting local schedule values.
+
 For a `hotel_rate`, omit `stay` or `room` as a whole when the Partner does not
 know dates or a room type. A supplied stay has both ordered dates, and a
 supplied room has a non-empty name. A `reference_starting_nightly` price is a

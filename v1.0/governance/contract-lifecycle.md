@@ -58,4 +58,6 @@ they do not change semantics.
 The initial v1.0 promotion carried forward the already governed field and
 behavior semantics without inventing a retroactive RFC. Later v1.0 semantic
 changes follow the live process before contract admission. RFC-0004 is the
-accepted and implemented decision for the response-scoped Offer display price.
+accepted and implemented decision for the response-scoped Offer display price;
+RFC-0005 is the accepted and implemented decision for Flight airport-local
+schedule times and source-provided segment duration.
