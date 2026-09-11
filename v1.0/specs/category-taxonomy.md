@@ -2,7 +2,7 @@
 
 **Version**: AON Taxonomy v1
 **Status**: Stable shared current resource
-**Last Updated**: 2026-08-27
+**Last Updated**: 2026-09-10
 
 ## Purpose
 
@@ -31,6 +31,10 @@ The current machine-readable sources live in the schema repository:
 - [Taxonomy tree](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/aon-taxonomy.json)
 - [Taxonomy source schema](https://github.com/agentoffernetwork/schema/blob/main/v1.0/json-schema/taxonomy.schema.json)
 - [Taxonomy resolver](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/aon-taxonomy-resolver.mjs)
+- [Canonical metadata](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/aon-taxonomy-metadata.json)
+- [Commerce candidate registry](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/commerce-product-candidates.json)
+- [Warehouse commerce crosswalk](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/source-mappings/warehouse-commerce.json)
+- [Commerce admission audit](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/audits/commerce-product-admission-audit.json)
 
 Source nodes use only:
 
@@ -48,6 +52,18 @@ Arts & Entertainment > iGaming
 
 The generated id is the only category value Partner-written Offer payloads need
 to carry.
+
+The public tree is an admitted-only projection. Candidate presence in the
+commerce registry or a source crosswalk does not make that id public or
+selectable. Existing ids remain append-only, and a release adds a candidate
+only after its own evidence and every candidate ancestor pass the admission
+gate. A zero-admission evaluation produces an audit but no no-change taxonomy
+release.
+
+Canonical metadata owns the stable name, definition, aliases, examples,
+subject boundary, and lifecycle of each node. Runtime status, sensitivity, and
+display order remain operational state and are not inferred from the source
+taxonomy or from warehouse lifecycle labels.
 
 ## Level 1 Canonical IDs
 
@@ -99,6 +115,65 @@ Partner entry rule:
 - Level 2 and Level 3+ are optional.
 - Search, adapter mapping, system suggestion, or Admin review may fill deeper
   category ids.
+
+Depth is not a quality score. A broad parent remains selectable when it has
+children and acts as the documented residual fallback when evidence cannot
+support a narrower classification.
+
+## Product, Platform, and Attribute Boundaries
+
+A category identifies the primary subject and comparison model of an Offer. It
+does not encode every property that could appear on a product page.
+
+| Input concept | Taxonomy handling |
+|---------------|-------------------|
+| Stable sold product type | Use the most specific admitted product node supported by evidence |
+| Marketplace or shopping platform itself | Use `e_commerce_marketplace`; do not classify listed products there |
+| Brand, model, color, size, capacity, material, compatibility, ingredient, benefit, or style | Keep as product attributes; do not create combinatorial category ids |
+| Delivery form such as physical product or online service | Use `offer_type` when applicable; it does not replace `category.id` |
+| Service performed for a product | Use a service category when available; do not classify it as the underlying product |
+
+Examples for mobile commerce:
+
+| Offer subject | Category boundary |
+|---------------|-------------------|
+| Mobile phone handset | `internet_telecom.telephony.mobile_phones_accessories.mobile_phones` |
+| Phone-only case, screen protector, replacement battery, or replacement part | A phone-specific admitted child under the mobile-phone branch |
+| Generic charger, cable, power bank, or cross-device stand | An admitted node under `computers_electronics.consumer_electronics.consumer_electronic_accessories` |
+| Tablet | A computer/electronics tablet node, never a mobile phone |
+| Mobile subscription or phone plan | A telecom service node, never a physical phone product |
+
+When evidence cannot distinguish phone-only use from cross-device use, the
+Offer stays on the documented broad fallback rather than guessing a narrow id.
+
+## Commerce Candidate Admission
+
+Commerce expansion separates planning from publication:
+
+1. The candidate registry freezes proposed ids, parents, provenance, semantic
+   roles, and boundary fingerprints.
+2. A source crosswalk gives every source category exactly one explicit action,
+   including exact reuse, decomposition, broad fallback, platform mapping, and
+   service exclusion.
+3. The evaluator derives each candidate's risk tier, decision, reason, and
+   evidence reference. The generated registry projection and audit must agree
+   exactly.
+4. Only a non-empty admitted set can produce a public tree delta and release
+   manifest. Deferred candidates remain non-public.
+
+All candidates require privacy-safe deduplicated positive samples, hard
+negatives, a complete boundary review, and independent protected signoffs.
+Warehouse-derived exact mappings may use one upstream namespace when all
+inbound mappings are direct and exact. Split, broad-fallback, mixed-provenance,
+and gap candidates require two independent namespaces plus decomposition and
+residual evidence. Sensitive or regulated categories also require an explicit
+operations sensitivity approval before activation.
+
+Synthetic fixtures can test schema, projection, and failure behavior, but they
+cannot satisfy production admission. Publishability is established only from
+protected approval and immutable project, ref, job, and artifact provenance;
+paths, filenames, output directories, caller flags, and test trust stores do
+not confer publication authority.
 
 ## E-commerce & Marketplace Disambiguation
 
@@ -169,6 +244,12 @@ Matching semantics:
 - Category ids are case-sensitive; use lowercase canonical ids such as `others`.
 - `category_types` is not a Taxonomy v1 public field.
 
+Runtime subtree matching is evaluated against the release snapshot pinned at
+the start of the request. The same snapshot governs primary and secondary
+category validation, ranking, cached or remote candidates, the response, and
+side effects. A runtime must not expand descendants from a newer embedded tree
+while serving an older active release.
+
 ## Drift Guard
 
 The source repository validates the current taxonomy before publication. A
@@ -190,6 +271,16 @@ The guard:
 5. Scans examples for `offer_info.category.id`, `offer_info.secondary_category_ids`,
    and `category_ids`.
 6. Fails on any id that does not exist in the registry.
+7. Verifies candidate, metadata, crosswalk, audit, and release digests together.
+8. Requires every warehouse source category to have exactly one crosswalk
+   action and regenerates the human-readable comparison table from that source.
+9. Confirms that a zero-admission run leaves the public tree and published
+   consumer id sets unchanged.
+
+Any taxonomy change must explicitly evaluate whether it adds, removes, moves,
+renames, admits, defers, deprecates, or changes the boundary of a crosswalk
+target. The crosswalk and generated comparison table change in the same commit
+when required; otherwise the guard records a clean no-drift result.
 
 ## External Taxonomies
 

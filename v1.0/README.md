@@ -25,6 +25,11 @@ Shared resources define the stable
 [Location Search API](specs/location-search-api.md). Query v1.0 does not
 expose viewer location or age fields.
 
+The taxonomy publishes only evidence-admitted category ids. Commerce
+candidate and source-crosswalk artifacts are planning and audit inputs, not a
+second set of selectable ids. Integrations must validate against the published
+taxonomy tree or resolver for the active release.
+
 Machine-readable schemas, validators, types, and payloads are published in the
 matching [Schema](https://github.com/agentoffernetwork/schema/tree/main/v1.0)
 and [Examples](https://github.com/agentoffernetwork/examples/tree/main/v1.0)
