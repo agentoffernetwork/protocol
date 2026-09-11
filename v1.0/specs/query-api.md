@@ -54,7 +54,7 @@ a second public request contract.
 Every response has `request_id`, `protocol_version`, `language`, and `offers`.
 Offers can be empty. When `offers` is empty, `empty_reason` is required and uses one of:
 `frequency_capped`, `below_relevance_threshold`, `scene_suppressed`,
-`no_material`, or `consent_missing`. When an Offer is returned, `empty_reason`
+`no_material`, or `consent_missing`. When a main Offer is returned, `empty_reason`
 is omitted.
 
 Returned Offers are ordered by descending selection priority for this request.
@@ -79,6 +79,85 @@ Flight or Hotel Rate supply profile. This is a projection boundary, not a new
 selector or Offer version: the only v1.0 selector remains
 `AON-Protocol-Version: 1.0`, and the Offer document marker remains `"3.0"`.
 A later runtime projection requires separately certified deployment evidence.
+
+### Optional alternative Offers
+
+After the complete existing main Query path has finished, an empty `offers`
+may be accompanied by `alternative_offers`. This optional response field does
+not change the request. In particular, a successful `force_offer` fallback
+remains in main `offers`; it is not moved into the alternative list. Main
+Offers and alternatives are mutually exclusive. `empty_reason` continues to
+describe the empty main result, even when alternatives are present.
+
+When present, `alternative_offers` is a non-null array of **1–3** closed items:
+
+| Field | Contract |
+| --- | --- |
+| `basis` | Required; initially only `regional_popularity`. |
+| `selection_reason` | Required request-specific explanation, in response `language`, of why this alternative was selected rather than a direct match. |
+| `offer` | Required complete current Generic Query Offer projection, without `match_reason`. |
+
+`selection_reason` contains 1–500 Unicode code points and at least one
+non-whitespace character. Whitespace is the ECMAScript `\s` set; length is not
+UTF-16 code units or bytes. No trimming or normalization is implied. The reason
+must truthfully disclose the current selection basis, not claim a direct match
+to the original query, and must not expose private ranking data or internal
+chain-of-thought. `thinking_mode=false` does not remove this required disclosure.
+Alternative Offers must not contain `match_reason` in either thinking mode.
+Static Partner/provider `offer_info.recommendation_reason` may remain on the
+Offer, but cannot replace the request-specific `selection_reason`.
+
+Items must be unique by stable `offer.offer_id` (UUID case variants identify
+the same Offer), even if their `offer_instance_id` or explanation differs.
+Do not merge alternatives into main `offers` or main-result counts. Omit the
+whole field when no suitable alternatives exist or the alternative branch
+fails; `null` and an empty array are invalid substitutes for omission.
+
+Alternatives are permitted only with `below_relevance_threshold` or
+`no_material`. They are forbidden with `consent_missing`, `scene_suppressed`,
+or `frequency_capped`; all five meanings and their precedence remain unchanged.
+The producer must evaluate the **real internal causes and global gates** before
+selecting alternatives. A public reason can collapse several internal causes:
+`below_relevance_threshold` alone is not authorization to bypass consent,
+scene, frequency, or other eligibility restrictions.
+
+`regional_popularity` requires genuine, current popularity evidence for the
+user's same country and qualified inventory. The producer must not infer a
+country from response `language`. Unknown country, no applicable popularity
+list, or no qualified candidate requires omission. Only natural-language
+relevance may be relaxed: explicit included and excluded categories, budget,
+other explicit exclusions, eligibility, freshness, sensitive-category, and
+action gates still apply. Cross-category alternatives are allowed only when
+there is no explicit included-category restriction, and must still respect
+excluded categories. A `no_material` main result does not excuse an alternative
+from having usable action and presentation resources.
+
+Catalog/placement-scoped queries, Browse pagination exhaustion, and the public
+test sandbox must not trigger global-popularity refill. In paired validation,
+a request carrying `placement_id` or `test_mode=true` forbids alternatives;
+internal routing and Browse state remain producer obligations. Validation
+without the request cannot certify entry-point eligibility.
+
+The nested Offer retains the existing dispatch identity, action, attribution,
+and display-price contracts; it does not admit supply-only `details`, `quote`,
+or `price.tax_status`. Returning an alternative is not proof of actual display
+and creates no new charging event. `engagement` is unchanged, and Hooks still
+reference **main `offers` only**, never alternatives.
+
+JSON Schema and semantic validation prove payload constraints, not real
+popularity, country, eligibility, internal gates, or the truth/language of an
+explanation. Those require deployment evidence. The
+[alternative Query example](https://github.com/agentoffernetwork/examples/blob/main/v1.0/http/offer-query-alternative-offers.json)
+is synthetic contract data, not runtime evidence.
+
+This extension stays on exact v1.0 through the next unused protected rN; the
+Offer document marker remains `"3.0"`. Existing responses without the field
+remain valid. **Old closed readers may reject the new field; permissive readers
+may discard it.** Consumers must upgrade and certify reading before producers
+enable emission. Canonical publication does not certify deployment support;
+service, SDK, and Agent adaptation is separate implementation work.
+`force_offer` remains supported under its existing rules; any later retirement
+requires a separate decision after capability rollout and caller migration.
 
 ### Response display price
 
@@ -132,7 +211,7 @@ it is sent.
 comparable only among follow-ups in the same response from the same producer; it
 is not a calibrated probability or a cross-request score.
 
-Every Hook identifies one returned Offer with `subject_offer_id` and one prior
+Every Hook identifies one main `offers` item with `subject_offer_id` and one prior
 response with `baseline_request_id`. The baseline must equal the current
 request's `context.session.previous_request_id`. Hooks report observed change
 cues only; they do not register a watch or promise future notification.

@@ -45,6 +45,19 @@ field. See the [Query API](specs/query-api.md),
 
 ## Contract lifecycle
 
+An empty main Query result may include an independent `alternative_offers`
+list with 1–3 complete Generic Offers and mandatory request-specific selection
+reasons, initially based only on genuine same-country `regional_popularity`.
+Main `offers: []` and `empty_reason` remain; alternatives never claim a direct
+query match. See [Query API](specs/query-api.md#optional-alternative-offers) for
+eligibility, explicit-constraint and special-entry restrictions.
+
+This response extension does not change requests, the exact `1.0` selector,
+or existing `force_offer` behavior. Old closed readers may reject the field;
+permissive readers may discard it. Consumers must upgrade before producers
+enable it. Service, SDK, and Agent adoption is separate from the protocol
+assets and is not certified by publication or synthetic examples.
+
 The current contract is **adopted** and **stable** for new integrations.
 Contract adoption does not claim that every deployment accepts the contract;
 deployment owners publish endpoint, access, rollout, and conformance status

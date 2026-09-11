@@ -61,3 +61,19 @@ changes follow the live process before contract admission. RFC-0004 is the
 accepted and implemented decision for the response-scoped Offer display price;
 RFC-0005 is the accepted and implemented decision for Flight airport-local
 schedule times and source-provided segment duration.
+
+RFC-0006 is the accepted decision for optional, independent Query
+`alternative_offers`. It preserves existing request and main-result behavior,
+including `force_offer`, on exact v1.0 and the next unused protected rN.
+Unextended old responses remain valid, but old closed readers may reject the
+new field and permissive readers may discard it. Consumer read support must
+be upgraded and certified before producer emission is enabled; this is not
+a universal backward-compatibility guarantee.
+
+Query alternative wrappers are response-owned, not Partner/OfferProvider supply
+fields or an expansion of the Generic Offer projection. Their schema,
+semantics, types, examples and RFC must enter the existing protected release
+admission together. Local source completion, public protocol publication,
+documentation deployment and runtime certification are separate evidence
+states. Service, SDK and Agent adaptation remains deployment-owned; neither
+an accepted RFC nor a synthetic example establishes live availability.

@@ -404,11 +404,15 @@ currency-qualified thresholds in internal Partner policy.
 | `request_id` | Correlation id shared with the current Query request. |
 | `protocol_version` | Exact transport protocol selected by the request header and echoed in the response body (`"1.0"`); it is independent of Offer payload fields. |
 | `language` | Selected language of user-facing response content under the stable-v1.0 language profile. |
-| `offers` | Public Offer projections in descending selection priority for this request. Order is meaningful within one response but is neither stable nor comparable across requests. |
+| `offers` | Main Generic Query Offer projections in descending selection priority for this request, including any successful existing force_offer fallback. Order is meaningful within one response but is neither stable nor comparable across requests. |
+| `alternative_offers` | Optional independent alternatives, present only with empty main offers and an allowed empty_reason; 1–3 items, unique by stable offer.offer_id, not part of main-result counts. Omit if unavailable; null or an empty array is invalid. |
+| `alternative_offers[].basis` | Required closed selection-basis value; initially only regional_popularity, meaning genuine same-country popularity rather than direct query relevance. |
+| `alternative_offers[].selection_reason` | Required truthful request-specific alternative-selection disclosure in response language, 1–500 Unicode code points with at least one character outside the ECMAScript whitespace set. Retained with thinking_mode=false; static recommendation_reason is not a substitute. |
+| `alternative_offers[].offer` | Complete current Generic Query Offer with unchanged identity, action, attribution and display-price rules; match_reason is prohibited in both thinking modes. |
 | `engagement.refinements[]` | Suggestions that narrow the current intent. |
 | `engagement.followup_topics[]` | Adjacent-topic suggestions ordered by descending `confidence`. |
 | `query_helper.request_patch` | Non-null, non-destructive partial update for a subsequent Query. |
-| `hooks[]` | Change cues comparing one returned Offer with one explicit previous response baseline. They are not watch registrations or delivery guarantees. |
+| `hooks[]` | Change cues comparing one main offers item with one explicit previous response baseline; alternative Offers are not Hook subjects. They are not watch registrations or delivery guarantees. |
 
 The current Query/MCP `offers[]` carrier is the Generic Offer projection. It
 may carry `offer_info.commercial.display_price` when all display-price rules
@@ -417,6 +421,24 @@ hold. It must reject and omit `offer_info.details`,
 `offer_info.commercial.quote` even when AON holds those canonical supply facts.
 Consumers must not infer the omitted values or treat their absence as a negative
 travel, tax, or quote assertion.
+
+The same Generic projection applies to `alternative_offers[].offer`, with the
+additional prohibition on `match_reason`. Alternative item objects contain
+exactly `basis`, `selection_reason`, and `offer`. Stable Offer UUID identities
+are compared case-insensitively for alternative uniqueness; changing dispatch
+identity or wording does not make the same Offer a distinct alternative.
+
+See [Query API: Optional alternative Offers](query-api.md#optional-alternative-offers)
+for the normative production and consumption rules. Only natural-language
+relevance may be relaxed; explicit category inclusion/exclusion, budget,
+eligibility, freshness, sensitive-category and action gates remain effective.
+Real same-country popularity is required; unknown country or missing qualified
+inventory requires omission. Catalog/placement, Browse exhaustion and public
+test sandbox paths do not enter global-popularity refill. The public
+`empty_reason` cannot certify real internal gates or eligibility. Payload
+validation cannot prove those external facts or the truth of an explanation.
+Returning alternatives neither proves actual display nor creates a new
+charging event.
 
 ### Query Helper update profile
 
@@ -464,11 +486,18 @@ apply, the producer selects the first applicable value in this precedence:
 | 4 | `no_material` | Candidates exist but none has a usable action or presentation resource required by the current surface. |
 | 5 | `below_relevance_threshold` | No remaining eligible candidate meets the response relevance threshold. |
 
+Only `no_material` and `below_relevance_threshold` permit `alternative_offers`,
+and only after the complete main path, including existing `force_offer`, remains
+empty and real internal gates permit recommendation. The other three reasons
+forbid alternatives. Their presence never removes or reinterprets the main
+`empty_reason`. An alternative must still have its own usable action/resources.
+
 ### Hook values and baseline
 
 Every Hook requires:
 
-- `subject_offer_id`, which references an Offer returned in the same response;
+- `subject_offer_id`, which references a main `offers` item in the same response,
+  not an `alternative_offers[].offer`;
 - `baseline_request_id`, which equals the current request's
   `context.session.previous_request_id`; and
 - current evidence that the named field class differs from that baseline.
