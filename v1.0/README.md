@@ -25,10 +25,27 @@ Shared resources define the stable
 [Location Search API](specs/location-search-api.md). Query v1.0 does not
 expose viewer location or age fields.
 
-The taxonomy publishes only evidence-admitted category ids. Commerce
-candidate and source-crosswalk artifacts are planning and audit inputs, not a
-second set of selectable ids. Integrations must validate against the published
-taxonomy tree or resolver for the active release.
+The definition-first taxonomy expansion preserves all 515 existing ids and
+adds 272 definitions for 787 canonical ids. The canonical tree and metadata
+define category semantics independently of product admission. Earlier candidate
+records remain deferred in their evidence history; they do not make the
+corresponding canonical ids unusable. Integrations must validate against the
+tree or resolver from their pinned published release.
+
+The [definition manifest](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/aon-taxonomy-definition.json),
+[definition crosswalk](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/source-mappings/warehouse-aon-definition.json),
+and [comparison table](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/source-mappings/warehouse-aon-definition.md)
+are generated candidate source outputs. These links identify release target
+paths; their presence here does not assert completed public publication. The
+ordinary protected protocol release publishes committed definitions independently
+of downstream product validation.
+
+Runtime, classifier, warehouse adaptation, historical backfill, and product
+validation belong to a separate downstream Plan. Definition membership does
+not certify runtime support or product eligibility. Preserve the documented
+product/platform/service and attribute boundaries, use broad parent fallbacks
+when Offer evidence is insufficient, and evaluate subtree matching against
+the same pinned release snapshot.
 
 Machine-readable schemas, validators, types, and payloads are published in the
 matching [Schema](https://github.com/agentoffernetwork/schema/tree/main/v1.0)

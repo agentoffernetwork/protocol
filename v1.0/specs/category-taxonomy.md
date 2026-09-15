@@ -2,7 +2,7 @@
 
 **Version**: AON Taxonomy v1
 **Status**: Stable shared current resource
-**Last Updated**: 2026-09-10
+**Last Updated**: 2026-09-15
 
 ## Purpose
 
@@ -53,12 +53,36 @@ Arts & Entertainment > iGaming
 The generated id is the only category value Partner-written Offer payloads need
 to carry.
 
-The public tree is an admitted-only projection. Candidate presence in the
-commerce registry or a source crosswalk does not make that id public or
-selectable. Existing ids remain append-only, and a release adds a candidate
-only after its own evidence and every candidate ancestor pass the admission
-gate. A zero-admission evaluation produces an audit but no no-change taxonomy
-release.
+The definition-first expansion preserves all 515 existing ids and adds 272
+category definitions, yielding 787 canonical ids. The canonical tree and
+metadata define category semantics independently of product admission. The
+ordinary protected protocol release publishes the committed definitions
+independently of downstream product validation. Consumers must use the
+immutable release manifest to
+identify the published snapshot, rather than treating this document or a
+mutable branch as proof of publication.
+
+The generator produces the following candidate source outputs for the schema
+repository's `v1.0/` release surface:
+
+- [Definition manifest](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/aon-taxonomy-definition.json)
+- [Warehouse-to-AON definition crosswalk](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/source-mappings/warehouse-aon-definition.json)
+- [Generated comparison table](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/source-mappings/warehouse-aon-definition.md)
+
+These links identify release target paths; candidate source generation does
+not assert completed public publication. The definition crosswalk describes
+source-to-AON semantics; it does not certify product-level classification
+accuracy.
+
+The definition manifest uses `definition_status=defined`. Its definition
+digest, bound to the source commit by the outer protected release, establishes
+release identity; the status alone does not prove publication or runtime support.
+
+The earlier candidate registry, warehouse commerce crosswalk, and admission
+audit retain their evidence history. Their 272 deferred candidate records
+describe the earlier product-evidence evaluation, not unusable or non-public
+ids in the expanded definition release. A deferred evidence decision neither
+removes a canonical definition nor blocks its publication.
 
 Canonical metadata owns the stable name, definition, aliases, examples,
 subject boundary, and lifecycle of each node. Runtime status, sensitivity, and
@@ -127,7 +151,7 @@ does not encode every property that could appear on a product page.
 
 | Input concept | Taxonomy handling |
 |---------------|-------------------|
-| Stable sold product type | Use the most specific admitted product node supported by evidence |
+| Stable sold product type | Use the most specific canonical product node in the pinned release supported by evidence about the Offer |
 | Marketplace or shopping platform itself | Use `e_commerce_marketplace`; do not classify listed products there |
 | Brand, model, color, size, capacity, material, compatibility, ingredient, benefit, or style | Keep as product attributes; do not create combinatorial category ids |
 | Delivery form such as physical product or online service | Use `offer_type` when applicable; it does not replace `category.id` |
@@ -138,42 +162,44 @@ Examples for mobile commerce:
 | Offer subject | Category boundary |
 |---------------|-------------------|
 | Mobile phone handset | `internet_telecom.telephony.mobile_phones_accessories.mobile_phones` |
-| Phone-only case, screen protector, replacement battery, or replacement part | A phone-specific admitted child under the mobile-phone branch |
-| Generic charger, cable, power bank, or cross-device stand | An admitted node under `computers_electronics.consumer_electronics.consumer_electronic_accessories` |
+| Phone-only case, screen protector, replacement battery, or replacement part | A phone-specific canonical child under the mobile-phone branch |
+| Generic charger, cable, power bank, or cross-device stand | A canonical node under `computers_electronics.consumer_electronics.consumer_electronic_accessories` |
 | Tablet | A computer/electronics tablet node, never a mobile phone |
 | Mobile subscription or phone plan | A telecom service node, never a physical phone product |
 
 When evidence cannot distinguish phone-only use from cross-device use, the
 Offer stays on the documented broad fallback rather than guessing a narrow id.
 
-## Commerce Candidate Admission
+## Definition Publication and Downstream Product Admission
 
-Commerce expansion separates planning from publication:
+Definition publication establishes stable ids, parent relationships, metadata,
+and classification boundaries. All 515 existing ids remain unchanged; the 272
+additional definitions extend the same Taxonomy v1 tree. Existing parents,
+including former leaves that gain children, remain selectable as residual
+fallbacks. Definition publication follows the ordinary protected protocol
+release process using committed artifacts and immutable release provenance.
+It does not depend on a non-empty product-admission result.
 
-1. The candidate registry freezes proposed ids, parents, provenance, semantic
-   roles, and boundary fingerprints.
-2. A source crosswalk gives every source category exactly one explicit action,
-   including exact reuse, decomposition, broad fallback, platform mapping, and
-   service exclusion.
-3. The evaluator derives each candidate's risk tier, decision, reason, and
-   evidence reference. The generated registry projection and audit must agree
-   exactly.
-4. Only a non-empty admitted set can produce a public tree delta and release
-   manifest. Deferred candidates remain non-public.
+Runtime, classifier, warehouse mapping execution, and historical backfill
+adaptation belong to a separate downstream Plan. A published definition is
+available as a protocol id but does not certify that a deployment supports it,
+that any product has been classified into it, or that an Offer is eligible for
+activation or distribution. Consumers must distinguish definition membership,
+runtime support, and product admission.
 
-All candidates require privacy-safe deduplicated positive samples, hard
-negatives, a complete boundary review, and independent protected signoffs.
-Warehouse-derived exact mappings may use one upstream namespace when all
-inbound mappings are direct and exact. Split, broad-fallback, mixed-provenance,
-and gap candidates require two independent namespaces plus decomposition and
-residual evidence. Sensitive or regulated categories also require an explicit
-operations sensitivity approval before activation.
+Downstream validation must preserve the source mapping distinctions between
+exact reuse, decomposition, broad fallback, platform mapping, and service
+exclusion. Classification needs evidence about the actual Offer subject;
+source labels alone do not justify a narrow id. Product validation should
+retain privacy-safe deduplicated positive samples, hard negatives, boundary
+review, and decomposition and residual evidence where applicable. Evidence
+thresholds and operational approvals belong to that downstream Plan, not to
+the canonical id set or the definition publication gate.
 
-Synthetic fixtures can test schema, projection, and failure behavior, but they
-cannot satisfy production admission. Publishability is established only from
-protected approval and immutable project, ref, job, and artifact provenance;
-paths, filenames, output directories, caller flags, and test trust stores do
-not confer publication authority.
+Sensitive or regulated product activation remains subject to applicable
+platform review and compliance requirements independently of taxonomy
+definition. Synthetic fixtures can verify contract and failure behavior but
+cannot establish real product classification quality or production readiness.
 
 ## E-commerce & Marketplace Disambiguation
 
@@ -271,16 +297,21 @@ The guard:
 5. Scans examples for `offer_info.category.id`, `offer_info.secondary_category_ids`,
    and `category_ids`.
 6. Fails on any id that does not exist in the registry.
-7. Verifies candidate, metadata, crosswalk, audit, and release digests together.
-8. Requires every warehouse source category to have exactly one crosswalk
-   action and regenerates the human-readable comparison table from that source.
-9. Confirms that a zero-admission run leaves the public tree and published
-   consumer id sets unchanged.
+
+For the definition-first expansion, release validation must also verify that
+all 515 existing ids are preserved, the 272 additions yield 787 unique ids,
+and the tree, canonical metadata, and definition crosswalk agree. Each warehouse
+source category must have an explicit mapping action, with the companion
+comparison table derived from the same mapping source. Historical candidate
+and audit evidence retains its own meaning; deferred decisions must not filter
+the canonical definition set.
 
 Any taxonomy change must explicitly evaluate whether it adds, removes, moves,
-renames, admits, defers, deprecates, or changes the boundary of a crosswalk
-target. The crosswalk and generated comparison table change in the same commit
-when required; otherwise the guard records a clean no-drift result.
+renames, deprecates, or changes the boundary of a crosswalk target. The
+definition crosswalk and generated comparison table change in the same commit
+when required. Product admission decisions are recorded separately and do not
+rewrite the definition tree. Published historical snapshots remain immutable;
+consumers expand subtrees only from their pinned release.
 
 ## External Taxonomies
 
