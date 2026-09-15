@@ -26,6 +26,14 @@ conformance details separately.
 The `v1.0/` directory is the current release surface. Exact repository commits
 come from the protected release manifest rather than mutable branch URLs.
 
+The definition-first Taxonomy v1 expansion preserves 515 existing ids and adds
+272 definitions for 787 canonical ids, independently of product admission.
+Earlier deferred candidate evidence does not invalidate these definitions.
+The ordinary protected protocol release publishes committed definitions
+independently of downstream product validation. Runtime, classifier, and
+warehouse adaptation and product validation follow a separate downstream Plan;
+definition publication does not certify deployment support or product eligibility.
+
 ## Provenance
 
 Earlier releases remain available from immutable tags and release evidence for
