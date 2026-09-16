@@ -32,9 +32,6 @@ The current machine-readable sources live in the schema repository:
 - [Taxonomy source schema](https://github.com/agentoffernetwork/schema/blob/main/v1.0/json-schema/taxonomy.schema.json)
 - [Taxonomy resolver](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/aon-taxonomy-resolver.mjs)
 - [Canonical metadata](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/aon-taxonomy-metadata.json)
-- [Commerce candidate registry](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/commerce-product-candidates.json)
-- [Warehouse commerce crosswalk](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/source-mappings/warehouse-commerce.json)
-- [Commerce admission audit](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/audits/commerce-product-admission-audit.json)
 
 Source nodes use only:
 
@@ -66,23 +63,19 @@ The generator produces the following candidate source outputs for the schema
 repository's `v1.0/` release surface:
 
 - [Definition manifest](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/aon-taxonomy-definition.json)
-- [Warehouse-to-AON definition crosswalk](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/source-mappings/warehouse-aon-definition.json)
-- [Generated comparison table](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/source-mappings/warehouse-aon-definition.md)
 
 These links identify release target paths; candidate source generation does
-not assert completed public publication. The definition crosswalk describes
-source-to-AON semantics; it does not certify product-level classification
-accuracy.
+not assert completed public publication. Source-system crosswalks, migration
+tables, and implementation evidence are maintained by each adopter outside
+the public protocol contract.
 
 The definition manifest uses `definition_status=defined`. Its definition
 digest, bound to the source commit by the outer protected release, establishes
 release identity; the status alone does not prove publication or runtime support.
 
-The earlier candidate registry, warehouse commerce crosswalk, and admission
-audit retain their evidence history. Their 272 deferred candidate records
-describe the earlier product-evidence evaluation, not unusable or non-public
-ids in the expanded definition release. A deferred evidence decision neither
-removes a canonical definition nor blocks its publication.
+Product-evidence decisions neither remove a canonical definition nor block
+its publication. The public definition manifest binds only the AON baseline,
+canonical tree, and public metadata; it does not depend on a source-system mapping.
 
 Canonical metadata owns the stable name, definition, aliases, examples,
 subject boundary, and lifecycle of each node. Runtime status, sensitivity, and
@@ -300,16 +293,14 @@ The guard:
 
 For the definition-first expansion, release validation must also verify that
 all 515 existing ids are preserved, the 272 additions yield 787 unique ids,
-and the tree, canonical metadata, and definition crosswalk agree. Each warehouse
-source category must have an explicit mapping action, with the companion
-comparison table derived from the same mapping source. Historical candidate
-and audit evidence retains its own meaning; deferred decisions must not filter
-the canonical definition set.
+and the tree, canonical metadata, and definition manifest agree. Adopters
+maintain source-specific mappings and evidence independently; those artifacts
+are not required to consume or validate the public taxonomy.
 
 Any taxonomy change must explicitly evaluate whether it adds, removes, moves,
-renames, deprecates, or changes the boundary of a crosswalk target. The
-definition crosswalk and generated comparison table change in the same commit
-when required. Product admission decisions are recorded separately and do not
+renames, deprecates, or changes the boundary of a canonical category. Adopters
+evaluate their own mappings against those changes. Product admission decisions
+are recorded separately and do not
 rewrite the definition tree. Published historical snapshots remain immutable;
 consumers expand subtrees only from their pinned release.
 

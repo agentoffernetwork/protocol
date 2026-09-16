@@ -32,11 +32,10 @@ records remain deferred in their evidence history; they do not make the
 corresponding canonical ids unusable. Integrations must validate against the
 tree or resolver from their pinned published release.
 
-The [definition manifest](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/aon-taxonomy-definition.json),
-[definition crosswalk](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/source-mappings/warehouse-aon-definition.json),
-and [comparison table](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/source-mappings/warehouse-aon-definition.md)
-are generated candidate source outputs. These links identify release target
-paths; their presence here does not assert completed public publication. The
+The [definition manifest](https://github.com/agentoffernetwork/schema/blob/main/v1.0/taxonomy/aon-taxonomy-definition.json)
+binds the public AON baseline, tree, and canonical metadata. Source-system
+crosswalks and migration tables remain implementation assets outside this contract.
+This link identifies a release target path; it does not assert completed publication. The
 ordinary protected protocol release publishes committed definitions independently
 of downstream product validation.
 
