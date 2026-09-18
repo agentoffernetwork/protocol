@@ -84,3 +84,14 @@ authority, compatibility, and change rules.
 
 Earlier releases remain available from immutable tags for audit and recovery.
 They are not alternate current integration paths.
+
+## Typed Flight Query source extension
+
+[Flight Query](https://github.com/agentoffernetwork/protocol/blob/main/v1.0/specs/query-api.md#typed-flight-query)
+adds explicit itinerary requests, reference versus traveler-total prices and
+required Flight details while preserving Generic projections.
+[Ctrip mapping](https://github.com/agentoffernetwork/protocol/blob/main/v1.0/specs/flight-query-ctrip-mapping.md)
+records supplied tool evidence and unsupported facts.
+[RFC-0007](https://github.com/agentoffernetwork/rfcs/blob/main/rfcs/RFC-0007-flight-query-profile.md)
+is accepted/implemented in sources; public release and runtime support require
+separate evidence. Exact version 1.0 alone does not enable this capability.

@@ -100,8 +100,9 @@ The Partner Offer in a success response may carry an optional closed
 only registered names are `flight` and `hotel_rate`. Profile facts, observed
 `commercial.price.tax_status`, and `commercial.quote` are accepted on this
 supply carrier when they meet the Offer semantic rules. They do not cause the
-later Hosted Query or MCP response to expose those fields: the current Query
-projection remains Generic and explicitly omits all three extensions.
+later Generic Hosted Query or MCP response to expose those fields: the Generic
+projection explicitly omits all three extensions. Typed Flight Query has its
+own required detail projection described below.
 
 Flight Providers send endpoint `local_at` values in each airport's local clock
 using `YYYY-MM-DDTHH:mm:ss`, without offsets, and include positive
@@ -129,6 +130,28 @@ percent-encoded. Invalid, relative, HTTP, non-string,
 or oversized Logo values reject the complete Provider response before adapter
 processing; the adapter must not strip the value and continue. Providers must
 not infer the field from entity, action, or material data.
+
+## Typed Flight Provider queries
+
+Provider requests reuse the [typed Flight Query](query-api.md#typed-flight-query)
+request and its exact hard constraints. Typed success MUST carry the same
+closed flight_search execution metadata and only Flight Partner Offers with
+explicit matching price_basis. Generic requests MUST NOT carry flight_search
+in responses. A Provider aggregating upstreams may return partial only if at
+least one source completes; a sole upstream failure requires the error envelope.
+An outer Query must preserve Provider partial as partial, not upgrade it to
+complete merely because the Provider returned HTTP success.
+Provider request_id is mandatory and must equal the response request_id.
+
+The complete paired request is required for semantic validation, including
+empty results; the shared city evidence, traveler composition, calendar date,
+cabin, connection and nonstop rules apply. Provider never returns empty_reason,
+alternative_offers, public offer_id/offer_instance_id or display_price. Supply
+source_offer_id identity remains unchanged. The same uppercase Flight error
+code/kind mapping and producer responsibility apply; errors are not success
+payloads. See [Flight price and itinerary facts](offer-field-semantics.md#flight-price-and-itinerary-facts)
+for conditional travelers/quote, durations and stop evidence. Protocol support
+is not certification that any deployed Provider implements real-time Flight.
 
 ## Implementation vectors
 

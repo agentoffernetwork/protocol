@@ -17,6 +17,7 @@ the corresponding JSON Schema `description` annotations are authoritative.
 | Public Offer | Canonical public response facts | `offer-schema-v1.0.json` | User-visible Offer, public goals, `goals[].pricing`, registered optional supply-profile facts, and AON-owned response presentation data |
 | Partner Offer | Partner | `offer-partner-schema-v1.0.json` | Stable `source_offer_id`, Partner-authored public content, and Partner-only `targeting` and `conversion_rule`; no AON inventory identity, dispatch identity, or match reason |
 | Query Generic Offer projection | Hosted Query and MCP consumer | `offer-query-generic-projection-v1.0.json` | Stable Generic Offer response shape; rejects supply-profile and observed-commercial extensions |
+| Query Flight Offer projection | Opted-in Query consumer | `offer-query-flight-projection-v1.0.json` | Required Flight details, explicit price_basis, original tax/quote facts and paired hard-condition matching |
 | Internal Offer policy | Operator | `offer-internal-policy-v1.0.json` | `status`, `audit_status`, `priority`, provider identity, eligibility, freshness, affiliate and commission policy |
 
 `targeting` and `conversion_rule` are rejected by the closed public Offer.
@@ -50,17 +51,18 @@ These Flight schedule rules are governed by
 [RFC-0005](https://github.com/agentoffernetwork/rfcs/blob/main/rfcs/RFC-0005-flight-local-schedule-times.md).
 
 These fields are canonical supply facts for the Public Offer, Partner Offer,
-and Provider success carriers. They do not extend the current Hosted Query or
-MCP response: those surfaces bind
+and Provider success carriers. Generic Hosted Query and
+MCP responses bind
 `offer-query-generic-projection-v1.0.json`, which rejects
 `offer_info.details`, `offer_info.commercial.price.tax_status`, and
-`offer_info.commercial.quote`. A future public runtime projection requires its
-own certified rollout; it is not selected by a new header or Offer version.
+`offer_info.commercial.quote`. The typed Flight Query branch carries these facts under the rules in
+[Query API](query-api.md#typed-flight-query). Runtime support requires its own
+certified rollout; it is not selected by a new header or Offer version.
 
 ## Response display price
 
 `offer_info.commercial.display_price` is an optional, closed object allowed on
-the Public Offer and Generic Query Offer carriers. It is owned by the AON Query
+the Public Offer, Generic Query Offer, and typed Flight Query Offer carriers. It is owned by the AON Query
 response projection and requires exactly a canonical non-negative decimal
 string `amount` and a three-uppercase-ASCII-letter `currency`. It must not
 contain `unit`, `tax_status`, `quote`, `fulfillment_note`, or another member.
@@ -146,3 +148,12 @@ refunds, holds, disputes, and adjustments remain settlement lifecycle data.
 The current contract deliberately does not define `decision_factors`. It uses
 `engagement.refinements` for narrowing the current intent and
 `engagement.followup_topics` for adjacent exploration.
+
+## Flight Query price-basis extension
+
+The [Flight price and itinerary facts](offer-field-semantics.md#flight-price-and-itinerary-facts)
+require explicit reference versus itinerary_total in typed results, retain legacy
+traveler quote semantics on omission, and define conditional travelers and
+quote.observed_at, source leg duration and known/unknown/name-only stops.
+The [typed Flight Query](query-api.md#typed-flight-query) contract defines paired
+matching, age/seat facts, success/error states and runtime capability boundaries.

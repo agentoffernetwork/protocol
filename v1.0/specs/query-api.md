@@ -52,7 +52,7 @@ a second public request contract.
 ## Response
 
 Every response has `request_id`, `protocol_version`, `language`, and `offers`.
-Offers can be empty. When `offers` is empty, `empty_reason` is required and uses one of:
+Offers can be empty. In the Generic branch (no `flight_search`), when `offers` is empty, `empty_reason` is required and uses one of:
 `frequency_capped`, `below_relevance_threshold`, `scene_suppressed`,
 `no_material`, or `consent_missing`. When a main Offer is returned, `empty_reason`
 is omitted.
@@ -69,7 +69,7 @@ The published JSON Schema `description` annotations are the authoritative
 field-level contract; this API specification defines cross-field and transport
 behavior.
 
-The current `offers[]` response is intentionally the Generic Offer projection.
+Without `intent.details`, `offers[]` uses the Generic Offer projection.
 It may carry the response-owned
 `offer_info.commercial.display_price` defined below. It rejects and does not
 emit `offer_info.details`,
@@ -82,7 +82,7 @@ A later runtime projection requires separately certified deployment evidence.
 
 ### Optional alternative Offers
 
-After the complete existing main Query path has finished, an empty `offers`
+In the Generic branch only, after the complete existing main Query path has finished, an empty `offers`
 may be accompanied by `alternative_offers`. This optional response field does
 not change the request. In particular, a successful `force_offer` fallback
 remains in main `offers`; it is not moved into the alternative list. Main
@@ -241,3 +241,136 @@ contract is adopted independently of runtime rollout: each deployment must
 publish conformance evidence before accepting v1.0 traffic. Deployments that do
 not support v1.0 return `unsupported_protocol_version`; canonical publication
 alone is not evidence that a deployment accepts v1.0 traffic.
+
+## Typed Flight Query
+
+`intent.details` opts into the closed `{profile: "flight", data: {...}}`
+request profile. Without it, existing Generic rules apply. No other Query
+profile is admitted. A typed request MUST invoke capable sources for this
+request; stored examples or unknown-age cached prices do not establish a live
+search. Execution uses the existing synchronous response within an implementation-declared
+finite deadline. Supplier task polling is an adapter detail and must finish or be
+classified as a timeout within that deadline; this extension adds no asynchronous
+response or later result updates. One Offer represents one
+complete candidate itinerary, including connecting segments, price and action.
+
+| `intent.details.data` field | Contract |
+| --- | --- |
+| `query_kind` | Required `reference_search` or `traveler_quote`; no inferred default. |
+| `legs` | Required nonempty ordered array; each leg has `origin`, `destination`, and `departure_date`. |
+| `legs[].origin`, `destination` | Closed `{kind: "airport" or "city", code: "AAA"}`; uppercase three-letter code; identical kind/code endpoints forbidden. Syntax is not registry verification. |
+| `legs[].departure_date` | Explicit valid calendar date `YYYY-MM-DD` in the origin's local calendar; never default tomorrow. |
+| `travelers` | Forbidden for reference search; required for traveler quote. Unique `adult`, `child`, `infant` groups with positive integer `count`. |
+| `travelers[].ages` | Whole nonnegative years on the first leg's local departure date; required for child/infant, optional for adult; length equals count. |
+| `travelers[].infant_seat_required` | Required boolean array for infant, same index as ages and same length as count; forbidden for other types. |
+| `cabin_class` | Optional `economy`, `premium_economy`, `business`, `first`; every actual segment must match exactly. |
+| `max_connections` | Optional nonnegative integer; each leg's `segments.length - 1` must not exceed it. |
+| `nonstop_only` | Optional boolean; true requires exactly one segment per leg and explicit `stops: []`. |
+
+Objects are closed. Existing `intent.signals.budget` remains the budget input;
+there is no new maxPrice, locale, market, airline filter or currency selector.
+Ordered legs express one-way, return and multi-city intent without a new
+request `trip_type`. Cross-leg local dates need not be monotonic. Implementers
+publish body-size and supplier limits and reject excess rather than truncating
+legs or passenger counts. The protocol invents no universal passenger limit,
+adult accompaniment ratio or age-category cutoff. A supplier needing birth
+dates, unable to honor requested ticket categories under its actual age/seat
+rules on any leg, or lacking whole-itinerary pricing MUST report unsupported
+capability. Independent one-way prices cannot be added into a guaranteed
+complete itinerary quote.
+
+### Flight results and pairing
+
+Every typed success has closed `flight_search` with required `query_kind`
+(equal to the request), `status` (`complete` or `partial`), and RFC3339
+`fetched_at`. This timestamp is when collection for this search batch finished,
+not source quote creation or expiry. `complete` requires at least one capable
+source actually queried, with every selected capable source completing.
+`partial` requires at least one completed source and at least one failure,
+timeout or unusable candidate source. It can contain zero offers. It never
+means a complete no-match. All participating sources failing is an error.
+Complete coverage describes selected sources, not the whole market. A Provider
+reporting partial MUST propagate uncertainty to the enclosing Query as partial;
+an HTTP success cannot promote partial upstream collection to complete.
+
+Typed main `offers` MUST use the Flight projection, carry `offer_info.details`,
+and explicitly declare `details.data.price_basis`: `reference` for reference
+search (no travelers), `itinerary_total` for traveler quote (all requested
+travelers and legs). Typed responses MUST omit `empty_reason` and
+`alternative_offers`. Only `complete` plus `offers: []` means no match in the
+completed selected-source search. Reference prices have unknown traveler
+scope; they are not asserted per-person prices or party totals. Typed price
+`unit` is absent or `one_time`. Original price, tax state and executable
+`book` action must describe the same candidate. Public identity, attribution,
+match_reason, and response-owned display_price rules remain applicable.
+
+The conforming validation pipeline first validates request and response with
+JSON Schema (for example AJV), then calls the corresponding pure semantic
+validator with the complete request and trusted city evidence. Semantic helpers
+do not replace structural validation or load an airport directory.
+Semantic validation requires a complete paired request, including when the
+response contains zero offers. A request with details and a response without
+flight_search, or the reverse, is invalid. Existing request_id correlation
+rules apply. For every offer, legs must match request order and count; the
+first departure and last arrival match endpoints, first departure local date
+matches the requested date, and all segment cabins and connection/stop limits
+match. Airport endpoints match by code. City endpoints require trusted airport
+directory or explicit supplier city-membership evidence; code syntax, prose,
+URL parameters and self-reported response text are insufficient.
+
+The local validation API accepts `evidence.airportCityCodes` as a mapping from
+airport code to city-code arrays, supplied from independent trusted facts.
+This is not a wire field or a new directory service. Missing city evidence
+makes a candidate unverifiable, not a match. Travelers match types/counts and
+per-type age/seat multisets, preserving requested ages without inventing adult
+ages. Unknown stop state cannot satisfy nonstop. `force_offer`, ranking,
+category signals and natural language cannot relax these conditions; hooks or
+engagement request patches cannot delete or overwrite them.
+
+### Flight errors and execution boundaries
+
+Failures use the existing uppercase `{code, message, data: {}, extra}` envelope,
+not the success schema. Portable protocol errors use the dedicated
+`offer-query-error-v1.0.json` entry, sharing Provider error-envelope definitions.
+This entry and `OfferQueryErrorV10` are not an exhaustive union of hosted
+deployment errors. Deployment-specific errors (for example, placement/catalog
+errors or transport version negotiation failures) retain their deployment-owned
+codes and payloads and MUST be validated against that deployment's error
+contract, not rejected or rewritten to fit this portable envelope.
+`extra.flight_search_error` is closed `{kind, fields?}`; optional `fields` is a
+nonempty array of JSON Pointers to input constraints.
+
+| Outcome | Representation |
+| --- | --- |
+| Invalid or incomplete input | `BAD_REQUEST` / `invalid_query`; no supplier call. |
+| No source can honor constraints or provide required matching facts | `BAD_REQUEST` / `unsupported_capability`; no silent Generic fallback. |
+| All participating sources fail, time out or return unusable candidates | `INTERNAL_ERROR` / `upstream_failure`. |
+| Some complete and some fail | Success with `status: "partial"`; zero or more compliant offers. |
+| All selected capable sources complete with no match | Success with `status: "complete"`, `offers: []`. |
+
+Typed BAD_REQUEST/INTERNAL_ERROR require this discriminator; any supplied kind
+must pair with the corresponding code. Authentication, rate limits and policy
+failures keep existing codes. Consent/scene/frequency rejection before querying
+uses `FORBIDDEN` and an explanatory message, never fabricated complete/partial
+or upstream_failure. Do not disclose supplier credentials or user IP. There is
+no protocol retry, cached fallback, automatic downgrade or alternative refill.
+
+Supply observation and expiry rules are described in
+[Flight price and itinerary facts](offer-field-semantics.md#flight-price-and-itinerary-facts).
+A real-time lookup does not lock price, inventory, booking or ticket issuance;
+implementers remain responsible for actual calls, correct source evidence and
+consistent actions. Validators cannot prove those external facts. Revalidation
+may be needed before purchase. The [Ctrip mapping](flight-query-ctrip-mapping.md)
+records the specific supplied tool evidence without certifying live support.
+
+### Compatibility and availability
+
+This opt-in source contract retains exact selector `1.0` and Offer marker
+`3.0`; it uses a new protected v1.0 rN, not a profile_version or new endpoint.
+Old valid Generic and supply instances retain their semantics. Older closed
+validators can reject new typed instances. Deployment integration documentation
+MUST explicitly declare support for this revision before clients enable it;
+`protocol_version: "1.0"` alone is not capability discovery. No declaration
+means unsupported. RFC-0007 acceptance and source implementation do not prove
+public publication, runtime deployment, SDK/Agent readiness or live supplier
+execution; each requires separate evidence.

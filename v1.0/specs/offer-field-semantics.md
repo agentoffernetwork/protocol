@@ -83,10 +83,11 @@ The targeting field validates this syntax profile only and does not assert ISO
 only registered profile names are `flight` and `hotel_rate`; producers omit the
 entire member for a Generic Offer and must not serialize a free-form profile.
 The profile facts belong to canonical supply carriers (Public Offer, Partner
-Offer, and Provider success), not the current Hosted Query/MCP projection.
+Offer, and Provider success) and typed Flight Query; the Generic Hosted
+Query/MCP projection excludes them.
 
 `flight` describes one priced itinerary: its declared trip topology, traveller
-composition, and ordered segments must agree. Each endpoint `local_at` is the
+composition (when applicable), and ordered segments must agree. Each endpoint `local_at` is the
 source schedule in that airport's local clock, serialized exactly as
 `YYYY-MM-DDTHH:mm:ss` without an offset or timezone. A producer may normalize a
 source value such as `2026-02-05 20:55:00` by replacing the space with `T`, but
@@ -253,7 +254,7 @@ Goal commission are independent.
 ### Response-scoped display price
 
 `offer_info.commercial.display_price` is optional response presentation data
-owned by the AON Query projection. It is allowed in Public Offer and Generic
+owned by the AON Query projection. It is allowed in Public Offer, typed Flight Query Offer, and Generic
 Query Offer carriers and prohibited in Partner Offer and OfferProvider success
 carriers. It is one closed object with exactly required string `amount` and
 `currency`; `unit`, `tax_status`, `quote`, `fulfillment_note`, and unknown
@@ -404,7 +405,7 @@ currency-qualified thresholds in internal Partner policy.
 | `request_id` | Correlation id shared with the current Query request. |
 | `protocol_version` | Exact transport protocol selected by the request header and echoed in the response body (`"1.0"`); it is independent of Offer payload fields. |
 | `language` | Selected language of user-facing response content under the stable-v1.0 language profile. |
-| `offers` | Main Generic Query Offer projections in descending selection priority for this request, including any successful existing force_offer fallback. Order is meaningful within one response but is neither stable nor comparable across requests. |
+| `offers` | Main Generic Query or typed Flight Offer projections in descending selection priority for this request, including any successful existing force_offer fallback. Order is meaningful within one response but is neither stable nor comparable across requests. |
 | `alternative_offers` | Optional independent alternatives, present only with empty main offers and an allowed empty_reason; 1–3 items, unique by stable offer.offer_id, not part of main-result counts. Omit if unavailable; null or an empty array is invalid. |
 | `alternative_offers[].basis` | Required closed selection-basis value; initially only regional_popularity, meaning genuine same-country popularity rather than direct query relevance. |
 | `alternative_offers[].selection_reason` | Required truthful request-specific alternative-selection disclosure in response language, 1–500 Unicode code points with at least one character outside the ECMAScript whitespace set. Retained with thinking_mode=false; static recommendation_reason is not a substitute. |
@@ -414,7 +415,7 @@ currency-qualified thresholds in internal Partner policy.
 | `query_helper.request_patch` | Non-null, non-destructive partial update for a subsequent Query. |
 | `hooks[]` | Change cues comparing one main offers item with one explicit previous response baseline; alternative Offers are not Hook subjects. They are not watch registrations or delivery guarantees. |
 
-The current Query/MCP `offers[]` carrier is the Generic Offer projection. It
+Without typed `intent.details`, the Query/MCP `offers[]` carrier is the Generic Offer projection. It
 may carry `offer_info.commercial.display_price` when all display-price rules
 hold. It must reject and omit `offer_info.details`,
 `offer_info.commercial.price.tax_status`, and
@@ -518,3 +519,47 @@ Adding or changing a public field meaning requires an RFC-governed protocol
 change. Every new `properties` entry must include a non-empty normative Schema
 description, update this reference when its field group or enum family changes,
 and pass the field-semantics coverage test before publication.
+
+## Flight price and itinerary facts
+
+`details.data.price_basis` optionally declares `reference` or
+`itinerary_total` on supply Offers, and is mandatory in typed Query results.
+Omission preserves the existing traveler-composed itinerary quote semantics;
+it never defaults to reference. Reference forbids travelers. Every other
+Flight requires travelers; existing supply age/seat extensions are optional,
+while typed traveler quotes require the request's sufficient age/seat facts.
+
+Every Flight still requires `offline_service`, the admitted Flight category,
+a `book` action and original `commercial.price` with explicit `tax_status`.
+Unknown tax coverage uses `unknown`. Reference prices may omit the entire
+`commercial.quote` when no true observation time is known; all other Flight
+prices require `quote.observed_at`. This is when the producer truly observed
+the quote, not necessarily a supplier-provided timestamp, and is not a source
+generation timestamp. A supplied quote must still have observed_at; optional
+valid_until must be later and source-supported. Never invent expiry or add an
+observation merely to pass validation. Search fetched_at is a distinct batch
+collection fact. Hotel Rate requirements are unchanged.
+
+`trip_type` retains one_way with one leg, round_trip with two, and multi_city
+with at least two; no new city-return inference applies. Each leg optionally
+has positive source `duration_minutes`, including connection waits, at least
+the sum of segment durations. Do not sum segment durations to invent a leg
+elapsed duration, or subtract clocks at different airports.
+
+Each segment optionally has `stops`. Absence means unknown; `[]` explicitly
+means no intermediate stops. Entries are closed objects with `name` and/or
+three-uppercase-letter `airport_code`, and optional positive source
+`duration_minutes`. A name must contain a non-whitespace character and is a
+source location label, possibly a city, not necessarily an airport name.
+A name-only stop proves a stop exists but proves no airport identity or city
+membership. Duration without a location is invalid. Unknown or zero source
+duration must not be asserted as a positive duration; retain known location
+facts. Stops within a segment are distinct from connections between segments.
+For example `{ "name": "嘉峪关", "duration_minutes": 60 }` preserves a source
+city label without inventing an airport code.
+
+Typed Query price.unit is absent or one_time; periodic units cannot describe
+reference fares or complete itinerary totals. AON may add display_price only
+on public projections, including typed Flight, without changing original tax,
+price basis, observation or expiry semantics. Partner and Provider offers
+continue to reject display_price and public dispatch identity.

@@ -50,8 +50,7 @@ A Partner Offer may optionally include `offer_info.details` from the closed
 v1.0 Supply Offer Profile Registry. The registry currently permits only
 `flight` and `hotel_rate`, and the selected `details.data` shape is closed.
 The same rule applies to the Partner supply Offer inside a Provider success
-response. These are supply facts, not a Hosted Query/MCP response extension:
-current Query/MCP projections omit `details`, `commercial.price.tax_status`,
+response. Generic Query/MCP projections omit `details`, `commercial.price.tax_status`,
 and `commercial.quote`. AON may add response-scoped `commercial.display_price`
 to a later public projection, but its presence in this supply artifact is a
 contract error rather than an ignored extension.
@@ -78,3 +77,12 @@ The normative definition of every inherited and Partner-only property is in
 [Offer and Query Response Field Semantics v1.0](offer-field-semantics.md);
 the JSON Schema `description` annotations remain the authoritative field-level
 contract.
+
+## Flight Query price-basis extension
+
+The [Flight price and itinerary facts](offer-field-semantics.md#flight-price-and-itinerary-facts)
+require explicit reference versus itinerary_total in typed results, retain legacy
+traveler quote semantics on omission, and define conditional travelers and
+quote.observed_at, source leg duration and known/unknown/name-only stops.
+The [typed Flight Query](query-api.md#typed-flight-query) contract defines paired
+matching, age/seat facts, success/error states and runtime capability boundaries.
