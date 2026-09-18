@@ -50,8 +50,9 @@ A Partner Offer may optionally include `offer_info.details` from the closed
 v1.0 Supply Offer Profile Registry. The registry currently permits only
 `flight` and `hotel_rate`, and the selected `details.data` shape is closed.
 The same rule applies to the Partner supply Offer inside a Provider success
-response. Generic Query/MCP projections omit `details`, `commercial.price.tax_status`,
-and `commercial.quote`. AON may add response-scoped `commercial.display_price`
+response. Generic Query/MCP projections may retain registered `details` and their
+profile-valid `commercial.price.tax_status` and `commercial.quote` facts,
+without implying real-time execution. AON may add response-scoped `commercial.display_price`
 to a later public projection, but its presence in this supply artifact is a
 contract error rather than an ignored extension.
 

@@ -16,7 +16,7 @@ the corresponding JSON Schema `description` annotations are authoritative.
 | --- | --- | --- | --- |
 | Public Offer | Canonical public response facts | `offer-schema-v1.0.json` | User-visible Offer, public goals, `goals[].pricing`, registered optional supply-profile facts, and AON-owned response presentation data |
 | Partner Offer | Partner | `offer-partner-schema-v1.0.json` | Stable `source_offer_id`, Partner-authored public content, and Partner-only `targeting` and `conversion_rule`; no AON inventory identity, dispatch identity, or match reason |
-| Query Generic Offer projection | Hosted Query and MCP consumer | `offer-query-generic-projection-v1.0.json` | Stable Generic Offer response shape; rejects supply-profile and observed-commercial extensions |
+| Query Generic Offer projection | Hosted Query and MCP consumer | `offer-query-generic-projection-v1.0.json` | Generic Offer response shape with optional registered profile details and profile-valid commercial facts |
 | Query Flight Offer projection | Opted-in Query consumer | `offer-query-flight-projection-v1.0.json` | Required Flight details, explicit price_basis, original tax/quote facts and paired hard-condition matching |
 | Internal Offer policy | Operator | `offer-internal-policy-v1.0.json` | `status`, `audit_status`, `priority`, provider identity, eligibility, freshness, affiliate and commission policy |
 
@@ -50,12 +50,12 @@ within the same connecting airport remain normative.
 These Flight schedule rules are governed by
 [RFC-0005](https://github.com/agentoffernetwork/rfcs/blob/main/rfcs/RFC-0005-flight-local-schedule-times.md).
 
-These fields are canonical supply facts for the Public Offer, Partner Offer,
-and Provider success carriers. Generic Hosted Query and
-MCP responses bind
-`offer-query-generic-projection-v1.0.json`, which rejects
-`offer_info.details`, `offer_info.commercial.price.tax_status`, and
-`offer_info.commercial.quote`. The typed Flight Query branch carries these facts under the rules in
+These fields are canonical facts for Public Offer, Partner Offer, and Provider
+success carriers. Ordinary Hosted Query and MCP responses may carry registered
+Flight or Hotel details and their required commercial facts, including on
+non-real-time requests. Supplied details are validated by their Offer profile
+and do not imply a live lookup. Typed Flight Query additionally requires full
+Flight details and paired hard-condition matching under the
 [Query API](query-api.md#typed-flight-query). Runtime support requires its own
 certified rollout; it is not selected by a new header or Offer version.
 

@@ -99,9 +99,9 @@ The Partner Offer in a success response may carry an optional closed
 `offer_info.details` envelope from the v1.0 Supply Offer Profile Registry. The
 only registered names are `flight` and `hotel_rate`. Profile facts, observed
 `commercial.price.tax_status`, and `commercial.quote` are accepted on this
-supply carrier when they meet the Offer semantic rules. They do not cause the
-later Generic Hosted Query or MCP response to expose those fields: the Generic
-projection explicitly omits all three extensions. Typed Flight Query has its
+supply carrier when they meet the Offer semantic rules. A later Generic Hosted Query or MCP response may retain these registered
+profile facts, including for a non-real-time request, subject to the same
+profile validation. Details alone do not establish live execution. Typed Flight Query has its
 own required detail projection described below.
 
 Flight Providers send endpoint `local_at` values in each airport's local clock
@@ -134,13 +134,18 @@ not infer the field from entity, action, or material data.
 ## Typed Flight Provider queries
 
 Provider requests reuse the [typed Flight Query](query-api.md#typed-flight-query)
-request and its exact hard constraints. Typed success MUST carry the same
-closed flight_search execution metadata and only Flight Partner Offers with
+request and its exact hard constraints. Typed Provider success MUST carry
+closed `flight_search` execution metadata (`query_kind`, `status` with
+`complete` or `partial`, and RFC3339 batch collection `fetched_at`) and only Flight Partner Offers with
 explicit matching price_basis. Generic requests MUST NOT carry flight_search
 in responses. A Provider aggregating upstreams may return partial only if at
 least one source completes; a sole upstream failure requires the error envelope.
-An outer Query must preserve Provider partial as partial, not upgrade it to
-complete merely because the Provider returned HTTP success.
+An outer Query retains Provider execution status internally; its public
+success response does not expose `flight_search` or replacement metadata.
+`complete` means every selected capable source completed; `partial` requires
+at least one completed source and at least one failure, timeout or unusable
+candidate source. `query_kind` must match the request. `fetched_at` records
+batch collection completion, not quote observation or expiry.
 Provider request_id is mandatory and must equal the response request_id.
 
 The complete paired request is required for semantic validation, including

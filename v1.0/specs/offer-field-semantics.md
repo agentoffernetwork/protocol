@@ -80,11 +80,11 @@ The targeting field validates this syntax profile only and does not assert ISO
 
 `offer_info.details` is optional. When present, it is the closed
 `{ profile, data }` envelope in the v1.0 Supply Offer Profile Registry. The
-only registered profile names are `flight` and `hotel_rate`; producers omit the
-entire member for a Generic Offer and must not serialize a free-form profile.
-The profile facts belong to canonical supply carriers (Public Offer, Partner
-Offer, and Provider success) and typed Flight Query; the Generic Hosted
-Query/MCP projection excludes them.
+only registered profile names are `flight` and `hotel_rate`; producers must not
+serialize a free-form profile. These facts may appear on Public Offer, Partner
+Offer, Provider success and ordinary Query/MCP results, including non-real-time
+requests. Their presence does not imply live retrieval. Typed Flight Query
+requires full Flight details and strict paired-request matching.
 
 `flight` describes one priced itinerary: its declared trip topology, traveller
 composition (when applicable), and ordered segments must agree. Each endpoint `local_at` is the
@@ -415,13 +415,13 @@ currency-qualified thresholds in internal Partner policy.
 | `query_helper.request_patch` | Non-null, non-destructive partial update for a subsequent Query. |
 | `hooks[]` | Change cues comparing one main offers item with one explicit previous response baseline; alternative Offers are not Hook subjects. They are not watch registrations or delivery guarantees. |
 
-Without typed `intent.details`, the Query/MCP `offers[]` carrier is the Generic Offer projection. It
-may carry `offer_info.commercial.display_price` when all display-price rules
-hold. It must reject and omit `offer_info.details`,
-`offer_info.commercial.price.tax_status`, and
-`offer_info.commercial.quote` even when AON holds those canonical supply facts.
-Consumers must not infer the omitted values or treat their absence as a negative
-travel, tax, or quote assertion.
+Without typed `intent.details`, the Query/MCP `offers[]` carrier is the Generic
+Offer projection. It may carry registered `offer_info.details` and profile-valid
+original price, tax and quote facts. When details are supplied, all requirements
+of the registered Offer profile apply. It may also carry response-owned
+`commercial.display_price` under the display-price rules. Details require no
+execution metadata and do not imply a live lookup; absence is not a negative
+travel, tax or quote assertion. Public Query success omits `flight_search`.
 
 The same Generic projection applies to `alternative_offers[].offer`, with the
 additional prohibition on `match_reason`. Alternative item objects contain

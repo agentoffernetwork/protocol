@@ -52,7 +52,7 @@ a second public request contract.
 ## Response
 
 Every response has `request_id`, `protocol_version`, `language`, and `offers`.
-Offers can be empty. In the Generic branch (no `flight_search`), when `offers` is empty, `empty_reason` is required and uses one of:
+Offers can be empty. For requests without `intent.details`, when `offers` is empty, `empty_reason` is required and uses one of:
 `frequency_capped`, `below_relevance_threshold`, `scene_suppressed`,
 `no_material`, or `consent_missing`. When a main Offer is returned, `empty_reason`
 is omitted.
@@ -69,16 +69,15 @@ The published JSON Schema `description` annotations are the authoritative
 field-level contract; this API specification defines cross-field and transport
 behavior.
 
-Without `intent.details`, `offers[]` uses the Generic Offer projection.
-It may carry the response-owned
-`offer_info.commercial.display_price` defined below. It rejects and does not
-emit `offer_info.details`,
-`offer_info.commercial.price.tax_status`, or
-`offer_info.commercial.quote`, even if the source Offer carries a registered
-Flight or Hotel Rate supply profile. This is a projection boundary, not a new
-selector or Offer version: the only v1.0 selector remains
-`AON-Protocol-Version: 1.0`, and the Offer document marker remains `"3.0"`.
-A later runtime projection requires separately certified deployment evidence.
+Without `intent.details`, `offers[]` may include existing registered
+`offer_info.details`, including on non-real-time requests. Supplied details MUST
+validate against their registered Offer profile, together with that profile's
+required original price, `tax_status`, and quote facts. Omission remains valid
+when no profile is returned. Details do not imply a live lookup and do not
+require a typed request or execution metadata. The response-owned
+`offer_info.commercial.display_price` remains available. The only v1.0 selector
+remains `AON-Protocol-Version: 1.0`, and the Offer marker remains `"3.0"`.
+Runtime support requires separately certified deployment evidence.
 
 ### Optional alternative Offers
 
@@ -179,8 +178,8 @@ effective_display_price =
 
 Only `amount` and `currency` are overlaid. Existing `price.unit` and any
 available `price.tax_status` retain only their source-price meaning. The
-Generic Query projection does not currently carry `tax_status`; consumers must
-not infer it. Only complete absence permits fallback to `price`. If
+Generic Query may carry profile-valid `tax_status`; consumers must not infer
+a missing tax state. Only complete absence permits fallback to `price`. If
 `display_price` is present but null, partial, malformed, same-currency, or
 otherwise invalid, the response violates the contract and must not be silently
 rendered using the fallback branch.
@@ -281,24 +280,18 @@ complete itinerary quote.
 
 ### Flight results and pairing
 
-Every typed success has closed `flight_search` with required `query_kind`
-(equal to the request), `status` (`complete` or `partial`), and RFC3339
-`fetched_at`. This timestamp is when collection for this search batch finished,
-not source quote creation or expiry. `complete` requires at least one capable
-source actually queried, with every selected capable source completing.
-`partial` requires at least one completed source and at least one failure,
-timeout or unusable candidate source. It can contain zero offers. It never
-means a complete no-match. All participating sources failing is an error.
-Complete coverage describes selected sources, not the whole market. A Provider
-reporting partial MUST propagate uncertainty to the enclosing Query as partial;
-an HTTP success cannot promote partial upstream collection to complete.
+Public Query success MUST NOT carry `flight_search` or replacement execution
+metadata. Source completion and collection timestamps are internal execution
+facts. At least one capable source must complete for success; all participating
+sources failing remains an error. The Provider contract retains its own
+`flight_search` metadata for server-side orchestration.
 
 Typed main `offers` MUST use the Flight projection, carry `offer_info.details`,
 and explicitly declare `details.data.price_basis`: `reference` for reference
 search (no travelers), `itinerary_total` for traveler quote (all requested
 travelers and legs). Typed responses MUST omit `empty_reason` and
-`alternative_offers`. Only `complete` plus `offers: []` means no match in the
-completed selected-source search. Reference prices have unknown traveler
+`alternative_offers`. `offers: []` means this request has no usable Offers to return; it does not
+assert complete source or market coverage. Reference prices have unknown traveler
 scope; they are not asserted per-person prices or party totals. Typed price
 `unit` is absent or `one_time`. Original price, tax state and executable
 `book` action must describe the same candidate. Public identity, attribution,
@@ -309,9 +302,10 @@ JSON Schema (for example AJV), then calls the corresponding pure semantic
 validator with the complete request and trusted city evidence. Semantic helpers
 do not replace structural validation or load an airport directory.
 Semantic validation requires a complete paired request, including when the
-response contains zero offers. A request with details and a response without
-flight_search, or the reverse, is invalid. Existing request_id correlation
-rules apply. For every offer, legs must match request order and count; the
+response contains zero offers. The paired request selects strict typed Flight matching; returned details
+are independently validated against their registered Offer profile, including
+on ordinary requests. Neither validation depends on `flight_search`. Existing request_id correlation
+rules apply. For every offer in a typed Flight response, legs must match request order and count; the
 first departure and last arrival match endpoints, first departure local date
 matches the requested date, and all segment cabins and connection/stop limits
 match. Airport endpoints match by code. City endpoints require trusted airport
@@ -345,8 +339,8 @@ nonempty array of JSON Pointers to input constraints.
 | Invalid or incomplete input | `BAD_REQUEST` / `invalid_query`; no supplier call. |
 | No source can honor constraints or provide required matching facts | `BAD_REQUEST` / `unsupported_capability`; no silent Generic fallback. |
 | All participating sources fail, time out or return unusable candidates | `INTERNAL_ERROR` / `upstream_failure`. |
-| Some complete and some fail | Success with `status: "partial"`; zero or more compliant offers. |
-| All selected capable sources complete with no match | Success with `status: "complete"`, `offers: []`. |
+| Some complete and some fail | Success with zero or more compliant offers; no execution metadata. |
+| All selected capable sources complete with no match | Success with `offers: []`; no execution metadata. |
 
 Typed BAD_REQUEST/INTERNAL_ERROR require this discriminator; any supplied kind
 must pair with the corresponding code. Authentication, rate limits and policy
