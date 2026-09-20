@@ -2,7 +2,7 @@
 
 **Version**: AON Taxonomy v1
 **Status**: Stable shared current resource
-**Last Updated**: 2026-09-15
+**Last Updated**: 2026-09-20
 
 ## Purpose
 
@@ -50,8 +50,11 @@ Arts & Entertainment > iGaming
 The generated id is the only category value Partner-written Offer payloads need
 to carry.
 
-The definition-first expansion preserves all 515 existing ids and adds 272
-category definitions, yielding 787 canonical ids. The canonical tree and
+The current definition expansion preserves the original 515 ids and all 787
+ids from the preceding definition snapshot. It adds 22 definitions to that
+snapshot, yielding 809 canonical ids and 294 cumulative additions to the
+original baseline. These counts describe this snapshot, not a permanent
+limit on future additions. The canonical tree and
 metadata define category semantics independently of product admission. The
 ordinary protected protocol release publishes the committed definitions
 independently of downstream product validation. Consumers must use the
@@ -81,6 +84,73 @@ Canonical metadata owns the stable name, definition, aliases, examples,
 subject boundary, and lifecycle of each node. Runtime status, sensitivity, and
 display order remain operational state and are not inferred from the source
 taxonomy or from warehouse lifecycle labels.
+
+### Fitness service metadata correction
+
+`sports_fitness.fitness.gyms_gym_memberships` and
+`sports_fitness.fitness.personal_training` have `subject=service`, correcting
+their previous `physical` annotation. Their ids, hierarchy and definition text
+are unchanged. Adopting the corrected metadata changes subject-based filtering
+and the metadata/definition digests. Consumers must use the corresponding
+immutable release snapshot; historical snapshots retain their original values.
+
+### Completion increment
+
+The following additions retain existing parent identities. Each definition
+includes its own inclusion and exclusion boundaries. A broad fallback groups
+related types and does not make different products directly comparable.
+
+| Canonical ID | Name | Subject / role |
+|---|---|---|
+| `e_commerce_marketplace.shopping_savings_tools` | Shopping Savings Tools | `service` / `exact` |
+| `food_grocery.food.dairy_non_dairy_alternatives.butter_spreadable_fat_alternatives` | Butter & Spreadable Fat Alternatives | `physical` / `exact` |
+| `food_grocery.food.dairy_non_dairy_alternatives.cream_cream_alternatives` | Cream & Cream Alternatives | `physical` / `exact` |
+| `family_community.baby_parenting_family.baby.baby_transport_accessories` | Baby Transport Accessories | `physical` / `broad_fallback` |
+| `finance.digital_payment_wallets` | Digital Payment Wallets | `service` / `exact` |
+| `finance.payment_processing_services` | Payment Processing Services | `service` / `exact` |
+| `arts_entertainment.creator_memberships` | Creator Memberships | `service` / `exact` |
+| `arts_entertainment.music_audio.podcast_content` | Podcast Content | `digital` / `exact` |
+| `arts_entertainment.tv_video.film_tv_streaming_services` | Film & TV Streaming Services | `service` / `exact` |
+| `arts_entertainment.music_audio.music_streaming_services` | Music Streaming Services | `service` / `exact` |
+| `internet_telecom.internet_online_services.creator_video_platforms` | Creator Video Platforms | `platform` / `exact` |
+| `hobbies_games_leisure.toys_games.games.video_games_consoles_accessories.game_add_on_content` | Game Add-On Content | `digital` / `broad_fallback` |
+| `internet_telecom.internet_online_services.cloud_gaming_services` | Cloud Gaming Services | `service` / `exact` |
+| `computers_electronics.computers.software.internet_software_web_apps.website_builder_software` | Website Builder Software | `digital` / `exact` |
+| `computers_electronics.computers.software.graphics_multimedia_software.video_creation_editing_software` | Video Creation & Editing Software | `digital` / `exact` |
+| `computers_electronics.computers.software.business_productivity_software.writing_assistance_software` | Writing Assistance Software | `digital` / `exact` |
+| `computers_electronics.computers.software.machine_learning_model_artifacts` | Machine Learning Model Artifacts | `digital` / `exact` |
+| `internet_telecom.internet_online_services.model_inference_api_services` | Model Inference API Services | `service` / `exact` |
+| `dining_nightlife.catering_services` | Catering Services | `service` / `exact` |
+| `dining_nightlife.prepared_food_delivery_platforms` | Prepared Food Delivery Platforms | `platform` / `exact` |
+| `jobs_education.career_application_services` | Career Application Services | `service` / `broad_fallback` |
+| `travel_tourism.visa_assistance_services` | Visa Assistance Services | `service` / `exact` |
+
+This snapshot also refines 38 existing metadata records while preserving their
+ids, names, hierarchy, semantic roles, and lifecycle. Of those records, 26
+change subject: financial accounts, loans, insurance contracts, brokerage and
+foreign exchange services, dining discovery services, flights, travel packages,
+mobile phone plans, online gaming for money, and ticketing use `service`;
+short-drama content and the computer/video-game software subtree use `digital`.
+Mixed parent categories do not inherit a blanket subject change.
+
+Persistent music downloads or content licenses remain under
+`arts_entertainment.music_audio.music_streams_downloads`; time-limited music
+catalog access uses the new music-streaming service category. Short-drama
+content follows the same content-versus-catalog-access distinction. A game
+activation key that grants an identified base-game license follows the game
+type; a key with unknown rights does not establish a game genre. Platform,
+edition, delivery medium, and use of AI are not sufficient category evidence.
+
+Baby monitors describe audio/video caregiving observation rather than primary
+health-metric measurement. Separate transport accessories exclude complete
+strollers, carriers, seats, and independently functioning restraints. Butter
+and cream product types take precedence over generic spreadable or cultured
+food attributes; cream cheese remains cheese.
+
+These refinements can change subject filtering and category interpretation.
+Consumers must adopt the matching tree, metadata, and definition digest as one
+snapshot. Historical releases retain their original bytes and meaning. This
+increment does not assert classifier, product-validation, or runtime adoption.
 
 ## Level 1 Canonical IDs
 
@@ -166,8 +236,9 @@ Offer stays on the documented broad fallback rather than guessing a narrow id.
 ## Definition Publication and Downstream Product Admission
 
 Definition publication establishes stable ids, parent relationships, metadata,
-and classification boundaries. All 515 existing ids remain unchanged; the 272
-additional definitions extend the same Taxonomy v1 tree. Existing parents,
+and classification boundaries. The original 515 ids and all 787 previously
+published identities remain unchanged; 294 cumulative additional definitions
+extend the same Taxonomy v1 tree to 809 nodes. Existing parents,
 including former leaves that gain children, remain selectable as residual
 fallbacks. Definition publication follows the ordinary protected protocol
 release process using committed artifacts and immutable release provenance.
@@ -292,7 +363,8 @@ The guard:
 6. Fails on any id that does not exist in the registry.
 
 For the definition-first expansion, release validation must also verify that
-all 515 existing ids are preserved, the 272 additions yield 787 unique ids,
+all 787 previously published identities are preserved, the 294 cumulative
+additions to the original 515-node baseline yield 809 unique ids,
 and the tree, canonical metadata, and definition manifest agree. Adopters
 maintain source-specific mappings and evidence independently; those artifacts
 are not required to consume or validate the public taxonomy.
