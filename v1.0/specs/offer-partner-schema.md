@@ -87,3 +87,15 @@ traveler quote semantics on omission, and define conditional travelers and
 quote.observed_at, source leg duration and known/unknown/name-only stops.
 The [typed Flight Query](query-api.md#typed-flight-query) contract defines paired
 matching, age/seat facts, success/error states and runtime capability boundaries.
+
+## Flight display-name extension
+
+Flight segment endpoints optionally carry `city_code` and `city_name`;
+`marketing_carrier` optionally carries `name` alongside required `code`.
+Use translated source city and marketing-airline names, not airport labels or
+operating-airline names. Preserve codes; omit unavailable names. These fields
+are available on Public/Partner Offers, Provider success and Query/MCP details.
+See [Flight display-name semantics](offer-field-semantics.md#flight-city-and-marketing-carrier-display-names)
+for the explicit whitespace rule, content-language omission policy and reader-first
+rollout under the unchanged exact v1.0 selector. Response city facts do not
+replace trusted airport-city membership for typed Query matching.

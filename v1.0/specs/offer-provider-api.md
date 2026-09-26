@@ -165,3 +165,15 @@ is not certification that any deployed Provider implements real-time Flight.
 - [Provider success example](https://github.com/agentoffernetwork/examples/blob/main/v1.0/http/offer-provider/success.json)
 - [Provider request schema](https://github.com/agentoffernetwork/schema/blob/main/v1.0/json-schema/offer-provider-request.json)
 - [Provider response schema](https://github.com/agentoffernetwork/schema/blob/main/v1.0/json-schema/offer-provider-response.json)
+
+## Flight display-name extension
+
+Flight segment endpoints optionally carry `city_code` and `city_name`;
+`marketing_carrier` optionally carries `name` alongside required `code`.
+Use translated source city and marketing-airline names, not airport labels or
+operating-airline names. Preserve codes; omit unavailable names. These fields
+are available on Public/Partner Offers, Provider success and Query/MCP details.
+See [Flight display-name semantics](offer-field-semantics.md#flight-city-and-marketing-carrier-display-names)
+for the explicit whitespace rule, content-language omission policy and reader-first
+rollout under the unchanged exact v1.0 selector. Response city facts do not
+replace trusted airport-city membership for typed Query matching.

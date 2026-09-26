@@ -563,3 +563,35 @@ reference fares or complete itinerary totals. AON may add display_price only
 on public projections, including typed Flight, without changing original tax,
 price basis, observation or expiry semantics. Partner and Provider offers
 continue to reject display_price and public dispatch identity.
+
+### Flight city and marketing-carrier display names
+
+Each segment's `departure` and `arrival` MAY contain `city_code` (three uppercase
+letters) and `city_name` independently. `airport_code` and `local_at` remain
+required. A city name identifies the city, not the airport; a city code or name
+in a response is not trusted airport-to-city membership evidence for matching.
+`marketing_carrier` retains required `code` and MAY include `name`, identifying
+the marketing airline rather than the operating airline or booking platform.
+Names never replace codes or the carrier-local `flight_number`.
+
+Names are optional, non-null strings containing at least one character outside
+Unicode White_Space plus U+FEFF: U+0009–U+000D, U+0020, U+0085, U+00A0,
+U+1680, U+2000–U+200A, U+2028, U+2029, U+202F, U+205F, U+3000, U+FEFF.
+Preserve valid source text. Omit unavailable names; do not guess from codes or
+substitute airport labels. Consumers may prefer names and fall back to codes.
+
+The supplier provides names in the Offer content language. When the actual
+returned content language changes, use the corresponding supplied translations
+and omit each new name without a target translation. This is a scoped exception
+to canonical text fallback for these new fields only. If content language does
+not change, preserve source names; a different request language alone does not
+prove a remote Offer was translated. When assigning a previously undeclared
+content language, omit names whose language cannot be established. Existing
+language detection and request fallback priority are unchanged.
+
+The exact `v1.0` selector is unchanged. New readers accept old payloads, but old
+closed readers may reject these added keys. Upgrade Schema, service and SDK
+readers before producers emit names. Publish through the next unused protected
+`protocol-v1.0.0-rN` release with candidate-bound extension admission. Source
+merge, protocol publication, SDK distribution, deployment, adapter supply and
+page adoption need separate evidence; examples prove none of those rollouts.
