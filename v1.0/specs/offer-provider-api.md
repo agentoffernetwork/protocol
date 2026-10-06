@@ -177,3 +177,23 @@ See [Flight display-name semantics](offer-field-semantics.md#flight-city-and-mar
 for the explicit whitespace rule, content-language omission policy and reader-first
 rollout under the unchanged exact v1.0 selector. Response city facts do not
 replace trusted airport-city membership for typed Query matching.
+
+## Offer type and listing source constraint support
+
+Provider requests reuse the canonical Query constraints, including optional
+`offer_types` and `listing_source_names`; Query Helper patches use the same
+allowed fields. See [Query constraint semantics](query-api.md#offer-type-and-listing-source-constraints)
+for the five public OfferType values, source-name ASCII comparison, OR/AND
+composition, original-string uniqueness, and omitted/nonempty/empty-array states.
+A Provider claiming support MUST honor enabled constraints against final public
+Offer values. Missing or invalid public values cannot satisfy an enabled filter;
+a valid unknown name is not permission to remove the filter. `force_offer` and
+other selection paths cannot relax it.
+
+The exact `1.0` selector does not advertise this extension's capability. Older
+strict Providers may reject the new keys. Confirm support before transmitting
+these fields; this specification adds neither capability negotiation nor an
+automatic retry/field-stripping fallback. This protocol-source update does not
+implement Provider adapters or downstream filtering. Explicit `[]` controls
+AON's same-dimension filtering/inference for the request; it does not control a
+third party's internal search algorithm or guarantee complete remote inventory.

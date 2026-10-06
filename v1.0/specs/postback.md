@@ -273,18 +273,45 @@ send an unsigned or partial request.
 
 ### 5.3 Agent payload and size bound
 
-The exact JSON body MUST conform to the Agent payload schema linked in section
-1. The object is closed and has no payload version field. `amount` and
-`currency` are either both present or both absent. A normal CPA conversion
-without revenue therefore remains a valid current delivery; CPS and other
-revenue-bearing conversions include the pair when those facts exist.
+The exact JSON body MUST conform to the Agent payload schema linked in
+section 1. The object is closed and has no payload version field. Its fields
+are:
+
+| Field | Level | Description |
+| --- | --- | --- |
+| `event_id` | REQUIRED | AON-generated opaque globally unique conversion-event id. |
+| `event_type` | REQUIRED | Fixed value `conversion`. |
+| `aon_click_id` | OPTIONAL | Opaque AON click id of the attributed click; begins with `aci_`, for example `aci_0192f3a4b5c67d8e9f0a1b2c3d4e5f60` (older clicks may carry a hyphenated form). Receivers MUST treat it as an opaque string. Omitted when the conversion has no attributed click. |
+| `offer_id` | REQUIRED | Converted Offer identifier. |
+| `application_id` | REQUIRED | Developer Application identifier, for example `app_demoApplication1`. |
+| `placement_id` | OPTIONAL | Developer placement identifier, for example `plc_demoPlacement001`. Omitted when absent. |
+| `event_name` | REQUIRED | Exact value of the matched Offer Goal. |
+| `amount` | REQUIRED | Developer expected net earning in USD, as a JSON number; see below. |
+| `currency` | REQUIRED | Always `USD`. |
+| `sub_id`, `sub_id_2` … `sub_id_5` | OPTIONAL | Developer attribution slots inherited from the click. |
+| `timestamp` | REQUIRED | Conversion event time. |
+
+The frozen body serializes fields in this order, omitting each optional field
+when absent: `event_id`, `event_type`, `aon_click_id`, `offer_id`,
+`application_id`, `placement_id`, `event_name`, `amount`, `currency`, `sub_id`,
+`sub_id_2` … `sub_id_5`, `timestamp`.
+
+`amount` and `currency` are always present. `amount` is the Developer's
+expected net earning for this conversion: the settlement commission minus the
+platform fee, converted to USD with the settlement's frozen FX rate, rounded to
+2 decimal places, and rendered as a canonical JSON number with trailing zeros
+dropped (for example `96`, `12.5`, `0.07`). `currency` is always `USD`. A
+non-billable conversion without a settlement sends `"amount":0`. The value is
+an expectation at delivery time: a later risk freeze or reversal does not
+trigger another webhook delivery.
 
 The maximum current raw body size is 2,097,152 bytes (2 MiB). A sender MUST
 reject an oversized body before HTTP delivery. A receiver MUST enforce a
 transport limit no greater than 2 MiB and MUST reject an oversized complete
 body before HMAC calculation or JSON parsing.
 
-Optional `sub_id` fields are omitted when absent, never synthesized as `null`.
+Optional `aon_click_id`, `placement_id`, and `sub_id` fields are omitted when
+absent, never synthesized as `null`.
 The payload's `timestamp` is conversion event time; it is distinct from
 `X-AON-Timestamp`, which is attempt signing time. Payload event time is an
 RFC3339 `date-time` normalized to UTC (`Z`, `z`, or `+00:00`); non-UTC offsets
@@ -350,7 +377,7 @@ Such a mode MUST fail closed if enabled in production.
 
 ## 7. Agent receiver idempotency
 
-A receiver MUST retain a durable record keyed by `(agent_id, event_id)` with a
+A receiver MUST retain a durable record keyed by `(application_id, event_id)` with a
 SHA-256 digest of the exact raw body for at least 24 hours after first
 successful receipt.
 
@@ -465,4 +492,5 @@ OpenAPI, and SDK certification remains deployment- or owner-specific.
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 1.0 | 2026-10-01 | Agent conversion webhook payload revised in place: `aon_tracking_id` replaced by optional `aon_click_id` (`aci_` click id), `agent_id` replaced by `application_id`, optional `placement_id` added, `amount` redefined as Developer expected net earning in USD with `currency` always `USD` and both always present, field order pinned, and receiver idempotency keyed by `(application_id, event_id)`. |
 | 1.0 | 2026-08-29 | Promoted the bidirectional canonical contract with exact `1.0` selection while preserving closed Provider JSON, shared Goal/identity/revenue semantics, event-level Agent wire version, four required security/control headers, exact-byte HMAC verification, 2 MiB bound, keyring/time/idempotency rules, and the fixed retry behavior. |

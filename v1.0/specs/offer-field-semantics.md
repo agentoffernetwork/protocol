@@ -444,19 +444,27 @@ charging event.
 ### Query Helper update profile
 
 `request_patch` is not an unrestricted RFC 7386 merge patch. It is a constrained
-partial update limited to `intent.signals`, `constraints.category_ids`, and
-`constraints.excluded_category_ids`:
+partial update limited to `intent.signals`, `constraints.category_ids`,
+`constraints.excluded_category_ids`, `constraints.offer_types`, and
+`constraints.listing_source_names`:
 
 - omission preserves the existing field;
 - every supplied nested object contains at least one actual update; empty
   `intent`, `signals`, and `constraints` objects are invalid;
 - objects merge recursively;
 - arrays replace the previous array;
-- an empty category-constraint array is a meaningful replacement that clears
-  that constraint list;
+- an empty constraint array is a meaningful replacement that clears that
+  constraint list; for `offer_types` and `listing_source_names`, it also prevents
+  same-dimension inference from reintroducing the filter for that request;
 - `null` is invalid and cannot remove a field;
 - explicit current-turn user conditions win over a conflicting suggested value;
 - the merged Query is validated before use.
+
+The new filters use the same input validation in Query and Helper patches,
+including raw-string uniqueness and ASCII-only source-name comparison rules.
+Their normative matching and deployment-support boundaries are defined in
+[Query API](query-api.md#offer-type-and-listing-source-constraints). A Helper
+patch does not establish runtime support for a new constraint.
 
 ### Follow-up basis values
 

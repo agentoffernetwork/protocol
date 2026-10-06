@@ -49,6 +49,61 @@ The request does not declare a target display currency and does not define
 target-currency selection are implementation-owned inputs to the response, not
 a second public request contract.
 
+### Offer type and listing source constraints
+
+`constraints.offer_types` and `constraints.listing_source_names` are optional
+hard-filter arrays. `offer_types` accepts only the existing public OfferType
+values: `physical_product`, `digital_goods`, `content`, `online_service`, and
+`offline_service`. It tests the final public `offer_info.offer_type`, not an
+internal product classification. `listing_source_names` tests the final public
+`listing_source.name`, not `entity.name`, an action hostname, a Provider id, or
+`listing_source.kind`. There is no `listing_source_kinds` request field.
+
+Each source-name item MUST contain 1–160 Unicode code points before
+normalization. For comparison, trim only ASCII whitespace U+0009–U+000D and
+U+0020 from both ends, then fold only ASCII `A`–`Z` to `a`–`z` on both the request
+name and the public Offer name. A name empty after this trim is invalid. All
+other characters remain exact: no Unicode case folding, Unicode normalization,
+translation, alias expansion, substring matching, or platform-family expansion.
+A nonbreaking space is not ASCII whitespace. Thus `" Example Travel "` and
+`"example travel"` match the same name, but `"Example"` does not.
+
+Both arrays reject `null`, non-array values, invalid items, and exact duplicate
+original strings (`uniqueItems`). Distinct original strings that normalize to
+the same source name are accepted and have set semantics. Invalid input uses the
+existing `BAD_REQUEST` contract. A syntactically valid but unknown source name
+remains an enabled constraint; it MUST NOT be silently dropped or converted to
+an alias. If nothing matches, use the ordinary no-match outcome.
+
+Values within each array are OR alternatives. Enabled dimensions are ANDed with
+one another and with the existing category and excluded-category constraints.
+Missing, unknown, invalid, or omitted public Offer values cannot satisfy an
+enabled filter. Source validity is determined by the existing public Offer
+projection rules; this extension does not make a private or invalid source
+public or alter those rules.
+
+| Request state, independently for each new field | Meaning |
+| --- | --- |
+| Omitted | Preserve existing behavior, including any existing inference for that dimension. |
+| Nonempty array | Apply the explicit filter and override same-dimension inference. |
+| `[]` | Clear AON's filter for that dimension and prevent same-dimension inference from reintroducing it for this request. |
+
+An explicit empty array does not remove unrelated eligibility conditions or
+control a third-party Provider's own search algorithms. Implementations claiming
+support MUST preserve these hard constraints through ordinary selection,
+`force_offer`, alternatives, local and remote candidates, placement/Catalog/Browse,
+and supported typed/vertical Query paths. This is a conformance requirement,
+not a claim that those runtime paths have been implemented by this protocol
+source change. It does not promise exhaustive third-party inventory recall.
+
+This extension retains the exact `AON-Protocol-Version: 1.0` selector. Existing
+strict implementations of that same protocol line may reject the new keys;
+version selection alone does not prove support. Callers MUST confirm deployment
+or Provider support before sending them. These protocol artifacts do not upgrade
+services, SDKs, MCP, indexes, or third-party implementations, and do not authorize
+automatic retries that remove the constraints. Payload validation checks input
+shape and semantic validity; it does not certify runtime matching behavior.
+
 ## Response
 
 Every response has `request_id`, `protocol_version`, `language`, and `offers`.
@@ -199,12 +254,14 @@ v1.0 does not define a top-level
 `engagement.query_helper`, generic `next_actions`, or `decision_factors`.
 
 `query_helper.request_patch` is a constrained non-destructive partial update limited to
-`intent.signals`, `constraints.category_ids`, and
-`constraints.excluded_category_ids`. Omitted members remain unchanged, objects
+`intent.signals`, `constraints.category_ids`,
+`constraints.excluded_category_ids`, `constraints.offer_types`, and
+`constraints.listing_source_names`. Omitted members remain unchanged, objects
 merge recursively, arrays replace prior arrays, and `null` is invalid rather
 than a removal instruction. User-provided conditions from the current turn win
 over conflicting suggested values. The merged request is validated again before
-it is sent.
+it is sent. An explicit empty array clears its constraint list; for the two
+new filters it also suppresses same-dimension inference for that request.
 
 `followup_topics` are ordered by descending `confidence`. Confidence is
 comparable only among follow-ups in the same response from the same producer; it

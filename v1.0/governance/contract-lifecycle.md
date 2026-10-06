@@ -77,3 +77,22 @@ admission together. Local source completion, public protocol publication,
 documentation deployment and runtime certification are separate evidence
 states. Service, SDK and Agent adaptation remains deployment-owned; neither
 an accepted RFC nor a synthetic example establishes live availability.
+
+
+RFC-0010 is the accepted decision for optional Query constraints
+`offer_types` and `listing_source_names`; it does not add `listing_source_kinds`.
+Omission preserves existing inference, nonempty arrays override inference in
+the same dimension, and explicit empty arrays clear that dimension's AON
+filter and suppress inference for that request. These semantics do not control
+third-party Provider search algorithms. Exact `1.0` selection is unchanged.
+Old closed readers can reject the new fields, so contract adoption alone is
+not a capability signal for an endpoint or Provider.
+
+The `query_constraint_filters` extension binds the canonical Schema, types,
+semantic validator, fixtures, specifications and RFC closure to one immutable
+candidate commit through existing protected release admission. This change
+updates protocol sources and release preparation only; it does not adapt
+runtime services, SDKs, MCP, Action, OpenAPI, sites, databases or search indexes.
+Publication uses the next unused protected revision when separately authorized;
+old release manifests and receipts remain immutable. A deployment must provide
+its own support evidence before callers send the new constraints.
