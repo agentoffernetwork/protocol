@@ -48,7 +48,7 @@ disables that source. Eligible clicks take precedence over eligible views.
 
 A Partner Offer may optionally include `offer_info.details` from the closed
 v1.0 Supply Offer Profile Registry. The registry currently permits only
-`flight` and `hotel_rate`, and the selected `details.data` shape is closed.
+`flight`, `hotel_rate`, and `game`, and the selected `details.data` shape is closed.
 The same rule applies to the Partner supply Offer inside a Provider success
 response. Generic Query/MCP projections may retain registered `details` and their
 profile-valid `commercial.price.tax_status` and `commercial.quote` facts,

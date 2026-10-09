@@ -88,6 +88,31 @@ third-party Provider search algorithms. Exact `1.0` selection is unchanged.
 Old closed readers can reject the new fields, so contract adoption alone is
 not a capability signal for an endpoint or Provider.
 
+RFC-0011 is accepted and implemented in candidate sources for optional Flight
+source airport names, terminals, planned aircraft names and stop-name language.
+Its Schema, types, semantics and examples require protected contract-extension
+admission and publication before they become a public revision. Strict-reader
+deployment, verified source field coverage and product-owner approval of
+nonstop retention must precede live producer activation. Existing strict
+third-party readers may reject Offers with the new optional keys, so their
+upgrade requirement must be stated in release notes.
+
+RFC-0012 is accepted and implemented in candidate sources for the `game`
+supply profile and its required positive `downloads` fact. The profile registry,
+Schema, types, semantic validator and specifications require protected
+admission and publication. Strict readers must support the third profile before
+producers emit it; RFC acceptance alone does not establish runtime support.
+
+RFC-0013 is accepted and implemented in candidate sources for optional Flight
+purchase display facts: carrier logos and verified operating identity, airport time zones, explicit
+airport-changing connections, standardized planned equipment, cabin amenities,
+fare-specific conditions and estimated emissions. Its Schema, types,
+validator, specification and example changes require protected
+contract-extension admission and publication before they become a public
+revision. Reader compatibility checks are required before producer emission.
+Data acquisition and enrichment are separate; the candidate makes no supplier
+coverage or runtime claim.
+
 The `query_constraint_filters` extension binds the canonical Schema, types,
 semantic validator, fixtures, specifications and RFC closure to one immutable
 candidate commit through existing protected release admission. This change

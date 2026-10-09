@@ -36,8 +36,8 @@ They are never silently serialized into the Agent response.
 ## Supply profile extensions
 
 `offer_info.details` is an optional, closed supply-profile envelope. The stable
-v1.0 registry at `offer-profile-registry-v1.0.json` recognizes only `flight`
-and `hotel_rate`; each profile selects one closed `details.data` shape. Generic
+v1.0 registry at `offer-profile-registry-v1.0.json` recognizes only `flight`,
+`hotel_rate`, and `game`; each profile selects one closed `details.data` shape. Generic
 Offers omit `details`. A producer must not use an unregistered profile name or
 a free-form domain payload.
 
@@ -45,8 +45,9 @@ Flight schedules use required airport-local `departure.local_at` and
 `arrival.local_at` strings without UTC offsets or timezone identifiers. Every
 segment supplies a required positive `duration_minutes`; producers must not
 invent timezone data to derive duration or compare departure and arrival as
-absolute instants. Array order, connecting-airport continuity, and chronology
-within the same connecting airport remain normative.
+absolute instants. Array order and chronology within the same connecting
+airport remain normative. An airport change between segments requires explicit
+`connections` facts matching that boundary.
 These Flight schedule rules are governed by
 [RFC-0005](https://github.com/agentoffernetwork/rfcs/blob/main/rfcs/RFC-0005-flight-local-schedule-times.md).
 
@@ -169,3 +170,10 @@ See [Flight display-name semantics](offer-field-semantics.md#flight-city-and-mar
 for the explicit whitespace rule, content-language omission policy and reader-first
 rollout under the unchanged exact v1.0 selector. Response city facts do not
 replace trusted airport-city membership for typed Query matching.
+
+Flight endpoints also MAY carry `airport_full_name: {text, language}` and a
+nonblank `terminal`; segments MAY carry
+`planned_aircraft: {name: {text, language}, source: "supplier_reported"}`;
+stops MAY carry `name_language` only with `name`. `und` marks unverified source
+language. These optional source facts use the closed Flight registry shapes;
+see [Flight source facts](offer-field-semantics.md#flight-source-reported-airport-aircraft-and-stop-names).

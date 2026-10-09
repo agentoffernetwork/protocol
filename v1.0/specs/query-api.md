@@ -35,6 +35,25 @@ by `kind + id`, retain at most three entries, and do not evict older entries whe
 the limit is reached. Long-term profiles and raw chat transcripts are not part of
 this public request.
 
+The optional `context.user_profile` carries only viewer context used for Offer
+targeting. `location_ids` lists one to ten
+[AON Location Registry](location-targeting.md) ids, most specific first;
+`country` is an uppercase ISO 3166-1 alpha-2 code. When `location_ids` resolves
+to a registry location, it takes precedence and its country supersedes
+`country`; otherwise `country` is used. Both may be omitted, in which case the
+runtime may derive location from deployment signals. Clients populate these
+fields from device, account, or network signals, never by inferring them from
+`intent.content`.
+
+`verified_age_over` is an integer from 13 through 120 asserting that the
+integrator has verified the viewer is at least that age. It is a threshold, not
+the viewer's actual age or date of birth, and must come from a real
+verification process. An Offer rule with `eligibility.min_age` fails when this
+value is below `min_age`. When the field is omitted, age is not evaluated and
+`min_age` does not restrict the request. The assertion can only narrow results,
+never unlock an Offer that an unverified request would not receive. No other
+profile attribute is accepted.
+
 `force_offer` defaults to `false`. When true, it permits the runtime to select a
 qualified fallback Offer if the exact query has no match. It never bypasses
 eligibility, freshness, sensitive-category, or action gates.
@@ -411,8 +430,8 @@ Supply observation and expiry rules are described in
 A real-time lookup does not lock price, inventory, booking or ticket issuance;
 implementers remain responsible for actual calls, correct source evidence and
 consistent actions. Validators cannot prove those external facts. Revalidation
-may be needed before purchase. The [Ctrip mapping](flight-query-ctrip-mapping.md)
-records the specific supplied tool evidence without certifying live support.
+may be needed before purchase. Each adapter must verify its source-specific
+field meanings and capabilities before asserting public Flight facts.
 
 ### Compatibility and availability
 

@@ -80,7 +80,7 @@ The targeting field validates this syntax profile only and does not assert ISO
 
 `offer_info.details` is optional. When present, it is the closed
 `{ profile, data }` envelope in the v1.0 Supply Offer Profile Registry. The
-only registered profile names are `flight` and `hotel_rate`; producers must not
+only registered profile names are `flight`, `hotel_rate`, and `game`; producers must not
 serialize a free-form profile. These facts may appear on Public Offer, Partner
 Offer, Provider success and ordinary Query/MCP results, including non-real-time
 requests. Their presence does not imply live retrieval. Typed Flight Query
@@ -96,8 +96,32 @@ requires the source-provided positive `duration_minutes`; duration is not
 derived by subtracting two airport-local values. Consequently an arrival
 `local_at` may be lexically earlier than its departure `local_at` on a
 westbound or date-line-crossing flight. Adjacent segments still require the
-same connecting airport, and their local values at that same airport must be
-chronological.
+same connecting airport unless the leg supplies an explicit `connections`
+entry with `airport_change: true` for that segment boundary. When both
+segments use the same airport, their local values at that airport must be
+chronological. `connections[].duration_minutes` is an evidenced elapsed
+transfer time, not a subtraction of local clocks at different airports.
+
+The optional Flight display fields have distinct scopes:
+
+| Field | Meaning and evidence requirement |
+| --- | --- |
+| `marketing_carrier.logo_url`, `operating_carrier.logo_url` | Stable HTTPS brand asset for that carrier, with display rights. Neither is the booking platform's `listing_source.logo`. Omit an unverified or unavailable asset. |
+| `operating_carrier`, `operating_flight_number` | Verified operator and optional operator-local number for this dated segment. An unverified codeshare flag or associated marketing number does not establish either value. |
+| `standard_aircraft_type` | Verified IATA or ICAO planned equipment code. `planned_aircraft.name` remains the untranslated supplier label; neither value guarantees the actual aircraft flown. |
+| `departure.timezone`, `arrival.timezone` | Verified IANA airport time zone. The source `local_at` values remain offset-free; date-specific time zone rules are needed for cross-airport elapsed time. |
+| `legs[].connections` | Ordered entries for every adjacent segment boundary when present. Each zero-based `after_segment_index` and `airport_change` must match the segments. Airport changes require an entry; a connection is distinct from an intermediate stop within one segment. |
+| `cabin_amenities` | Confirmed for this segment and cabin. `false` means confirmed unavailable, while omission means unknown. Equipment changes can invalidate an earlier observation. |
+| `emissions` | Whole-itinerary CO2e estimate with calculation time and methodology; signed comparison uses a comparable-route typical flight. It is not an observed actual emission. |
+| `fare_details` | Terms of the same traveler-composed seller quote as `commercial.price`, never a reference price or airline-wide policy. Components point to a real segment and quoted traveler type. Baggage, refund/change, seat fees and ticketing facts are omitted unless verified for that quote. |
+
+The original `commercial.price`, `tax_status` and `commercial.quote` still
+state the quoted amount and observation time. `fare_details` does not turn a
+reference search into a payable checkout price. Optional fees in fare terms
+are quoted amounts under the accompanying conditions and do not replace a
+seller's final payment calculation. Operational delay, gate and boarding
+information require a separately refreshed flight-status source; passenger
+orders and boarding passes are not public Offer facts.
 
 `hotel_rate` describes a hotel property and a rate observation. It requires an explicit property location
 (`location_id` plus uppercase `country_code`) and uses
@@ -111,6 +135,17 @@ it must not send `null`, empty strings, placeholder dates, or a partial stay.
 When `stay` is present, `check_in` and `check_out` are both required and
 `check_out` is later than `check_in`. When `room` is present, `room.name` is a
 non-empty source-provided name.
+
+`game` carries descriptive facts for an Offer whose `category.id` is
+`hobbies_games_leisure.toys_games.games` or one of its descendants. Its only
+field, required `downloads`, is the source-reported cumulative download or
+install count as a positive integer. When the source publishes a range or
+threshold such as `1M+`, the producer sends its lower bound (`1000000`) and
+must not round up, estimate, or combine counts from different sources.
+`downloads` is descriptive content: it is not an AON endorsement or a ranking
+signal, and it is not duplicated in `offer_info.properties`. Unlike `flight` and
+`hotel_rate`, `game` imposes no `offer_type`, action, or commercial
+requirement.
 
 `commercial.price.tax_status` states whether the displayed supply price includes
 taxes and mandatory fees. `commercial.quote` records an observed-price time and,
@@ -344,7 +379,9 @@ Targeting uses this truth table:
    targeting expression eligible.
 6. A dimension omitted from a rule is unconstrained for that rule.
 7. Missing, unverified, or unknown user context fails a declared dimension and
-   therefore fails that rule. Another rule may still match.
+   therefore fails that rule. Another rule may still match. The exception is
+   `eligibility.min_age`: it is evaluated only when the request supplies a
+   verified age, and a request without one is not age-restricted.
 8. A location matches a declared location when it is that full-catalog location
    or a descendant in the resolved ACTIVE hierarchy. `geo.exclude` wins over
    `geo.include`.
@@ -357,9 +394,10 @@ Targeting uses this truth table:
     are unchanged. Unknown and non-numeric values fail closed with
     `location_registry_membership`.
 
-`eligibility.min_age` requires verified age context. Targeting is an eligibility
-filter, not a substitute for independent legal, consent, sensitive-category, or
-platform compliance gates.
+`eligibility.min_age` excludes a request only when its verified age is below the
+threshold. Targeting is an eligibility filter, not a substitute for independent
+legal, consent, sensitive-category, or platform compliance gates; a Partner that
+must withhold an Offer from unverified viewers needs such a separate gate.
 
 ## Partner conversion rule
 
@@ -563,8 +601,40 @@ A name-only stop proves a stop exists but proves no airport identity or city
 membership. Duration without a location is invalid. Unknown or zero source
 duration must not be asserted as a positive duration; retain known location
 facts. Stops within a segment are distinct from connections between segments.
-For example `{ "name": "嘉峪关", "duration_minutes": 60 }` preserves a source
-city label without inventing an airport code.
+For example `{ "name": "嘉峪关", "name_language": "und" }` preserves a source
+city label without inventing an airport code or a stop duration. A source
+dwell time MAY populate `duration_minutes` only when its unit is verified as
+minutes and its value is a positive integer. An absent or invalid duration is
+omitted while the valid location is retained.
+
+### Flight source-reported airport, aircraft, and stop names
+
+Each segment endpoint MAY carry `airport_full_name` as a closed source-text
+object `{ "text": string, "language": string }` and MAY carry a nonblank
+`terminal` string. The airport name belongs only to that departure or arrival
+endpoint; an airport short name MUST NOT stand in for a missing full name.
+Each segment MAY carry closed `planned_aircraft` with required
+`name: { text, language }` and `source: "supplier_reported"`. This is the
+supplier's planned equipment label, not a standardized aircraft code, actual
+operating aircraft, or operating carrier.
+
+Source text must contain a character outside Unicode White_Space plus U+FEFF.
+Its language follows the stable v1.0 BCP 47 syntax; `und` declares that the
+source language has not been verified. ASCII letters alone do not establish
+English. The optional stop `name_language` follows the same syntax and requires
+`name`; a source-reported stop label remains in the existing `name` property
+so name-only stops remain visible. These source facts are separate from the
+Offer `content_language` and from translated city and marketing carrier display
+names. Missing facts are omitted, never null. Existing leg and segment
+`duration_minutes` and stop three-state semantics remain in force.
+
+Publish this source-facts extension as its own accepted RFC and protected v1.0
+revision. Upgrade AON strict readers before producer emission. Old closed
+third-party readers may reject an Offer carrying the new keys and must upgrade;
+the exact `1.0` selector does not change. Source acceptance, protected
+publication, reader deployment, and live producer activation require separate
+evidence. Producer activation also requires verified source definitions and a
+route/date coverage report approved by the product owner.
 
 Typed Query price.unit is absent or one_time; periodic units cannot describe
 reference fares or complete itinerary totals. AON may add display_price only

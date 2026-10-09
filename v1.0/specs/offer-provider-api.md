@@ -23,7 +23,9 @@ The request body is exactly
 It shares all Query business fields, including current-turn intent,
 bounded context, structured signals, constraints, `force_offer`, and
 `response_options.thinking_mode`; `request_id` is required only for the
-Provider channel.
+Provider channel. The viewer's `context.user_profile` (location and verified
+age) is never forwarded: AON applies it before calling a Provider, and a
+Provider request carrying it is invalid.
 
 The request uses `POST` and JSON. `AON-Protocol-Version: 1.0` is required for
 an explicit Provider profile. HMAC key id, timestamp, nonce, signature,
@@ -97,7 +99,7 @@ other than the declared source identity must not appear in the response.
 
 The Partner Offer in a success response may carry an optional closed
 `offer_info.details` envelope from the v1.0 Supply Offer Profile Registry. The
-only registered names are `flight` and `hotel_rate`. Profile facts, observed
+only registered names are `flight`, `hotel_rate`, and `game`. Profile facts, observed
 `commercial.price.tax_status`, and `commercial.quote` are accepted on this
 supply carrier when they meet the Offer semantic rules. A later Generic Hosted Query or MCP response may retain these registered
 profile facts, including for a non-real-time request, subject to the same
@@ -109,7 +111,7 @@ using `YYYY-MM-DDTHH:mm:ss`, without offsets, and include positive
 source-provided `duration_minutes` for every segment. A Provider must not infer
 airport timezone data solely to construct the payload.
 
-When a Hotel Provider offers only a Ctrip-style one-night starting price, it
+When a Hotel Provider offers only a one-night starting price, it
 uses `hotel_rate` with `reference_starting_nightly` and omits `stay` and `room`
 entirely. The `book` action remains a source jump and is not a guarantee of
 dates, room type, inventory, or a total price.
