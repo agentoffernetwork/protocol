@@ -86,6 +86,14 @@ Offer, Provider success and ordinary Query/MCP results, including non-real-time
 requests. Their presence does not imply live retrieval. Typed Flight Query
 requires full Flight details and strict paired-request matching.
 
+Registered profiles are independent of category.id. Any valid AON Taxonomy v1 category
+may carry a registered profile when its content satisfies that profile. Category
+classifies the Offer for discovery; profile selects the closed structured data
+shape. Neither primary nor secondary category is a profile eligibility gate.
+Choose category from the actual subject and profile from the supplied facts;
+do not rewrite category to enable a profile. Category validity, request category
+filters, and each profile's existing field, action and commercial rules still apply.
+
 `flight` describes one priced itinerary: its declared trip topology, traveller
 composition (when applicable), and ordered segments must agree. Each endpoint `local_at` is the
 source schedule in that airport's local clock, serialized exactly as
@@ -136,8 +144,8 @@ When `stay` is present, `check_in` and `check_out` are both required and
 `check_out` is later than `check_in`. When `room` is present, `room.name` is a
 non-empty source-provided name.
 
-`game` carries descriptive facts for an Offer whose `category.id` is
-`hobbies_games_leisure.toys_games.games` or one of its descendants. Its only
+`game` carries descriptive facts about a game, independently of the Offer's
+category. Its only
 field, required `downloads`, is the source-reported cumulative download or
 install count as a positive integer. When the source publishes a range or
 threshold such as `1M+`, the producer sends its lower bound (`1000000`) and
