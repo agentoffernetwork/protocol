@@ -50,10 +50,12 @@ Arts & Entertainment > iGaming
 The generated id is the only category value Partner-written Offer payloads need
 to carry.
 
-The current definition expansion preserves the original 515 ids and all 787
-ids from the preceding definition snapshot. It adds 22 definitions to that
-snapshot, yielding 809 canonical ids and 294 cumulative additions to the
-original baseline. These counts describe this snapshot, not a permanent
+The current definition expansion preserves the original 515 ids and all 968
+ids from the preceding definition snapshot. It adds 768 definitions to that
+snapshot (the complete Taxonomy v2 tree, Level 1 to Level 4, with the new
+Level 1 roots `ai_software_services`, `education_careers`,
+`financial_services` and `local_lifestyle_services`), yielding 1736 canonical
+ids and 1221 cumulative additions to the original baseline. These counts describe this snapshot, not a permanent
 limit on future additions. The canonical tree and
 metadata define category semantics independently of product admission. The
 ordinary protected protocol release publishes the committed definitions
@@ -181,6 +183,37 @@ increment does not assert classifier, product-validation, or runtime adoption.
 | Sports & Fitness | Sports & Fitness | `sports_fitness` |
 | Travel & Tourism | Travel & Tourism | `travel_tourism` |
 
+### Taxonomy v2 Level 1 roots
+
+Taxonomy v2 roots are added alongside the Level 1 ids above; existing ids are
+unchanged and v2 is intended to replace them gradually. v2 nodes keep their v2
+display names, and their ids follow the v2 specification through explicit slug
+overrides where the display name does not slug to the id. The v2 finance root
+is displayed as "Financial Services" while the v1 root "Finance" exists,
+because sibling names must be unique.
+
+| AON display name | AON canonical id | Scope |
+|------------------|------------------|-------|
+| Physical Goods | `retail_goods` | 17 Level 2 categories of physical products |
+| Travel | `travel_hospitality` | 6 Level 2 categories: accommodation, flights, intercity transport and self-drive rental, attractions and tours, cruises and packages, travel services |
+| Digital Entertainment | `digital_entertainment` | 10 Level 2 categories: games, game currency, video, music and audio, reading, social and dating, betting, adult |
+| AI, Software & Digital Services | `ai_software_services` | 6 Level 2 categories of software and digital tools by function |
+| Education & Careers | `education_careers` | 5 Level 2 categories: languages, courses and certifications, kids and K-12, degrees and admissions, jobs and freelance work |
+| Financial Services | `financial_services` | 10 Level 2 categories: cards, bank accounts, wallets and payments, rewards, crypto, loans, investing, money management, insurance, donations |
+| Local & Lifestyle Services | `local_lifestyle_services` | 12 Level 2 categories of lifestyle services, in-store, at-home or online |
+
+v2 ids that the final v2 specification dropped stay published with lifecycle
+status `deprecated` and a `replacement_category_id`:
+
+| Deprecated id | Replacement id |
+|---------------|----------------|
+| `digital_entertainment.mobile_games.casual_puzzle.runner` | `digital_entertainment.mobile_games.casual_puzzle.hypercasual_arcade` |
+| `digital_entertainment.pc_console_games.action.open_world_adventure` | `digital_entertainment.pc_console_games.action.action_adventure` |
+| `travel_hospitality.flights_aviation.scheduled_flights` | `travel_hospitality.flights_aviation.commercial_flights` |
+| `travel_hospitality.transport_mobility.bus_carpool` | `travel_hospitality.transport_mobility.intercity_bus` |
+| `travel_hospitality.transport_mobility.transfers` | `local_lifestyle_services.mobility_auto_services.transfers_chauffeurs` |
+| `travel_hospitality.travel_services.insurance_claims` | `travel_hospitality.travel_services.flight_claims` |
+
 Slug rules:
 
 1. Remove low-value connector words such as `and` / `&`.
@@ -236,9 +269,9 @@ Offer stays on the documented broad fallback rather than guessing a narrow id.
 ## Definition Publication and Downstream Product Admission
 
 Definition publication establishes stable ids, parent relationships, metadata,
-and classification boundaries. The original 515 ids and all 787 previously
-published identities remain unchanged; 294 cumulative additional definitions
-extend the same Taxonomy v1 tree to 809 nodes. Existing parents,
+and classification boundaries. The original 515 ids and all 968 previously
+published identities remain unchanged; 1221 cumulative additional definitions
+extend the same Taxonomy v1 tree to 1736 nodes. Existing parents,
 including former leaves that gain children, remain selectable as residual
 fallbacks. Definition publication follows the ordinary protected protocol
 release process using committed artifacts and immutable release provenance.
@@ -363,8 +396,8 @@ The guard:
 6. Fails on any id that does not exist in the registry.
 
 For the definition-first expansion, release validation must also verify that
-all 787 previously published identities are preserved, the 294 cumulative
-additions to the original 515-node baseline yield 809 unique ids,
+all 968 previously published identities are preserved, the 1221 cumulative
+additions to the original 515-node baseline yield 1736 unique ids,
 and the tree, canonical metadata, and definition manifest agree. Adopters
 maintain source-specific mappings and evidence independently; those artifacts
 are not required to consume or validate the public taxonomy.

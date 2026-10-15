@@ -171,6 +171,7 @@ response-derived display amount or its FX conversion.
 | `offer_info.category.id`, `secondary_category_ids` | Primary and additional AON Taxonomy v1 classifications. Secondary entries must be disjoint from the primary and one another. |
 | `offer_info.tags` | Optional descriptive labels. They do not replace taxonomy, eligibility, or targeting. |
 | `offer_info.rating.*` | Source-provided rating value on a five-point scale, with optional positive observation count and source. `count` is omitted when no observation count is available; zero is not a meaningful represented sample. It is not an AON endorsement. |
+| `offer_info.min_age` | AON-derived minimum audience age in years, projected from Partner `targeting[].eligibility.min_age` under [Minimum audience age](#minimum-audience-age). It is a Partner declaration, not an AON-certified age rating, store content rating, or legal-compliance determination. Absence means no declared minimum, not "suitable for all ages". |
 | `offer_info.properties[]` | Structured user-facing facts. `display_pattern` may use only `${type}`, `${value}`, and `${unit}` from the same item. |
 | `offer_info.recommendation_reason` | Static Partner/provider-authored Offer copy. It is not per-request reasoning, is not a ranking input, and is unaffected by `thinking_mode`. |
 | `offer_info.commercial.*` | Original public price, optional response-scoped display price, and fulfillment presentation. All are distinct from Goal commission and final settlement. |
@@ -373,9 +374,10 @@ are not encoded by rewriting the immutable Offer response.
 The Partner Offer is a normalized supply/configuration artifact, not an Agent
 response. `targeting` and `conversion_rule` are Partner-authored inputs. AON
 evaluates them before ranking and strips them from the public Offer projection.
-The response-owned `offer_info.commercial.display_price` is also prohibited in
-the Partner artifact and in every OfferProvider success Offer; AON may derive it
-only while producing a public response.
+The response-owned `offer_info.commercial.display_price` and
+`offer_info.min_age` are also prohibited in the Partner artifact and in every
+OfferProvider success Offer; AON may derive them only while producing a public
+projection.
 
 Targeting uses this truth table:
 
@@ -406,6 +408,29 @@ Targeting uses this truth table:
 threshold. Targeting is an eligibility filter, not a substitute for independent
 legal, consent, sensitive-category, or platform compliance gates; a Partner that
 must withhold an Offer from unverified viewers needs such a separate gate.
+
+
+## Minimum audience age
+
+`targeting[].eligibility.min_age` is an integer from 1 through 120. Query
+`verified_age_over` stays at 13 through 120, so a rule whose `min_age` is 13
+or lower never fails age evaluation; such values are audience declarations
+only.
+
+A public projection derives the optional `offer_info.min_age` from every
+targeting rule of the stored Offer, independent of the request:
+
+1. If the Offer has no `targeting`, `min_age` is omitted.
+2. If any rule omits `eligibility.min_age`, `min_age` is omitted, because that
+   rule admits every age.
+3. Otherwise `min_age` is the smallest `eligibility.min_age` across the rules.
+
+The value is identical for every dispatch of the same stored Offer and does not
+reveal which rule matched a request. Producers must not infer it from category,
+title, store ratings, or other non-targeting data. Consumers should not present
+the Offer to a viewer known to be younger than `min_age`, and may display it,
+for example as an "18+" label. It is never a ranking, eligibility, tracking,
+Goal, or settlement input.
 
 ## Partner conversion rule
 

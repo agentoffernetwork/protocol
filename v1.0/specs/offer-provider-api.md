@@ -83,9 +83,9 @@ The response is exactly one branch of
 A success response is not wrapped in the hosted API envelope. Each Partner
 Offer requires stable `source_offer_id` in the identity namespace configured
 for that integration. It must not contain AON-owned `offer_id`,
-`offer_instance_id`, `match_reason`, or
-`offer_info.commercial.display_price`. The display-price field is owned by the
-AON Query response projection, not the Provider supply carrier; its presence
+`offer_instance_id`, `match_reason`, `offer_info.min_age`, or
+`offer_info.commercial.display_price`. The display-price and `min_age` fields
+are owned by the AON public projection, not the Provider supply carrier; their presence
 causes the complete Provider response to fail structural validation. AON resolves
 `owner Partner + identity namespace + source_offer_id` to canonical `offer_id`,
 evaluates `targeting` and `conversion_rule`, and then creates a public Offer

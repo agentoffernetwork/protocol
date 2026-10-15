@@ -23,6 +23,10 @@ must supply the original `commercial.price` only; AON may derive one display
 amount for a later Public/Generic Query response. This nested prohibition also
 applies to Partner Offers carried by an OfferProvider success response.
 
+The Partner artifact likewise rejects `offer_info.min_age`, which AON derives
+for public projections. Partners declare audience age through
+`targeting[].eligibility.min_age`, an integer from 1 through 120.
+
 ## Partner-only fields
 
 | Field | Purpose | Strict stable-v1.0 rule |

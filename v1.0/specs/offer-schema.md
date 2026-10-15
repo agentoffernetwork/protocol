@@ -26,6 +26,8 @@ Partner Offer: they are AON-authored public response projection fields, not
 Partner supply fields. The same boundary applies to
 `offer_info.commercial.display_price`: it is AON-authored response presentation
 data and is rejected by Partner Offer and OfferProvider success carriers. The
+AON-derived `offer_info.min_age` follows the same boundary; Partners declare
+audience age only through `targeting[].eligibility.min_age`. The
 Partner carrier requires stable `source_offer_id`;
 AON resolves it within the configured Partner identity namespace and never
 serializes it as canonical `offer_id`.
@@ -87,7 +89,7 @@ carrier rules.
 
 | Group | Meaning |
 | --- | --- |
-| `offer_info` | Display, category, commercial and descriptive content; `commercial.price` is the original price, optional `commercial.display_price` is response-scoped presentation data, and optional `details` carries a registered supply profile |
+| `offer_info` | Display, category, commercial and descriptive content; `commercial.price` is the original price, optional `commercial.display_price` is response-scoped presentation data, optional `min_age` is the AON-derived minimum audience age, and optional `details` carries a registered supply profile |
 | `entity` | The merchant, brand, provider or publisher responsible for the offer |
 | `listing_source` | Explicit observed platform/site metadata, never inferred from an action URL |
 | `action` | The destination and operation offered to the user |

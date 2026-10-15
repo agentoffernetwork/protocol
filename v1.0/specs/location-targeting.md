@@ -30,9 +30,12 @@ Each location entry is a closed object containing exactly one numeric-string
 Display names, country strings, coordinates, and external subdivision codes
 are not substitutes for `location_id` in an Offer.
 
-`eligibility.min_age` is an integer from 13 through 120. It declares an Offer
+`eligibility.min_age` is an integer from 1 through 120. It declares an Offer
 eligibility threshold; it is not a request to collect or infer a person's date
-of birth.
+of birth. Because `verified_age_over` starts at 13, a `min_age` of 13 or lower
+never fails age evaluation and serves only as an audience declaration. Public
+projections expose the declared minimum as `offer_info.min_age`, as defined in
+the Offer field semantics.
 
 The exact structural source is the current
 [Offer JSON Schema](https://github.com/agentoffernetwork/schema/blob/main/v1.0/json-schema/offer-schema.json).

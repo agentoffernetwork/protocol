@@ -3,9 +3,10 @@
 > **Current canonical contract**
 >
 > Wire version `1.0` defines two separate trust boundaries: an Offer Provider
-> reports a conversion to AON, and AON delivers an attributed conversion to a
-> Developer Application / Agent callback. Runtime rollout is independent from
-> contract adoption; see [Rollout boundary](#9-rollout-boundary).
+> reports a conversion (or reverses one) to AON over a single `GET` query-string
+> binding, and AON delivers an attributed conversion event to a Developer
+> Application / Agent callback. Runtime rollout is independent from contract
+> adoption; see [Rollout boundary](#9-rollout-boundary).
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are normative.
 
@@ -13,86 +14,131 @@ The key words **MUST**, **MUST NOT**, **SHOULD**, and **MAY** are normative.
 
 This specification defines:
 
-- **Provider → AON:** current JSON Postback intake at
-  `POST /v1/postback/{partner_id}`;
+- **Provider → AON:** the single Postback intake binding,
+  `GET /v1/postback/{partner_id}?...`, for reporting a Goal conversion and for
+  reversing a previously reported Goal conversion;
 - **AON → Agent:** current signed conversion and earning-status webhook delivery to a registered
   Developer Application callback; and
-- the fail-closed selection and rollout boundaries that prevent either
-  direction from being silently interpreted as another protocol version.
+- the retirement of the former JSON body lane and the rollout boundaries that
+  prevent either direction from being silently interpreted as another protocol
+  version.
 
-The machine-readable sources define payload fields, requiredness, data types,
-patterns, paired fields, exactly-one constraints, and closed-object behavior.
-Resolve these public paths in the
+Provider → AON parameters are defined by the authoritative query parameter
+table in section 2.3; that table is the Provider-side field authority. The
+machine-readable sources below define the Agent payload, the shared Goal
+grammar, and the public type names. Resolve these public paths in the
 [`agentoffernetwork/schema`](https://github.com/agentoffernetwork/schema)
 repository at the commit recorded by the protected release manifest:
 
-- Provider payload: `v1.0/json-schema/postback-partner-payload.json`
 - Agent payload: `v1.0/json-schema/postback-agent-payload.json`
 - shared Goal identity: `v1.0/json-schema/goal-event-name.json`
 - public TypeScript contract names and response types:
   `v1.0/types/postback.types.ts`
 - Provider semantic validation: `v1.0/validators/postback-semantics.mjs`
+- retired Provider JSON body: `v1.0/json-schema/postback-partner-payload.json`
+  (deprecated; retained only to describe the retired JSON body lane in
+  section 2.4 and as the value-grammar reference for the shared field names)
 
-This document does not duplicate those field definitions. If prose and a
-machine-readable payload constraint disagree, the matching v1.0 JSON Schema is
-the payload-shape authority. Semantic rules that depend on the attributed
-Offer, pricing model, identity history, or transport state remain normative in
-this specification and the semantic validator.
+If prose and a machine-readable Agent payload constraint disagree, the matching
+v1.0 JSON Schema is the payload-shape authority for what AON sends; receivers
+apply the tolerance rule in section 5.3. Semantic rules that depend on
+the attributed Offer, pricing model, identity history, settlement state, or
+transport state remain normative in this specification and the semantic
+validator.
 
 Provider intake does **not** define a Partner-to-AON HMAC, nonce, or Agent API
 key. The `partner_id`, configured route scope, enablement, and IP policy form
-that inbound trust boundary. Agent callback credentials are separate and MUST
-NOT be reused as Provider credentials.
+that inbound trust boundary for both conversions and reversals. Agent callback
+credentials are separate and MUST NOT be reused as Provider credentials.
 
-## 2. Provider → AON version and transport selection
+## 2. Provider → AON transport
 
-### 2.1 Header-first selector
+### 2.1 Single query-string binding
 
-Version selection MUST run before query extraction, query/body merge, form
-decoding, or conversion-event processing.
-
-| `AON-Protocol-Version` state | Selected lane | Required behavior |
-| --- | --- | --- |
-| Exactly one value equal to `1.0` | v1.0 canonical | Lock the request to this specification. |
-| Header absent | reject | Return `unsupported_protocol_version` before durable intake or financial processing. |
-| Empty, duplicated, malformed, invalidly encoded, historical, approximate, range, or any other value | reject | Return `unsupported_protocol_version` before durable intake or financial processing. |
-
-Header uniqueness is evaluated before comma joining or choosing a first/last
-value. A duplicate header is invalid even when both values are `1.0`.
-Because no current lane was selected, selector failures MUST NOT include an
-`AON-Protocol-Version: 1.0` response header. Responses include that header only
-after the unique exact `1.0` request value has selected the current lane.
-
-After the exact `1.0` value selects the current lane, the deployment-level
-current-intake gate is evaluated. When that gate is closed, AON MUST return
-`503` with reason `postback_v10_unavailable`, `retryable=true`, and `data={}`.
-It MUST NOT invoke durable Postback intake, settlement, or outbound enqueue.
-
-### 2.2 Endpoint and media type
-
-The canonical Provider request is:
+The canonical Provider request is an HTTP `GET` whose parameters are carried
+only in the query string:
 
 ```text
-POST {aon_base_url}/v1/postback/{partner_id}
-Content-Type: application/json
-AON-Protocol-Version: 1.0
+GET {aon_base_url}/v1/postback/{partner_id}?aon_click_id={aon_click_id}&event_name={event_name}[&event_id=...|&order_id=...|&partner_txn_id=...][&amount=...&currency=...]
 ```
 
-The current lane accepts only `POST`, a JSON media type, no query string, and
-one JSON object body conforming to the Provider payload schema. `GET`, form
-data, query fields, `event_params_base64`, and non-JSON content are not current
-v1.0 inputs. The payload MUST NOT contain a `version` field; the HTTP header is
-the single version selector. Unknown fields are rejected by the closed schema.
+A reversal uses the same URL with two additional parameters (section 3.5):
 
-The route's configured Partner scope, enablement, and IP policy still apply.
-They do not alter the payload contract and cannot redirect a selected v1.0
-request into another version lane.
+```text
+GET {aon_base_url}/v1/postback/{partner_id}?aon_click_id={aon_click_id}&event_name={event_name}[&order_id=...]&action=reversal&reason=refunded
+```
+
+- The request has no body and no protocol-version header. The binding itself
+  is the version; there is no `version` parameter.
+- Parameter values are UTF-8, percent-encoded per RFC 3986. AON decodes each
+  value once before validation. Each defined parameter MUST appear at most
+  once.
+- `aon_click_id` is the RECOMMENDED attribution anchor. Providers SHOULD
+  configure their Postback URL template with the AON click macro so that every
+  conversion and reversal carries `aon_click_id`.
+- Query parameters that are not defined in section 2.3 carry no meaning in this
+  contract. A Provider MUST NOT rely on any undefined parameter, alias, or
+  alternative method; deployment-specific compatibility tolerance is outside
+  this contract.
+
+The route's configured Partner scope, enablement, and IP policy apply equally
+to conversions and reversals. They do not alter the parameter contract.
 
 `partner_id` is the UUID assigned to the Provider route. The canonical HTTP
 examples use a syntactically valid UUID so they can be sent without replacing a
 non-runtime placeholder.
 
-## 3. Provider payload semantics
+### 2.2 Request kinds
+
+`action` selects the request kind. It is matched case-insensitively.
+
+| `action` | Request kind | Defined in |
+| --- | --- | --- |
+| absent, empty, or `conversion` | Report a Goal conversion | sections 3.1 – 3.4 |
+| `reversal` | Reverse one previously reported Goal conversion | section 3.5 |
+| any other value | reject | 400, reason `invalid_action`, before any business processing |
+
+### 2.3 Authoritative query parameter table
+
+| Parameter | Conversion | Reversal | Value rules |
+| --- | --- | --- | --- |
+| `aon_click_id` | exactly one anchor REQUIRED (RECOMMENDED) | same anchor kind and value as the conversion | Opaque AON click id, typically `aci_…`; non-empty; no surrounding whitespace. |
+| `aon_tracking_id` | exactly one anchor REQUIRED | same anchor kind and value as the conversion | Opaque AON tracking id; non-empty; no surrounding whitespace. |
+| `offer_instance_id` | exactly one anchor REQUIRED | same anchor kind and value as the conversion | UUID. |
+| `event_name` | REQUIRED | REQUIRED; the Goal of the conversion being reversed | Shared v1.0 Goal grammar `^[a-z][a-z0-9_]{0,63}$`; exact, case-sensitive Goal match (section 3.1). |
+| `event_id` | OPTIONAL business identity | see section 3.5 | 1–256 UTF-8 bytes after trim; at least one non-whitespace character; case-sensitive. |
+| `order_id` | OPTIONAL business identity | see section 3.5 | Same as `event_id`; separate namespace. |
+| `partner_txn_id` | OPTIONAL business identity | see section 3.5 | Same as `event_id`; separate namespace. |
+| `amount` | paired with `currency`; required for CPS | MUST NOT be sent | Decimal string `^(?:0\|[1-9][0-9]{0,11})(?:\.[0-9]{1,6})?$`. |
+| `currency` | paired with `amount`; required for CPS | MUST NOT be sent | ISO 4217 code `^[A-Z]{3}$`. |
+| `action` | OPTIONAL (`conversion`) | REQUIRED, `reversal` | Case-insensitive; see section 2.2. |
+| `reason` | not used | REQUIRED | One of `refunded`, `chargeback`, `merchant_cancelled`, `invalid_order`, `fraud`, `duplicate`; case-insensitive (section 3.5). |
+
+Exactly one of `aon_click_id`, `aon_tracking_id`, or `offer_instance_id` is
+present on every request (section 3.2). `event_id`, `order_id`, and
+`partner_txn_id` are the business identity aliases of section 3.4.
+Because a reversal is always a whole-conversion reversal, a reversal request
+MUST NOT carry `amount` or `currency`; AON never uses them to select or size a
+reversal. Partial amounts are not defined in this contract.
+
+### 2.4 Retired JSON body lane
+
+The former Provider lane — `POST` with a JSON body, selected by the
+`AON-Protocol-Version` request header (`0.2`, `0.3`, or `1.0`) — is retired.
+It had no production traffic when it was removed and has no transition period.
+
+A Provider → AON request that carries an `AON-Protocol-Version` header, with
+any value, MUST be rejected with HTTP `410`, reason
+`postback_json_lane_retired`, `result="rejected"`, `retryable=false`,
+`event_logged=false`, and `data={}`. This check runs before query extraction
+and before any durable intake, settlement, or outbound enqueue. The rejection
+message SHOULD point the Provider to the `GET` binding in section 2.1.
+AON MUST NOT reinterpret a retired-lane request as a `GET` binding request.
+
+The `AON-Protocol-Version` header remains part of the AON → Agent callback
+contract (section 5); this retirement applies only to Provider intake.
+
+## 3. Provider request semantics
 
 ### 3.1 Goal identity
 
@@ -106,7 +152,7 @@ A syntactically valid but undeclared event produces `result="unmapped"` with
 `reason` is the diagnostic reason code for that outcome. They are separate
 response dimensions, not interchangeable aliases. The event is not silently
 mapped to a default Goal and does not create settlement. A value that does not
-satisfy the shared grammar is an invalid payload.
+satisfy the shared grammar is an invalid request.
 
 The current Offer contract accepts only `first` and `all` as
 `dedup_strategy`. `highest` is not a v1.0 current strategy and MUST be rejected
@@ -114,16 +160,17 @@ by current schema, types, runtime validation, and rollout audits.
 
 ### 3.2 Attribution anchor
 
-The Provider schema requires exactly one of `aon_click_id`,
-`aon_tracking_id`, or `offer_instance_id`. Zero anchors and multiple anchors
-are invalid. There is no precedence rule that permits an implementation to
-discard one supplied anchor in favor of another. Anchor values are non-empty
-and MUST NOT contain surrounding whitespace; `offer_instance_id` is a UUID.
+Every request carries exactly one of `aon_click_id`, `aon_tracking_id`, or
+`offer_instance_id`. Zero anchors and multiple anchors are invalid. There is no
+precedence rule that permits an implementation to discard one supplied anchor
+in favor of another. Anchor values are non-empty and MUST NOT contain
+surrounding whitespace; `offer_instance_id` is a UUID. `aon_click_id` is the
+RECOMMENDED anchor for new integrations.
 
 ### 3.3 Revenue facts
 
-`amount` and `currency` are a pair. Their wire representation and validation
-are defined only by the Provider schema.
+`amount` and `currency` are a pair. Their value grammar is defined by the
+parameter table in section 2.3.
 
 - For a CPA Goal, the pair MAY be omitted. If either value is present, both are
   required.
@@ -138,7 +185,8 @@ binary floating-point rendering of the Provider's decimal string.
 ### 3.4 Business identity and replay
 
 `event_id`, `order_id`, and `partner_txn_id` are optional typed business
-identity aliases defined by the Provider schema. Their semantic rules are:
+identity aliases defined by the parameter table in section 2.3. Their semantic
+rules are:
 
 - values are trimmed for validation, remain case-sensitive, and MUST be no
   longer than 256 UTF-8 bytes after normalization;
@@ -170,20 +218,90 @@ A durable request hash may safely replay an intake attempt, but it MUST NOT
 replace the typed business alias rules above. Concurrent requests MUST converge
 on one claim and one financial outcome.
 
-The Provider JSON Schema marks the byte limit with
-`x-aon-maxUtf8Bytes: 256`; the canonical schema CI registers that keyword as an
-executable string validator. Implementations that do not support extension
-keywords MUST run the linked semantic validator in addition to ordinary JSON
-Schema validation.
+The 256-byte limit is measured in UTF-8 bytes after trimming. The semantic
+validator linked in section 1 is the executable reference for this limit.
+
+### 3.5 Reversal
+
+A Provider reverses a previously reported Goal conversion — for example after a
+refund, chargeback, or merchant cancellation — by sending the same `GET`
+binding with `action=reversal` and a `reason`.
+
+**Reason.** `reason` is REQUIRED for a reversal and MUST be one of:
+
+| `reason` | Meaning |
+| --- | --- |
+| `refunded` | The customer was refunded. |
+| `chargeback` | The payment was charged back. |
+| `merchant_cancelled` | The merchant cancelled the order. |
+| `invalid_order` | The order was invalid or never fulfilled. |
+| `fraud` | The conversion was fraudulent. |
+| `duplicate` | The conversion duplicated another conversion. |
+
+`reason` is matched case-insensitively and stored in lowercase. A missing or
+unknown value returns 400 `INVALID_REVERSAL_REASON`.
+
+**Target location.** AON locates exactly one previously accepted conversion
+using:
+
+1. the Partner route (`partner_id`);
+2. the same attribution anchor kind and value the conversion carried
+   (section 3.2);
+3. the same `event_name`, resolved to the same Goal; and
+4. the business identity the conversion carried, matched by the same field
+   kind and value. Identity namespaces stay separate exactly as in section 3.4:
+   a conversion bound to `order_id:x` is not located by `event_id:x`.
+
+Business identity requirements follow the Goal's `dedup_strategy`:
+
+- `dedup_strategy=first`: business identity is OPTIONAL. Anchor plus
+  `event_name` identifies the single first-wins conversion. If identity is
+  supplied, it MUST match an alias bound to that conversion.
+- `dedup_strategy=all`: business identity is REQUIRED, because the anchor and
+  Goal alone may identify several conversions. A request without identity, or
+  with identity that matches no conversion, returns 404
+  `REVERSAL_TARGET_NOT_FOUND`.
+
+If no conversion matches, AON returns 404 `REVERSAL_TARGET_NOT_FOUND`. If the
+supplied facts match more than one conversion, AON returns 409
+`REVERSAL_TARGET_AMBIGUOUS` and reverses nothing; the Provider SHOULD resend
+with the business identity used on the original conversion. A conversion that
+was recorded only as `unmapped` has no settlement and cannot be reversed.
+
+**Scope.** A reversal always reverses the whole conversion. Partial amounts
+are not defined; a reversal MUST NOT carry `amount` or `currency`, and AON
+does not use them.
+
+**Window.** A conversion is reversible until the Partner confirms the monthly
+statement that carries it. Before confirmation — including when the statement
+has been generated but not yet confirmed — the reversal succeeds and the
+conversion is removed from the unconfirmed statement. After confirmation AON
+returns 409 `REVERSAL_WINDOW_CLOSED` and changes no financial fact; the
+Partner MUST dispute the confirmed statement instead of sending a reversal.
+
+**Authorization.** A reversal is authorized exactly like a conversion: the
+same Partner route scope, enablement, and IP policy apply. No additional
+credential or allowlist requirement is defined for reversals.
+
+**Idempotency.** Each conversion can be reversed at most once. A successful
+reversal returns 200 with `result="reversed"` and `reason="REVERSED"`. A later
+reversal that locates the same, already reversed conversion returns 200 with
+`result="already_reversed"` and `reason="ALREADY_REVERSED"` and has no further
+effect, regardless of the `reason` value supplied. A Provider SHOULD treat
+both as final.
+
+**Effect.** A successful reversal moves the conversion's settlement to
+`reversed`, withdraws the Developer earning derived from it, removes it from
+conversion counts and revenue in reporting, and suppresses any Agent
+`conversion` callback or downstream export that has not been sent yet. A
+Developer Application that subscribes to earning-status events receives the
+withdrawal as `earning_rejected`.
 
 ## 4. Provider response contract
 
-Every response to a request that successfully selected the current lane MUST
-echo:
-
-```text
-AON-Protocol-Version: 1.0
-```
+Provider responses do not depend on a request version header. AON MAY include
+an `AON-Protocol-Version: 1.0` response header; a Provider MUST NOT require
+it.
 
 The outer response uses the hosted API envelope keys `code`, `message`,
 `data`, and `extra`. The response field names and result unions are defined by
@@ -195,30 +313,54 @@ v1.0 types source linked in section 1.
 For 2xx outcomes, `data` contains exactly the Provider response data:
 `result`, `event_logged`, `reason`, `correlation_id`, and `retryable`.
 Stable result classes are `accepted`, `already_recorded`, `unmapped`,
-`rejected`, and `retry`.
+`reversed`, `already_reversed`, `rejected`, and `retry`.
 
 | Outcome | Typical HTTP result | Client meaning |
 | --- | ---: | --- |
 | `accepted` | 200 | The conversion was durably accepted. |
 | `already_recorded` | 200 | This is a safe replay or first-wins duplicate; do not create another business conversion. |
 | `result="unmapped"` with `reason="UNMAPPED_EVENT"` | 200 | The event was recorded for audit but did not match a declared Goal and was not settled. |
+| `result="reversed"` with `reason="REVERSED"` | 200 | The located conversion was reversed (section 3.5). |
+| `result="already_reversed"` with `reason="ALREADY_REVERSED"` | 200 | The located conversion had already been reversed; nothing changed. |
 | identity conflict | 409 | The submitted aliases or immutable business facts conflict; correct the request rather than retrying it unchanged. |
 
 ### 4.2 Rejections and recoverable failures
 
-Every 4xx or 5xx response has `data` exactly equal to `{}`. Diagnostic fields
-appear only in `extra`, which contains `result`, `reason`, `correlation_id`,
-`retryable`, and `event_logged`.
+Rejections refused before intake (for example the retired JSON lane, 410) have
+`data` exactly equal to `{}`; their diagnostic fields appear only in `extra`,
+which contains `result`, `reason`, `correlation_id`, `retryable`, and
+`event_logged`. Other 4xx or 5xx results of the GET binding keep the same five
+diagnostic fields in `data`, with `code` set to the upper-case reason.
 
-- Schema, method, media-type, query, version, scope, and identity validation
-  failures are terminal 4xx results with `retryable=false`.
+- Parameter, method, action, scope, and identity validation failures are
+  terminal 4xx results with `retryable=false`.
+- A request that carries an `AON-Protocol-Version` header returns 410 with
+  reason `postback_json_lane_retired` and `event_logged=false` (section 2.4).
 - A pre-durable internal/configuration/context failure returns 500 with reason
   `internal_error`, `retryable=true`, and `event_logged=false`.
 - Durable intake or processing unavailability returns 503 with reason
   `postback_intake_unavailable`, `retryable=true`, and `event_logged` matching
   whether the business event was durably created.
-- A closed current-intake gate uses the distinct 503 reason
-  `postback_v10_unavailable` and `event_logged=false`.
+
+Reversal-specific outcomes:
+
+| `reason` | HTTP | `result` | Client meaning |
+| --- | ---: | --- | --- |
+| `REVERSED` | 200 | `reversed` | Reversal applied. |
+| `ALREADY_REVERSED` | 200 | `already_reversed` | Idempotent replay; no change. |
+| `REVERSAL_TARGET_NOT_FOUND` | 404 | `rejected` | No conversion matches the anchor, Goal, and business identity. Check that the same anchor and identity field kind were used on the conversion. |
+| `REVERSAL_TARGET_AMBIGUOUS` | 409 | `rejected` | More than one conversion matches; resend with the original business identity. |
+| `REVERSAL_WINDOW_CLOSED` | 409 | `rejected` | The Partner already confirmed the statement carrying this conversion; dispute the statement instead. |
+| `INVALID_REVERSAL_REASON` | 400 | `rejected` | `reason` is missing or not one of the values in section 3.5. |
+| `invalid_action` | 400 | `rejected` | `action` is not absent, `conversion`, or `reversal` (section 2.2). |
+
+Every response produced by reversal processing — including
+`REVERSAL_TARGET_NOT_FOUND`, `REVERSAL_TARGET_AMBIGUOUS`,
+`REVERSAL_WINDOW_CLOSED`, and `INVALID_REVERSAL_REASON` — reports
+`event_logged=true`, because the reversal attempt is journaled for Partner
+Postback Logs and health reporting. `invalid_action` is rejected before
+processing and reports `event_logged=false`. All reversal 4xx outcomes are
+terminal with `retryable=false`.
 
 `correlation_id` is the stable support key shared by the response, request
 journal metadata, and health/audit context. Audit storage legs are independent
@@ -243,8 +385,9 @@ the origin-form request-target.
 
 AON freezes a wire version and exact raw body when it enqueues an event:
 
-- an event accepted through the exact v1.0 Provider intake lane is stored as
-  wire `1.0` and every attempt carries the current version header.
+- a `conversion` event for a conversion accepted through the Provider `GET`
+  binding is stored as wire `1.0`, and every attempt carries the current
+  version header.
 
 The worker MUST use the stored wire version. Goal grammar validates the payload;
 it MUST NOT select a wire version. Neither the enqueue path nor worker may parse
@@ -274,7 +417,11 @@ send an unsigned or partial request.
 ### 5.3 Agent payload and size bound
 
 The exact JSON body MUST conform to the Agent payload schema linked in
-section 1. Each event branch is closed and has no payload version field.
+section 1. Each event branch is closed on the producer side and has no payload
+version field: AON emits only members this specification defines for that
+`event_type` at the revision it implements; the schema's
+`additionalProperties: false` states that producer contract. Receivers follow
+the receiver tolerance rule below.
 The conversion branch fields are listed below; earning branches are defined in
 [Earning status events](#earning-status-events).
 
@@ -283,26 +430,30 @@ The conversion branch fields are listed below; earning branches are defined in
 | `event_id` | REQUIRED | AON-generated opaque globally unique conversion-event id. |
 | `event_type` | REQUIRED | Fixed value `conversion`. |
 | `aon_click_id` | OPTIONAL | Opaque AON click id of the attributed click; begins with `aci_`, for example `aci_0192f3a4b5c67d8e9f0a1b2c3d4e5f60` (older clicks may carry a hyphenated form). Receivers MUST treat it as an opaque string. Omitted when the conversion has no attributed click. |
+| `offer_instance_id` | OPTIONAL | AON-issued identifier of the Offer delivery this conversion is attributed to: the `offer_instance_id` returned for that Offer by Query or MCP, and the value AON substitutes for the `aon_tracking_id` destination macro. One delivery can produce several clicks and conversions (for example a multi-goal Offer), so it is a correlation key, not an idempotency key — deduplicate by `(application_id, event_id)`. For offer walls AON generates it, so the receiver does not hold it in advance. Opaque string without a format guarantee; leading and trailing whitespace removed; omitted when absent. |
 | `offer_id` | REQUIRED | Converted Offer identifier. |
 | `application_id` | REQUIRED | Developer Application identifier, for example `app_demoApplication1`. |
 | `placement_id` | OPTIONAL | Developer placement identifier, for example `plc_demoPlacement001`. Omitted when absent. |
 | `event_name` | REQUIRED | Exact value of the matched Offer Goal. |
-| `amount` | REQUIRED | Developer expected net earning in USD, as a JSON number; see below. |
+| `amount` | REQUIRED | Developer expected net earning in USD, as a JSON string with exactly six fractional digits; see below. |
 | `currency` | REQUIRED | Always `USD`. |
 | `sub_id`, `sub_id_2` … `sub_id_5` | OPTIONAL | Developer attribution slots inherited from the click. |
 | `timestamp` | REQUIRED | Conversion event time. |
 
 The frozen body serializes fields in this order, omitting each optional field
-when absent: `event_id`, `event_type`, `aon_click_id`, `offer_id`,
-`application_id`, `placement_id`, `event_name`, `amount`, `currency`, `sub_id`,
+when absent: `event_id`, `event_type`, `aon_click_id`, `offer_instance_id`,
+`offer_id`, `application_id`, `placement_id`, `event_name`, `amount`, `currency`, `sub_id`,
 `sub_id_2` … `sub_id_5`, `timestamp`.
 
 `amount` and `currency` are always present. `amount` is the Developer's
 expected net earning for this conversion: the settlement commission minus the
 platform fee, converted to USD with the settlement's frozen FX rate, rounded to
-2 decimal places, and rendered as a canonical JSON number with trailing zeros
-dropped (for example `96`, `12.5`, `0.07`). `currency` is always `USD`. A
-non-billable conversion without a settlement sends `"amount":0`. The value is
+6 decimal places for this webhook representation, and rendered as a canonical signed
+decimal string with exactly six fractional digits (for example `"96.000000"`,
+`"12.500000"`, `"0.070000"`). The exact grammar is `^-?(?:0|[1-9][0-9]*)\.[0-9]{6}(?![\s\S])`; leading zeroes, exponent notation, and a trailing line ending are invalid. Negative values preserve their sign. The underlying
+conversion amount is calculated at six decimal places; a non-billable conversion
+sends `"amount":"0.000000"`. `currency` is always `USD`. A
+non-billable conversion without a settlement sends that same zero string. The value is
 an expectation at delivery time. Risk freezes emit no event; later reversals are
 reported through the independently subscribed `earning_rejected` event.
 
@@ -311,12 +462,36 @@ reject an oversized body before HTTP delivery. A receiver MUST enforce a
 transport limit no greater than 2 MiB and MUST reject an oversized complete
 body before HMAC calculation or JSON parsing.
 
-Optional `aon_click_id`, `placement_id`, and `sub_id` fields are omitted when
-absent, never synthesized as `null`.
+Optional `aon_click_id`, `offer_instance_id`, `placement_id`, and `sub_id`
+fields are omitted when absent, never synthesized as `null`.
 The payload's `timestamp` is conversion event time; it is distinct from
 `X-AON-Timestamp`, which is attempt signing time. Payload event time is an
 RFC3339 `date-time` normalized to UTC (`Z`, `z`, or `+00:00`); non-UTC offsets
 and timezone-free values are invalid.
+
+Receiver tolerance: each event branch is closed on the producer side only. A
+receiver MUST ignore any top-level member it does not recognize for the
+event's `event_type` (including a member defined only for another event type)
+and MUST NOT reject the event for it. AON MAY add OPTIONAL top-level members to
+any event type within protocol line 1.0 without changing
+`AON-Protocol-Version`; each addition is recorded in section 12 with an RFC and
+takes a fixed position in the frozen field order. Within 1.0, AON does not
+remove or rename a REQUIRED member, change the type or meaning of an existing
+member, or add a REQUIRED member, except by an in-place revision that an RFC
+records and section 12 flags as BREAKING. A receiver that validates with the
+published schema MUST NOT use it unmodified to reject events; it MUST first
+reduce the body to recognized members as follows:
+
+1. read `event_type` and select the schema branch whose `event_type` `const`
+   equals it — if none matches, the event type is unknown and is handled by the
+   receiver's event-type rule, not by this rule;
+2. remove every top-level member that is not a key of that branch's
+   `properties`; and
+3. validate the reduced object against that branch.
+
+The signature and idempotency always use the original raw bytes. New
+`event_type` values are outside this rule; they are delivered only after the
+receiver subscribes to them.
 
 ## 6. Signature and receiver verification
 
@@ -367,8 +542,9 @@ A production receiver MUST apply this order:
 3. select exactly one current or grace secret from `X-AON-Key`;
 4. verify lowercase-hex HMAC in constant time over the exact request-target,
    raw body, and timestamp;
-5. only after HMAC succeeds, parse JSON and validate the closed Agent schema;
-   and
+5. only after HMAC succeeds, parse JSON and validate the recognized members
+   of the Agent payload for its `event_type`, ignoring unrecognized top-level
+   members (section 5.3); and
 6. apply the durable idempotency transaction in section 7 before any business
    side effect.
 
@@ -428,12 +604,17 @@ contract and MUST NOT be used as fallback for unavailable v1.0 traffic.
 ## 9. Rollout boundary
 
 Publishing this specification does not prove that a deployment accepts v1.0.
-Each environment MUST keep current intake and Agent current delivery disabled
-until its writer, schema, signing, retry, idempotency, and callback evidence is
-complete. The deployment owner must certify the exact selector/echo behavior,
-closed payloads, five-attempt retry ladder, frozen raw body, signature vectors,
-and replay rules before claiming v1.0 support. Until certification, the surface
-is `unvalidated`; an exact Provider `1.0` request fails closed as unavailable.
+Each environment MUST keep Agent current delivery disabled until its writer,
+schema, signing, retry, idempotency, and callback evidence is complete. The
+deployment owner must certify the Provider `GET` binding and parameter table,
+reversal location and window rules, retired-lane `410` rejection, Agent
+selector/echo behavior, producer-closed Agent payloads (section 5.3), five-attempt retry ladder,
+frozen raw body, signature vectors, and replay rules before claiming v1.0
+support. Until certification, the surface is `unvalidated`.
+
+A deployment MUST NOT publish the reversal binding (section 3.5) to Providers
+before it implements `action` handling; a deployment that ignores unknown
+query parameters would otherwise process a reversal request as a conversion.
 
 When v1.0 delivery is disabled or certification fails, every queued v1.0 event
 MUST remain preserved with its stored wire version and frozen raw body. It MUST
@@ -465,13 +646,39 @@ Canonical requests in the
 [`agentoffernetwork/examples`](https://github.com/agentoffernetwork/examples)
 repository are:
 
-- `v1.0/http/postback/partner/basic-conversion.http` — Provider first success;
-- `v1.0/http/postback/partner/invalid-unknown-field.http` — closed Provider
-  payload rejection;
 - `v1.0/http/postback/agent/basic-conversion.http` — signed Agent first success;
 - `v1.0/http/postback/agent/invalid-duplicate-signature.http` — duplicate
   security-header rejection; and
 - `v1.0/http/postback/agent/retry-scenario.http` — frozen-body retry sequence.
+
+The Provider examples `v1.0/http/postback/partner/basic-conversion.http` and
+`v1.0/http/postback/partner/invalid-unknown-field.http` describe the retired
+JSON body lane (section 2.4). They are retained for history only and are not
+current Provider inputs; such requests now receive `410
+postback_json_lane_retired`.
+
+Canonical Provider `GET` requests:
+
+```http
+### Conversion — expected 200, result=accepted, reason=null
+GET https://aon-deployment.example/v1/postback/019f5f65-dbc1-7c3c-9ef9-9d6d2d8ae001?aon_click_id=aci_0192f3a4b5c67d8e9f0a1b2c3d4e5f60&event_name=subscription&order_id=ord_10001&amount=120.00&currency=USD HTTP/1.1
+
+### Reversal — expected 200, result=reversed, reason=REVERSED
+GET https://aon-deployment.example/v1/postback/019f5f65-dbc1-7c3c-9ef9-9d6d2d8ae001?aon_click_id=aci_0192f3a4b5c67d8e9f0a1b2c3d4e5f60&event_name=subscription&order_id=ord_10001&action=reversal&reason=refunded HTTP/1.1
+
+### Same reversal replayed — expected 200, result=already_reversed, reason=ALREADY_REVERSED
+
+### Reversal with a different identity kind (event_id instead of order_id)
+### Expected 404, data={}, extra.reason=REVERSAL_TARGET_NOT_FOUND
+GET https://aon-deployment.example/v1/postback/019f5f65-dbc1-7c3c-9ef9-9d6d2d8ae001?aon_click_id=aci_0192f3a4b5c67d8e9f0a1b2c3d4e5f60&event_name=subscription&event_id=ord_10001&action=reversal&reason=refunded HTTP/1.1
+
+### Retired JSON lane — expected 410, data={}, extra.reason=postback_json_lane_retired
+POST https://aon-deployment.example/v1/postback/019f5f65-dbc1-7c3c-9ef9-9d6d2d8ae001 HTTP/1.1
+Content-Type: application/json
+AON-Protocol-Version: 1.0
+
+{"event_name":"subscription","aon_click_id":"aci_0192f3a4b5c67d8e9f0a1b2c3d4e5f60"}
+```
 
 Canonical conformance gates MUST fail when schema, Goal grammar, types, vectors,
 examples, signatures, or source bindings drift from this contract. Runtime,
@@ -492,11 +699,14 @@ OpenAPI, and SDK certification remains deployment- or owner-specific.
 
 ## Earning status events
 
-The existing Agent payload schema uses five closed `oneOf` branches, selected by
-`event_type`: `conversion`, `earning_confirmed`, `earning_available`,
-`earning_paid_out`, and `earning_rejected`. The conversion branch and its signed
-bytes are unchanged. All events use the same endpoint, headers, raw-body HMAC,
-2 MiB limit, durable idempotency rule and five-attempt retry ladder.
+The current Agent payload schema uses five closed `oneOf` branches (producer
+contract; see section 5.3), selected by `event_type`: `conversion`, `earning_confirmed`, `earning_available`,
+`earning_paid_out`, and `earning_rejected`. All five branches represent `amount`
+as a signed USD decimal string with exactly six fractional digits. This in-place
+v1.0 extension changes the signed bytes wherever the former numeric amount was
+used; receivers must validate the amount string before applying an event. All
+events use the same endpoint, headers, raw-body HMAC, 2 MiB limit, durable
+idempotency rule and five-attempt retry ladder.
 
 | Event | Meaning |
 | --- | --- |
@@ -508,8 +718,9 @@ bytes are unchanged. All events use the same endpoint, headers, raw-body HMAC,
 Earning bodies have this exact field order. Optional fields are omitted, never null:
 
 ```text
-event_id, event_type, earning_id, sequence, conversion_event_id, offer_id,
-application_id, placement_id?, amount, currency, reason?, timestamp
+event_id, event_type, earning_id, sequence, conversion_event_id,
+offer_instance_id?, offer_id, application_id, placement_id?, amount, currency,
+reason?, sub_id?, sub_id_2?, sub_id_3?, sub_id_4?, sub_id_5?, timestamp
 ```
 
 | Field | Meaning |
@@ -519,18 +730,21 @@ application_id, placement_id?, amount, currency, reason?, timestamp
 | `earning_id` | Lowercase hyphenated settlement UUID, identical to the Earnings API id. |
 | `sequence` | Positive JSON integer increasing within this earning; gaps are allowed. |
 | `conversion_event_id` | The originating conversion's event id, even if its webhook was never delivered. |
+| `offer_instance_id` | Optional. The originating conversion's `offer_instance_id`, rendered by the conversion-event rule; every earning event of that conversion carries the same value. Not unique. |
 | `offer_id` | The Earnings API Offer identity; canonical resolution may differ from the conversion's Offer id. Join events using `conversion_event_id`. |
 | `application_id` | Developer Application id. |
 | `placement_id` | Optional placement identity. |
-| `amount` | Net earning in USD, including review adjustments; rejection carries the last observed live amount, or the original amount when none was observed. |
+| `amount` | Net earning in USD, including review adjustments, as a signed decimal string with exactly six fractional digits; rejection carries the last observed live amount, or the original amount when none was observed. |
 | `currency` | Always `USD`. |
 | `reason` | Required only for `earning_rejected`; forbidden on the other earning branches. |
+| `sub_id`, `sub_id_2` … `sub_id_5` | Optional. The originating conversion's attribution slots, rendered by the same rule as the conversion event (leading and trailing whitespace removed; omitted when empty, never null). Present on every earning branch, including `earning_rejected`, even when the conversion event was never delivered. |
 | `timestamp` | Business time of this state, RFC3339 seconds in UTC (`...Z`); not a sorting key. |
+
+Earning amounts retain their existing cent precision and are rendered with six fractional digits (for example `"5.000000"` or `"4.200000"`).
 
 The `reason` closed set is `merchant_cancelled`, `duplicate`, `invalid_order`,
 `fraud`, `returned`, `reversed`, or `refund`; operator free text is never sent.
-Conversion-only fields (`event_name`, `aon_click_id`, `sub_id` through `sub_id_5`)
-are forbidden in earning bodies.
+Conversion-only fields (`event_name`, `aon_click_id`) are forbidden in earning bodies.
 
 Use `(application_id, event_id)` for deduplication. Track the largest `sequence`
 per `earning_id` for the latest state; delivery can be duplicated or arrive out
@@ -540,6 +754,15 @@ adjustments or USD rounding (even by one cent); use the amount of the earning
 event with the largest sequence. If an adjustment and rejection occur between
 two observations, the rejection may carry the amount before the adjustment.
 In rare cases a rejection is withdrawn and the earning continues.
+
+Receivers that credit their own end users by `sub_id` should key credits by
+`earning_id`: record the amount already credited for that earning, and on
+`earning_rejected` reverse only the amount already credited. A rejection can
+arrive for an earning that was never credited, or whose conversion event was
+never received; then nothing is reversed. If a later event with a larger
+`sequence` returns the earning to a non-rejected state, credit it again. When
+the conversion carried no `sub_id`, the slots are absent; the slots are only
+populated when the developer passes `sub_id` values on the click link.
 
 Each event has an independent subscription. The first earning subscription
 establishes a baseline at the configuration transaction's commit time: existing
@@ -556,5 +779,9 @@ unsubscribed intermediate states are not guaranteed to arrive.
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 1.0 | 2026-10-15 | In place (RFC-0020): conversion and earning bodies carry optional `offer_instance_id` immediately before `offer_id`; receivers MUST ignore unrecognized top-level members and AON MAY add optional members within 1.0; BREAKING for closed receivers that predate this revision (for example AON SDK ≤ 1.0.3); bodies without the value are byte-identical. |
+| 1.0 | 2026-10-13 | BREAKING, in place (RFC-0017): earning bodies carry optional `sub_id` … `sub_id_5` between `reason?` and `timestamp`, copied from the originating conversion by the conversion-event rule; closed receivers must accept them; earning bodies without `sub_id` are byte-identical. |
+| 1.0 | 2026-10-12 | Current v1.0 Agent conversion and earning webhook `amount` values are signed USD JSON strings with exactly six fractional digits; signed bytes change where the prior numeric amount was used. |
+| 1.0 | 2026-10-08 | Provider intake revised in place (WS-54): `GET /v1/postback/{partner_id}` with query parameters is the only Provider binding, defined by the authoritative parameter table (section 2.3) with `aon_click_id` as the recommended anchor; the JSON body lane selected by `AON-Protocol-Version` (`0.2`/`0.3`/`1.0`) is retired with `410 postback_json_lane_retired` and the Provider JSON Schema is deprecated. Added Goal conversion reversal (`action=reversal` + `reason`): location by anchor + `event_name` + same-kind business identity (required for `dedup_strategy=all`), whole-conversion only, reversible until the Partner confirms the statement (`REVERSAL_WINDOW_CLOSED` after), same IP policy as conversions, once per conversion; new results `reversed`/`already_reversed` and reasons `REVERSED`, `ALREADY_REVERSED`, `REVERSAL_TARGET_NOT_FOUND`, `REVERSAL_TARGET_AMBIGUOUS`, `REVERSAL_WINDOW_CLOSED`, `INVALID_REVERSAL_REASON`, `invalid_action`. Developers learn of a reversal through the earning-status `earning_rejected` event (RFC-0014). |
 | 1.0 | 2026-10-01 | Agent conversion webhook payload revised in place: `aon_tracking_id` replaced by optional `aon_click_id` (`aci_` click id), `agent_id` replaced by `application_id`, optional `placement_id` added, `amount` redefined as Developer expected net earning in USD with `currency` always `USD` and both always present, field order pinned, and receiver idempotency keyed by `(application_id, event_id)`. |
 | 1.0 | 2026-08-29 | Promoted the bidirectional canonical contract with exact `1.0` selection while preserving closed Provider JSON, shared Goal/identity/revenue semantics, event-level Agent wire version, four required security/control headers, exact-byte HMAC verification, 2 MiB bound, keyring/time/idempotency rules, and the fixed retry behavior. |

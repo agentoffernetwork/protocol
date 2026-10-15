@@ -101,10 +101,36 @@ payload.
 ## Report conversions
 
 Use the [Postback contract](../specs/postback.md) for Provider-to-AON conversion
-reports. Select the current contract with `AON-Protocol-Version: 1.0`, send the
-closed JSON payload, and validate success and rejection behavior against the
-published Provider examples. This trust boundary is separate from Agent
+reports. The only binding is an HTTP `GET` with query parameters; send no body
+and no `AON-Protocol-Version` header. Carry the AON click id from the click URL
+as `aon_click_id`:
+
+```http
+GET {aon_base_url}/v1/postback/{partner_id}?aon_click_id={CLICK_ID}&event_name=purchase&order_id=ord_10001&amount=120.00&currency=USD
+```
+
+`event_name` must equal a Goal declared on the Offer. Add `amount` and
+`currency` together (required for CPS Goals) and, when you have one, a business
+identity (`event_id`, `order_id`, or `partner_txn_id`; required for
+`dedup_strategy=all`). The former JSON `POST` lane is retired and returns
+`410 postback_json_lane_retired`. This trust boundary is separate from Agent
 callback signing.
+
+### Reverse a conversion
+
+To reverse a conversion after a refund, chargeback, or cancellation, resend the
+same anchor, `event_name`, and business identity field you used on the
+conversion, plus `action=reversal` and a `reason` (`refunded`, `chargeback`,
+`merchant_cancelled`, `invalid_order`, `fraud`, or `duplicate`):
+
+```http
+GET {aon_base_url}/v1/postback/{partner_id}?aon_click_id={CLICK_ID}&event_name=purchase&order_id=ord_10001&action=reversal&reason=refunded
+```
+
+A reversal always reverses the whole conversion and is accepted only until you
+confirm the monthly statement that carries it; after that AON returns
+`409 REVERSAL_WINDOW_CLOSED` and the statement must be disputed instead. A
+repeated reversal returns `200 ALREADY_REVERSED`.
 
 ## Machine-readable metadata
 
