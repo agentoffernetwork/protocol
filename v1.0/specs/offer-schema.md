@@ -94,7 +94,7 @@ carrier rules.
 | `listing_source` | Explicit observed platform/site metadata, never inferred from an action URL |
 | `action` | The destination and operation offered to the user |
 | `material` / `claims` | User-facing creative and bounded advertiser statements, not AON endorsement |
-| `goals` | Public conversion event identity and public pricing declaration |
+| `goals` | Public conversion event identity and public pricing declaration. AON returns goals in the array order supplied by the source and preserves that source order; the order has no business meaning (it does not indicate primary/secondary goals or funnel stage). |
 | `match_reason` | AON-generated, per-request match explanation controlled by `thinking_mode` |
 
 `offer_id` is the AON-issued, globally unique inventory identity.

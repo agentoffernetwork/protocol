@@ -127,10 +127,31 @@ conversion, plus `action=reversal` and a `reason` (`refunded`, `chargeback`,
 GET {aon_base_url}/v1/postback/{partner_id}?aon_click_id={CLICK_ID}&event_name=purchase&order_id=ord_10001&action=reversal&reason=refunded
 ```
 
-A reversal always reverses the whole conversion and is accepted only until you
-confirm the monthly statement that carries it; after that AON returns
-`409 REVERSAL_WINDOW_CLOSED` and the statement must be disputed instead. A
-repeated reversal returns `200 ALREADY_REVERSED`.
+A reversal always reverses the whole conversion. Before the conversion is
+acknowledged or invoiced it is reversed outright (`200 REVERSED`). Afterwards
+AON opens a dispute for you instead (`200 REVERSAL_DISPUTED`, with the
+dispute id in `data.dispute_id`) and AON review decides it; sending the
+reversal again returns `200 REVERSAL_DISPUTE_EXISTS`. Reversal is refused only
+when the item is held (`REVERSAL_ITEM_HELD`), the statement invoice is fully
+paid (`REVERSAL_INVOICE_PAID`), a dispute on the item was already decided —
+rejected (`upheld`) or adjusted (`REVERSAL_ALREADY_ADJUDICATED`), or the settlement is settled or paid out
+(`REVERSAL_WINDOW_CLOSED`). A repeated reversal of a reversed conversion
+returns `200 ALREADY_REVERSED`.
+
+### Confirm a conversion
+
+To tell AON a conversion is valid before the monthly statement, send the same
+anchor, `event_name`, and business identity plus `action=confirm` (no `reason`,
+`amount`, or `currency`):
+
+```http
+GET {aon_base_url}/v1/postback/{partner_id}?aon_click_id={CLICK_ID}&event_name=purchase&order_id=ord_10001&action=confirm
+```
+
+AON returns `200 ACKNOWLEDGED` (or `200 ALREADY_ACKNOWLEDGED` on a repeat). The
+Developer earning becomes confirmed immediately and `earning_confirmed` is
+sent. Confirming the monthly statement acknowledges every remaining conversion
+on it, so `action=confirm` is optional.
 
 ## Machine-readable metadata
 

@@ -68,6 +68,12 @@ A reversal uses the same URL with two additional parameters (section 3.5):
 GET {aon_base_url}/v1/postback/{partner_id}?aon_click_id={aon_click_id}&event_name={event_name}[&order_id=...]&action=reversal&reason=refunded
 ```
 
+A confirm uses the same URL with `action=confirm` and no `reason` (section 3.6):
+
+```text
+GET {aon_base_url}/v1/postback/{partner_id}?aon_click_id={aon_click_id}&event_name={event_name}[&order_id=...]&action=confirm
+```
+
 - The request has no body and no protocol-version header. The binding itself
   is the version; there is no `version` parameter.
 - Parameter values are UTF-8, percent-encoded per RFC 3986. AON decodes each
@@ -96,6 +102,7 @@ non-runtime placeholder.
 | --- | --- | --- |
 | absent, empty, or `conversion` | Report a Goal conversion | sections 3.1 – 3.4 |
 | `reversal` | Reverse one previously reported Goal conversion | section 3.5 |
+| `confirm` | Acknowledge one previously reported Goal conversion | section 3.6 |
 | any other value | reject | 400, reason `invalid_action`, before any business processing |
 
 ### 2.3 Authoritative query parameter table
@@ -109,17 +116,18 @@ non-runtime placeholder.
 | `event_id` | OPTIONAL business identity | see section 3.5 | 1–256 UTF-8 bytes after trim; at least one non-whitespace character; case-sensitive. |
 | `order_id` | OPTIONAL business identity | see section 3.5 | Same as `event_id`; separate namespace. |
 | `partner_txn_id` | OPTIONAL business identity | see section 3.5 | Same as `event_id`; separate namespace. |
-| `amount` | paired with `currency`; required for CPS | MUST NOT be sent | Decimal string `^(?:0\|[1-9][0-9]{0,11})(?:\.[0-9]{1,6})?$`. |
+| `amount` | paired with `currency`; required for CPS | MUST NOT be sent (reversal and confirm) | Decimal string `^(?:0\|[1-9][0-9]{0,11})(?:\.[0-9]{1,6})?$`. |
 | `currency` | paired with `amount`; required for CPS | MUST NOT be sent | ISO 4217 code `^[A-Z]{3}$`. |
-| `action` | OPTIONAL (`conversion`) | REQUIRED, `reversal` | Case-insensitive; see section 2.2. |
-| `reason` | not used | REQUIRED | One of `refunded`, `chargeback`, `merchant_cancelled`, `invalid_order`, `fraud`, `duplicate`; case-insensitive (section 3.5). |
+| `action` | OPTIONAL (`conversion`) | REQUIRED, `reversal` or `confirm` | Case-insensitive; see section 2.2. |
+| `reason` | not used | REQUIRED for `reversal`; ignored for `confirm` | One of `refunded`, `chargeback`, `merchant_cancelled`, `invalid_order`, `fraud`, `duplicate`; case-insensitive (section 3.5). |
 
 Exactly one of `aon_click_id`, `aon_tracking_id`, or `offer_instance_id` is
 present on every request (section 3.2). `event_id`, `order_id`, and
 `partner_txn_id` are the business identity aliases of section 3.4.
+The Reversal and `action=confirm` columns share one locating rule (section 3.5).
 Because a reversal is always a whole-conversion reversal, a reversal request
 MUST NOT carry `amount` or `currency`; AON never uses them to select or size a
-reversal. Partial amounts are not defined in this contract.
+reversal. A confirm request is subject to the same rule. Partial amounts are not defined in this contract.
 
 ### 2.4 Retired JSON body lane
 
@@ -272,12 +280,34 @@ was recorded only as `unmapped` has no settlement and cannot be reversed.
 are not defined; a reversal MUST NOT carry `amount` or `currency`, and AON
 does not use them.
 
-**Window.** A conversion is reversible until the Partner confirms the monthly
-statement that carries it. Before confirmation — including when the statement
-has been generated but not yet confirmed — the reversal succeeds and the
-conversion is removed from the unconfirmed statement. After confirmation AON
-returns 409 `REVERSAL_WINDOW_CLOSED` and changes no financial fact; the
-Partner MUST dispute the confirmed statement instead of sending a reversal.
+**Stages.** What a reversal does depends on how far the conversion has
+progressed. AON evaluates the rows below from top to bottom and applies the
+first that matches:
+
+| Conversion stage | HTTP | `result` | `reason` |
+| --- | ---: | --- | --- |
+| Already reversed | 200 | `already_reversed` | `ALREADY_REVERSED` |
+| Its settlement is settled or paid out (not open for change) | 409 | `rejected` | `REVERSAL_WINDOW_CLOSED` |
+| Its item is held by AON risk review | 409 | `rejected` | `REVERSAL_ITEM_HELD` |
+| Invoiced, and the statement invoice is fully paid | 409 | `rejected` | `REVERSAL_INVOICE_PAID` |
+| A dispute or review already exists | 200 | `already_disputed` | `REVERSAL_DISPUTE_EXISTS` |
+| Not acknowledged and not invoiced | 200 | `reversed` | `REVERSED` |
+| A dispute on its item was already decided: rejected (`upheld`, the charge stands) or `adjusted`, invoiced or not | 409 | `rejected` | `REVERSAL_ALREADY_ADJUDICATED` |
+| Acknowledged or invoiced, still disputable | 200 | `disputed` | `REVERSAL_DISPUTED` |
+| Acknowledged or invoiced, but AON cannot open the dispute | 422 | `rejected` | `REVERSAL_DISPUTE_UNAVAILABLE` |
+
+An unacknowledged, uninvoiced conversion is reversed outright and removed from
+the unconfirmed statement. After the conversion has been acknowledged
+(section 3.6) or invoiced, a reversal no longer rewrites it: AON opens a
+dispute for the conversion with the reversal `reason` mapped to a dispute
+category and returns `result="disputed"`, and the dispute is resolved by AON
+review. Invoice amounts do not change until that review decides. If the
+dispute is accepted (the item is refunded or adjusted), a credit note offsets
+the next statement; if it is rejected (`upheld`), the charge stands. A reversal is never rejected
+merely because the conversion was acknowledged or the statement was confirmed.
+`REVERSAL_WINDOW_CLOSED` is returned only when the settlement itself is already
+settled or paid out. Responses that open or find a dispute carry `dispute_id`
+in `data`.
 
 **Authorization.** A reversal is authorized exactly like a conversion: the
 same Partner route scope, enablement, and IP policy apply. No additional
@@ -295,7 +325,40 @@ both as final.
 conversion counts and revenue in reporting, and suppresses any Agent
 `conversion` callback or downstream export that has not been sent yet. A
 Developer Application that subscribes to earning-status events receives the
-withdrawal as `earning_rejected`.
+withdrawal as `earning_rejected`. A reversal that results in a dispute
+(`result="disputed"`) does not by itself withdraw the earning: the earning is
+rejected only if the dispute is accepted and the item is refunded.
+
+### 3.6 Confirm
+
+A Provider acknowledges one previously reported Goal conversion by sending the
+same `GET` binding with `action=confirm`. Acknowledgement makes the Developer
+earning confirmed immediately, without waiting for the monthly statement to be
+confirmed. It uses the same target location, business identity rules and
+authorization as a reversal (section 3.5). The conversion MUST belong to the
+requesting Partner; otherwise it is treated as not found.
+
+`reason`, `amount`, and `currency` are not used. AON ignores them and a
+Provider SHOULD NOT send them; AON never reads an amount from a confirm.
+Acknowledgement is recorded once with its source and time; a later confirm
+returns the first acknowledgement and changes nothing. Confirming the monthly
+statement acknowledges, with source `statement`, every conversion on it that is
+not yet acknowledged, so a Provider that never sends `action=confirm` is
+unaffected.
+
+| `reason` | HTTP | `result` | Client meaning |
+| --- | ---: | --- | --- |
+| `ACKNOWLEDGED` | 200 | `acknowledged` | First acknowledgement recorded; `data` carries `acknowledged_at` and `acknowledged_source`. |
+| `ALREADY_ACKNOWLEDGED` | 200 | `already_acknowledged` | Idempotent replay; the first `acknowledged_at` and `acknowledged_source` are returned. |
+| `ACK_TARGET_NOT_FOUND` | 404 | `rejected` | No conversion of this Partner matches. |
+| `ACK_TARGET_AMBIGUOUS` | 409 | `rejected` | More than one conversion matches; resend with the original business identity. |
+| `ACK_SETTLEMENT_NOT_CONFIRMED` | 409 | `rejected` | The conversion's settlement is not in a confirmable state (for example frozen, settled or paid out). |
+| `ACK_CONVERSION_REVERSED` | 409 | `rejected` | The conversion was already reversed or refunded. |
+| `ACK_ITEM_UNDER_REVIEW` | 409 | `rejected` | A dispute, review or hold is open on the conversion. |
+| `ACK_NOT_BILLABLE` | 422 | `rejected` | The conversion cannot yet enter a billable item. |
+
+Every confirm response reports `event_logged=true`, and every confirm 4xx
+outcome is terminal with `retryable=false`.
 
 ## 4. Provider response contract
 
@@ -310,10 +373,12 @@ v1.0 types source linked in section 1.
 
 ### 4.1 Success and durable results
 
-For 2xx outcomes, `data` contains exactly the Provider response data:
-`result`, `event_logged`, `reason`, `correlation_id`, and `retryable`.
+For 2xx outcomes, `data` contains the Provider response data:
+`result`, `event_logged`, `reason`, `correlation_id`, and `retryable`, plus the
+optional `acknowledged_at` and `acknowledged_source` (acknowledged results) or
+`dispute_id` (disputed results).
 Stable result classes are `accepted`, `already_recorded`, `unmapped`,
-`reversed`, `already_reversed`, `rejected`, and `retry`.
+`reversed`, `already_reversed`, `acknowledged`, `already_acknowledged`, `disputed`, `already_disputed`, `rejected`, and `retry`.
 
 | Outcome | Typical HTTP result | Client meaning |
 | --- | ---: | --- |
@@ -322,6 +387,10 @@ Stable result classes are `accepted`, `already_recorded`, `unmapped`,
 | `result="unmapped"` with `reason="UNMAPPED_EVENT"` | 200 | The event was recorded for audit but did not match a declared Goal and was not settled. |
 | `result="reversed"` with `reason="REVERSED"` | 200 | The located conversion was reversed (section 3.5). |
 | `result="already_reversed"` with `reason="ALREADY_REVERSED"` | 200 | The located conversion had already been reversed; nothing changed. |
+| `result="acknowledged"` with `reason="ACKNOWLEDGED"` | 200 | The conversion was acknowledged (section 3.6). |
+| `result="already_acknowledged"` with `reason="ALREADY_ACKNOWLEDGED"` | 200 | The conversion had already been acknowledged; nothing changed. |
+| `result="disputed"` with `reason="REVERSAL_DISPUTED"` | 200 | The conversion was acknowledged or invoiced, so the reversal opened a dispute instead of reversing it (section 3.5). |
+| `result="already_disputed"` with `reason="REVERSAL_DISPUTE_EXISTS"` | 200 | A dispute or review already exists for the conversion; nothing changed. |
 | identity conflict | 409 | The submitted aliases or immutable business facts conflict; correct the request rather than retrying it unchanged. |
 
 ### 4.2 Rejections and recoverable failures
@@ -350,13 +419,19 @@ Reversal-specific outcomes:
 | `ALREADY_REVERSED` | 200 | `already_reversed` | Idempotent replay; no change. |
 | `REVERSAL_TARGET_NOT_FOUND` | 404 | `rejected` | No conversion matches the anchor, Goal, and business identity. Check that the same anchor and identity field kind were used on the conversion. |
 | `REVERSAL_TARGET_AMBIGUOUS` | 409 | `rejected` | More than one conversion matches; resend with the original business identity. |
-| `REVERSAL_WINDOW_CLOSED` | 409 | `rejected` | The Partner already confirmed the statement carrying this conversion; dispute the statement instead. |
+| `REVERSAL_WINDOW_CLOSED` | 409 | `rejected` | The conversion's settlement is already settled or paid out and can no longer be changed. |
+| `REVERSAL_DISPUTED` | 200 | `disputed` | The conversion was acknowledged or invoiced; a dispute was opened and AON review decides it. `data.dispute_id` identifies it. |
+| `REVERSAL_DISPUTE_EXISTS` | 200 | `already_disputed` | A dispute or review already exists; nothing changed. `data.dispute_id` identifies it. |
+| `REVERSAL_ITEM_HELD` | 409 | `rejected` | The item is held by AON risk review. |
+| `REVERSAL_INVOICE_PAID` | 409 | `rejected` | The statement invoice carrying the conversion is fully paid. |
+| `REVERSAL_ALREADY_ADJUDICATED` | 409 | `rejected` | A dispute on the item was already decided: rejected (`upheld`, the charge stands) or `adjusted`. |
+| `REVERSAL_DISPUTE_UNAVAILABLE` | 422 | `rejected` | AON could not open the dispute (billing configuration); retry after support resolves it. |
 | `INVALID_REVERSAL_REASON` | 400 | `rejected` | `reason` is missing or not one of the values in section 3.5. |
-| `invalid_action` | 400 | `rejected` | `action` is not absent, `conversion`, or `reversal` (section 2.2). |
+| `invalid_action` | 400 | `rejected` | `action` is not absent, `conversion`, `reversal`, or `confirm` (section 2.2). |
 
 Every response produced by reversal processing — including
 `REVERSAL_TARGET_NOT_FOUND`, `REVERSAL_TARGET_AMBIGUOUS`,
-`REVERSAL_WINDOW_CLOSED`, and `INVALID_REVERSAL_REASON` — reports
+`REVERSAL_WINDOW_CLOSED`, `INVALID_REVERSAL_REASON`, and every section 3.6 outcome — reports
 `event_logged=true`, because the reversal attempt is journaled for Partner
 Postback Logs and health reporting. `invalid_action` is rejected before
 processing and reports `event_logged=false`. All reversal 4xx outcomes are
@@ -447,11 +522,14 @@ when absent: `event_id`, `event_type`, `aon_click_id`, `offer_instance_id`,
 
 `amount` and `currency` are always present. `amount` is the Developer's
 expected net earning for this conversion: the settlement commission minus the
-platform fee, converted to USD with the settlement's frozen FX rate, rounded to
-6 decimal places for this webhook representation, and rendered as a canonical signed
+platform fee, converted to USD with the settlement's frozen FX rate, truncated to
+6 decimal places, then rounded up to the next 0.01 USD (minimum `"0.010000"`
+whenever that net share is greater than zero), and rendered as a canonical signed
 decimal string with exactly six fractional digits (for example `"96.000000"`,
-`"12.500000"`, `"0.070000"`). The exact grammar is `^-?(?:0|[1-9][0-9]*)\.[0-9]{6}(?![\s\S])`; leading zeroes, exponent notation, and a trailing line ending are invalid. Negative values preserve their sign. The underlying
-conversion amount is calculated at six decimal places; a non-billable conversion
+`"12.500000"`, `"0.070000"`; a `0.001 USD` commission with a 20% platform fee
+yields `"0.010000"`). The exact grammar is `^-?(?:0|[1-9][0-9]*)\.[0-9]{6}(?![\s\S])`; leading zeroes, exponent notation, and a trailing line ending are invalid. Negative values preserve their sign. Conversions
+settled before this rounding took effect may still carry sub-cent amounts. The
+underlying conversion amount is calculated at six decimal places; a non-billable conversion
 sends `"amount":"0.000000"`. `currency` is always `USD`. A
 non-billable conversion without a settlement sends that same zero string. The value is
 an expectation at delivery time. Risk freezes emit no event; later reversals are
@@ -607,13 +685,14 @@ Publishing this specification does not prove that a deployment accepts v1.0.
 Each environment MUST keep Agent current delivery disabled until its writer,
 schema, signing, retry, idempotency, and callback evidence is complete. The
 deployment owner must certify the Provider `GET` binding and parameter table,
-reversal location and window rules, retired-lane `410` rejection, Agent
+reversal location and stage rules, confirm acknowledgement, retired-lane `410` rejection, Agent
 selector/echo behavior, producer-closed Agent payloads (section 5.3), five-attempt retry ladder,
 frozen raw body, signature vectors, and replay rules before claiming v1.0
 support. Until certification, the surface is `unvalidated`.
 
-A deployment MUST NOT publish the reversal binding (section 3.5) to Providers
-before it implements `action` handling; a deployment that ignores unknown
+A deployment MUST NOT publish the reversal or confirm binding (sections 3.5 and
+3.6) to Providers before it implements `action` handling (an older deployment
+rejects `action=confirm` with 400 `invalid_action`); a deployment that ignores unknown
 query parameters would otherwise process a reversal request as a conversion.
 
 When v1.0 delivery is disabled or certification fails, every queued v1.0 event
@@ -666,6 +745,9 @@ GET https://aon-deployment.example/v1/postback/019f5f65-dbc1-7c3c-9ef9-9d6d2d8ae
 ### Reversal — expected 200, result=reversed, reason=REVERSED
 GET https://aon-deployment.example/v1/postback/019f5f65-dbc1-7c3c-9ef9-9d6d2d8ae001?aon_click_id=aci_0192f3a4b5c67d8e9f0a1b2c3d4e5f60&event_name=subscription&order_id=ord_10001&action=reversal&reason=refunded HTTP/1.1
 
+### Confirm — expected 200, result=acknowledged, reason=ACKNOWLEDGED
+GET https://aon-deployment.example/v1/postback/019f5f65-dbc1-7c3c-9ef9-9d6d2d8ae001?aon_click_id=aci_0192f3a4b5c67d8e9f0a1b2c3d4e5f60&event_name=subscription&order_id=ord_10001&action=confirm HTTP/1.1
+
 ### Same reversal replayed — expected 200, result=already_reversed, reason=ALREADY_REVERSED
 
 ### Reversal with a different identity kind (event_id instead of order_id)
@@ -710,7 +792,7 @@ idempotency rule and five-attempt retry ladder.
 
 | Event | Meaning |
 | --- | --- |
-| `earning_confirmed` | The associated Partner statement has been confirmed. |
+| `earning_confirmed` | The conversion has been confirmed: acknowledged singly (Provider `action=confirm` or Partner portal) or with its monthly statement. |
 | `earning_available` | The earning has become available for payout. |
 | `earning_paid_out` | AON has paid out this earning in full; this does not certify receipt in the developer's bank account. This state is terminal: AON does not register further earning status events for it. |
 | `earning_rejected` | The earning was rejected by the merchant, reversed, or marked refunded in a review. |
@@ -779,6 +861,7 @@ unsubscribed intermediate states are not guaranteed to arrive.
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 1.0 | 2026-10-26 | In place (RFC-0021, amends RFC-0016 and RFC-0014): added `action=confirm` (section 3.6) with results `acknowledged`/`already_acknowledged` and reasons `ACKNOWLEDGED`, `ALREADY_ACKNOWLEDGED`, `ACK_*`; reversal now follows conversion stage (section 3.5): an acknowledged or invoiced conversion yields `disputed`/`already_disputed` (`REVERSAL_DISPUTED`, `REVERSAL_DISPUTE_EXISTS`) instead of a rejection, with new rejections `REVERSAL_ITEM_HELD`, `REVERSAL_INVOICE_PAID`, `REVERSAL_ALREADY_ADJUDICATED`, `REVERSAL_DISPUTE_UNAVAILABLE`; `REVERSAL_WINDOW_CLOSED` narrowed to settled/paid-out settlements; `earning_confirmed` redefined as conversion confirmed (single acknowledgement or monthly statement). Event names and fields are unchanged. |
 | 1.0 | 2026-10-15 | In place (RFC-0020): conversion and earning bodies carry optional `offer_instance_id` immediately before `offer_id`; receivers MUST ignore unrecognized top-level members and AON MAY add optional members within 1.0; BREAKING for closed receivers that predate this revision (for example AON SDK ≤ 1.0.3); bodies without the value are byte-identical. |
 | 1.0 | 2026-10-13 | BREAKING, in place (RFC-0017): earning bodies carry optional `sub_id` … `sub_id_5` between `reason?` and `timestamp`, copied from the originating conversion by the conversion-event rule; closed receivers must accept them; earning bodies without `sub_id` are byte-identical. |
 | 1.0 | 2026-10-12 | Current v1.0 Agent conversion and earning webhook `amount` values are signed USD JSON strings with exactly six fractional digits; signed bytes change where the prior numeric amount was used. |

@@ -21,16 +21,18 @@ its own endpoint and access details.
    bound by exact path in the machine-readable metadata below. Add
    [MCP tools](../specs/mcp-tools.md) only when your Agent exposes those tools.
    Use the [category taxonomy](../specs/category-taxonomy.md) for category ids.
-   When consuming Offer targeting, follow
-   [location and age targeting](../specs/location-targeting.md); Query v1.0
-   does not accept viewer location or age fields.
+   To target by viewer, send the optional `context.user_profile` fields
+   `location_ids`, `country`, and `verified_age_over` as the Query API defines;
+   [location and age targeting](../specs/location-targeting.md) explains how
+   Offers match them. No other viewer profile attribute is accepted.
 2. Obtain a deployed endpoint and access credentials from the relevant
    deployment owner.
 3. Send `AON-Protocol-Version: 1.0`. The request carries the current structured intent and required `intent.provenance`; bounded
    session context, `force_offer`, and `thinking_mode` are optional.
 4. Validate the response before use. The response echoes
    `protocol_version: "1.0"`, includes `request_id`, `language`, and `offers`,
-   and may include bounded `refinements` or `followup_topics` guidance.
+   and may include bounded `engagement.refinements` or
+   `engagement.followup_topics` guidance.
 5. If the Agent receives conversion callbacks, implement the
    [Postback contract](../specs/postback.md). Verify the signature over the exact
    raw body, keep receiver processing idempotent, and use the published retry
